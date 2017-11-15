@@ -12,6 +12,7 @@ import logging
 import rasterio
 import numpy as np
 import click
+from pathlib import Path
 os.environ["CPL_ZIP_ENCODING"] = "UTF-8"
 
 def do_contiguity(fname, output):
@@ -43,7 +44,9 @@ def main(output, datasets):
     logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.INFO)
     for dataset in datasets:
         path = dataset
-        contiguity = path+".contiguity.img"
+        stem = Path(path).stem
+        out = os.path.join(output, stem)
+        contiguity = out+".contiguity.img"
         logging.info("Create contiguity image " + contiguity)
         do_contiguity(path, contiguity)
 
