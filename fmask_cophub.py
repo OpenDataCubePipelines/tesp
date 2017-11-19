@@ -1,7 +1,7 @@
 # coding=utf-8
 """
 Execution method for FMask - http://pythonfmask.org - (cloud, cloud shadow, water and
-snow/ice classification), contiguous observations within band stack mask code supporting Sentinel-2 Level 1 C SAFE format zip archives hosted by the
+snow/ice classification) code supporting Sentinel-2 Level 1 C SAFE format zip archives hosted by the
 Australian Copernicus Data Hub - http://www.copernicus.gov.au/ - for direct (zip) read access
 by datacube.
 
@@ -16,25 +16,8 @@ from xml.etree import ElementTree
 from pathlib import Path
 import zipfile
 from collections import OrderedDict
-import rasterio
-import numpy as np
 import click
 os.environ["CPL_ZIP_ENCODING"] = "UTF-8"
-
-
-def do_contiguity(fname, output):
-    """
-    Write a contiguity mask file based on the intersection of valid data pixels across all
-    bands from the input file and output to the specified directory
-    """
-    bands = rasterio.open(fname)
-    ones = np.ones((bands.height, bands.width), dtype='uint8')
-    for band in bands.indexes:
-        ones &= bands.read(band) > 0
-    with rasterio.open(output, 'w', driver='HFA', width=bands.width, height=bands.height, \
-                count=1, crs=bands.crs, transform=bands.transform, dtype='uint8') as outfile: outfile.write_band(1, ones)
-    bands.close()
-    return None
 
 
 def prepare_dataset(path):
@@ -143,7 +126,6 @@ def main(output, datasets):
             vrt = str(out)+".vrt"
             angles = out+".angles.img"
             cloud = out+".cloud.img"
-            contiguity = out+".contiguity.img"
             zipfile_path = os.path.join(outpath, Path(mtd_xml).name)
             logging.info("Unzipping "+mtd_xml)
             os.system("unzip -p "+str(path)+" "+mtd_xml+" > "+zipfile_path)
@@ -153,8 +135,6 @@ def main(output, datasets):
             command_str = ' '.join(command)
             logging.info("Create  VRT " + vrt)
             os.system(command_str)
-            logging.info("Create contiguity image " + angles)
-            do_contiguity(vrt, contiguity)
             command = "fmask_sentinel2makeAnglesImage.py -i "+zipfile_path+" -o "+angles
             logging.info("Create angle file " + angles)
             os.system(command)
