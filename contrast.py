@@ -52,9 +52,7 @@ def quicklook(fname, out_fname, src_min, src_max, out_min=0, out_max=255):
         # no data locations
         nulls = numpy.zeros((ds.height, ds.width), dtype='bool')
         for band in bands:
-            data = ds.read(band)
-
-            nulls &= data == ds.nodata
+            nulls &= ds.read(band) == ds.nodata
 
         kwargs = {'driver': "GTiff",
                   'height': ds.height,
@@ -72,12 +70,13 @@ def quicklook(fname, out_fname, src_min, src_max, out_min=0, out_max=255):
 
         with rasterio.open(out_fname, 'w', **kwargs) as out_ds:
             for i, band in enumerate(bands):
-                data = ds.read(band)
-                scaled = rescale_intensity(data, in_range=(src_min, src_max),
+                scaled = rescale_intensity(ds.read(band),
+                                           in_range=(src_min, src_max),
                                            out_range=(out_min, out_max))
+                scaled = scaled.astype('uint8')
                 scaled[nulls] = 0
 
-                out_ds.write(scaled.astype('uint8'), i + 1)
+                out_ds.write(scaled, i + 1)
 
             out_ds.build_overviews(FACTORS, Resampling.average)
 
