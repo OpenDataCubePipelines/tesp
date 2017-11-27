@@ -89,8 +89,6 @@ def quicklook(fname, out_fname, src_min, src_max, out_min=0, out_max=255):
 
                 out_ds.write(scaled, i + 1)
 
-            mask = (~nulls).astype('uint8') * 255
-            out_ds.write_mask(mask)
             out_ds.build_overviews(FACTORS, Resampling.average)
 
 
