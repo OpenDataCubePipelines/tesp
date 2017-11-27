@@ -52,7 +52,7 @@ def quicklook(fname, out_fname, src_min, src_max, out_min=0, out_max=255):
         # no data locations
         nulls = numpy.zeros((ds.height, ds.width), dtype='bool')
         for band in bands:
-            nulls &= ds.read(band) == ds.nodata
+            nulls |= ds.read(band) == ds.nodata
 
         kwargs = {'driver': "GTiff",
                   'height': ds.height,
