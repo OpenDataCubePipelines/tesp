@@ -17,6 +17,17 @@ def quicklook(fname, out_fname, src_min, src_max, out_min=0, out_max=255):
     be set to 0 in the output image.
     Any non-contiguous data across the colour domain, will be set to
     zero.
+    The output is a tiled GeoTiff with JPEG compression, utilising the
+    YCBCR colour model, as well as a mask band.
+    This routine attempts to minimise memory consumption, as such
+    it reads data as needed on-the-fly, and doesn't retain all colour
+    bands in memory.
+    The same can't be said for writing to disk as this'll be in
+    rasterio's code. The pixel interleaved nature of JPEG compression
+    might require (on rasterio's end) to have all bands in memory.
+    Extra code could be written to do I/O utilising the same output
+    tile size in order to only have (y_size, x_size, bands) in memory
+    at a time.
 
     :param fname:
         A `str` containing the file pathname to an image containing
