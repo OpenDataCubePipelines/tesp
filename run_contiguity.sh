@@ -39,11 +39,16 @@ for i in `ls $1`
         gdalbuildvrt -separate -overwrite $k\10m.vrt *_B0[2-48].TIF
         gdalbuildvrt -separate -overwrite $k\20m.vrt *_B0[5-7].TIF *_B8A.TIF *_B1[0-1].TIF
         gdalbuildvrt -separate -overwrite $k\60m.vrt *_B01.TIF *_B09.TIF
-        # gdal_translate -of GTiff -ot Byte -a_nodata 0 -scale 1 3500 1 255 -b 4 -b 3 -b 2 \
-        # -co "COMPRESS=JPEG" -co "PHOTOMETRIC=YCBCR" -co "TILED=YES" \
-        # $k\10m.vrt $k\QUICKLOOK.TIF
-        python $contrast --filename $k\10m.vrt --out_fname $k\QUICKLOOK.TIF \
-          --src_min 350 --src_max 3500 --out_min 1
+        gdal_translate -of GTiff -ot Byte -a_nodata 0 -scale 1 3500 1 255 -b 4 -b 3 -b 2 \
+        -co "COMPRESS=JPEG" -co "PHOTOMETRIC=YCBCR" -co "TILED=YES" \
+        $k\10m.vrt $k\tmp.TIF
+        # python $contrast --filename $k\10m.vrt --out_fname $k\tmp.TIF \
+        #   --src_min 1 --src_max 3500 --out_min 1
+        gdalwarp -t_srs "EPSG:4326" -tap -tap -co "COMPRESS=JPEG" \
+        -co "PHOTOMETRIC=YCBCR" -co "TILED=YES" -tr 0.0001 0.0001 \
+        $k\tmp.TIF $k\QUICKLOOK.TIF
+        rm $k\tmp.TIF
+        gdaladdo -r average $k\QUICKLOOK.TIF 2 4 8 16 32
         cd $1
     done
 done
