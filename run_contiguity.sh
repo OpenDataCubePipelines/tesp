@@ -10,6 +10,7 @@
 cwd=$PWD
 contiguity=$cwd/contiguity.py
 contrast=$cwd/contrast.py
+html=$cwd/html_geojson.py
 
 # for i in `ls $1`; do for j in `ls $1/$i`; do k=`find $1/$i/$j/$3/ -wholename '*TIF' | grep $3`; gdalbuildvrt -resolution user -tr 20 20 -separate -overwrite `echo $2/$j\_ALLBANDS_20m.vrt | sed -e "s/ARD/$3/g"` $k; done; done
 
@@ -36,8 +37,11 @@ for i in `ls $1`
         k=`ls *_B02.TIF | sed -e "s/B02\.TIF//g"`
         gdalbuildvrt -resolution user -tr 20 20 -separate -overwrite $k\ALLBANDS_20m.vrt *.TIF
         python $contiguity $k\ALLBANDS_20m.vrt --output $PWD
+        gdal_translate -of GTiff $k\ALLBANDS_20m.contiguity.img $k\ALLBANDS_20m.CONTIGUITY.TIF
+        rm $k\ALLBANDS_20m.contiguity.img
+        python $html --contiguity $k\ALLBANDS_20m.CONTIGUITY.TIF
         gdalbuildvrt -separate -overwrite $k\10m.vrt *_B0[2-48].TIF
-        gdalbuildvrt -separate -overwrite $k\20m.vrt *_B0[5-7].TIF *_B8A.TIF *_B1[0-1].TIF
+        gdalbuildvrt -separate -overwrite $k\20m.vrt *_B0[5-7].TIF *_B8A.TIF *_B1[1-2].TIF
         gdalbuildvrt -separate -overwrite $k\60m.vrt *_B01.TIF *_B09.TIF
         gdal_translate -of GTiff -ot Byte -a_nodata 0 -scale 1 3500 1 255 -b 4 -b 3 -b 2 \
         -co "COMPRESS=JPEG" -co "PHOTOMETRIC=YCBCR" -co "TILED=YES" \
