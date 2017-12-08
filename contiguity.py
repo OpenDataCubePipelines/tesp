@@ -56,7 +56,7 @@ def main(output, datasets):
         path = dataset
         stem = Path(path).stem
         out = os.path.join(output, stem)
-        contiguity = out+".contiguity.img"
+        contiguity = out+".CONTIGUITY.TIF"
         logging.info("Create contiguity image " + contiguity)
         do_contiguity(path, contiguity)
 
