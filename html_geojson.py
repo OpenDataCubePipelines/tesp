@@ -1,7 +1,6 @@
 # coding=utf-8
 """
-Execution method for contiguous observations within band stack
-example usage:
+Execution method for creation of map.html and bounding geojson:
     python html_geojson.py ALLBANDS_20m.contiguity.img
 """
 from __future__ import absolute_import
