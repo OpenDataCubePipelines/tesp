@@ -1,0 +1,110 @@
+Sentinel-2 Analysis Ready Data datasets contain the following:
+
+<Scene ID>/
+
+    - README.txt # The contents of this file
+
+    <Granule ID>/
+    
+        - ARD-METADATA.yaml
+        - ARD-METADATA.xml # An ISO-19115 xml schema of ARD-METADATA.yaml
+        - <Granule ID>.cloud.img # The output of the Fmask algorithm
+
+    NBAR/
+
+        - <Image ID>_B01.TIF
+        - <Image ID>_B02.TIF
+        - <Image ID>_B03.TIF
+        - <Image ID>_B04.TIF
+        - <Image ID>_B05.TIF
+        - <Image ID>_B06.TIF
+        - <Image ID>_B07.TIF
+        - <Image ID>_B08.TIF
+        - <Image ID>_B8A.TIF
+        - <Image ID>_B09.TIF
+        - <Image ID>_B11.TIF
+        - <Image ID>_B12.TIF
+        - <Image ID>_QUICKLOOK.TIF # Colour enhanced B08, B04, B03 composite
+        - <Image ID>_ALLBANDS_20m.contiguity.img # Combine all bands at 20m resolution and form a no-data mask
+        - <Image ID>_ALLBANDS_20m.vrt # A band stack of all bands at 20m resolution
+        - <Image ID>_10m.vrt # A band stack of the native 10m resolution data
+        - <Image ID>_20m.vrt # A band stack of the native 20m resolution data
+        - <Image ID>_60m.vrt # A band stack of the native 60m resolution data
+        - <Image ID>_THUMBNAIL.JPG # JPEG version of the QUICKLOOK
+
+    NBART/
+
+        - <Image ID>_B01.TIF
+        - <Image ID>_B02.TIF
+        - <Image ID>_B03.TIF
+        - <Image ID>_B04.TIF
+        - <Image ID>_B05.TIF
+        - <Image ID>_B06.TIF
+        - <Image ID>_B07.TIF
+        - <Image ID>_B08.TIF
+        - <Image ID>_B8A.TIF
+        - <Image ID>_B09.TIF
+        - <Image ID>_B11.TIF
+        - <Image ID>_B12.TIF
+        - <Image ID>_QUICKLOOK.TIF # Colour enhanced B08, B04, B03 composite
+        - <Image ID>_ALLBANDS_20m.contiguity.img # Combine all bands at 20m resolution and form a no-data mask
+        - <Image ID>_ALLBANDS_20m.vrt # A band stack of all bands at 20m resolution
+        - <Image ID>_10m.vrt # A band stack of the native 10m resolution data
+        - <Image ID>_20m.vrt # A band stack of the native 20m resolution data
+        - <Image ID>_60m.vrt # A band stack of the native 60m resolution data
+
+
+VRT Band Order
+--------------
+
+* <Image ID>_ALLBANDS_20m.vrt 
+    B01
+    B02
+    B03
+    B04
+    B05
+    B06
+    B07
+    B08
+    B8A
+    B11
+    B12
+* <Image ID>_10m.vrt
+    B02
+    B03
+    B04
+    B08
+* <Image ID>_20m.vrt
+    B05
+    B06
+    B07
+    B8A
+    B11
+    B12
+* <Image ID>_20m.vrt
+    B01
+
+
+Band Alias
+----------
+
+* B01 Aerosols
+* B02 Blue
+* B03 Green
+* B04 Red
+* B05 Red Edge 1
+* B06 Red Edge 2
+* B07 Red Edge 3
+* B08 NIR
+* B8A Red Edge 4
+* B11 SWIR 1
+* B12 SWIR 2
+
+ADDITIONAL NOTES
+----------------
+
+* File naming conventions are inherited from the parent L1C granule for each dataset.
+* The files written as the IMAGINE image format (*.img) may change in later releases to a GeoTiff.
+* Band 10 is not included because the cirrus band wavelength interval is not suitable for surface reflectance (incident radiation does not reach the ground)
+* vrt are GDAL Virtual Raster Transform format files which provide a virtual aggregation of image bands to facilitate ease of user interaction within a image processing tool of GIS package
+* TIF files are generated using a cloud optimised GeoTIFF creation method
