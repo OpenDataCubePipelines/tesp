@@ -11,7 +11,7 @@ cwd=$PWD
 contiguity=$cwd/contiguity.py
 contrast=$cwd/contrast.py
 html=$cwd/html_geojson.py
-readme=$cwd/README
+readme=$cwd/_README
 
 # for i in `ls $1`; do for j in `ls $1/$i`; do k=`find $1/$i/$j/$3/ -wholename '*TIF' | grep $3`; gdalbuildvrt -resolution user -tr 20 20 -separate -overwrite `echo $2/$j\_ALLBANDS_20m.vrt | sed -e "s/ARD/$3/g"` $k; done; done
 
@@ -56,7 +56,7 @@ for i in `ls $1`
         -co "COMPRESS=JPEG" -co "PHOTOMETRIC=YCBCR"  $k\tmp2.TIF $k\QUICKLOOK.TIF
         rm $k\tmp2.TIF
         gdal_translate -of JPEG $k\QUICKLOOK.TIF $k\THUMBNAIL.JPG
-        cp $readme $1/$i/
+        cp $readme $1/$i/README
         cd $1
     done
 done
