@@ -36,12 +36,13 @@ for i in `ls $1`
     do for j in `ls $1/$i`
         do cd $1/$i/$j/$3
         k=`ls *_B02.TIF | sed -e "s/B02\.TIF//g"`
-        gdalbuildvrt -resolution user -tr 20 20 -separate -overwrite $k\ALLBANDS_20m.vrt *.TIF
+        rm *B09*.TIF
+        gdalbuildvrt -resolution user -tr 20 20 -separate -overwrite $k\ALLBANDS_20m.vrt *_B0[1-8].TIF *_B8A.TIF *_B1[1-2].TIF
         python $contiguity $k\ALLBANDS_20m.vrt --output $PWD
         python $html --contiguity $k\ALLBANDS_20m.CONTIGUITY.TIF
         gdalbuildvrt -separate -overwrite $k\10m.vrt *_B0[2-48].TIF
         gdalbuildvrt -separate -overwrite $k\20m.vrt *_B0[5-7].TIF *_B8A.TIF *_B1[1-2].TIF
-        gdalbuildvrt -separate -overwrite $k\60m.vrt *_B01.TIF *_B09.TIF
+        gdalbuildvrt -separate -overwrite $k\60m.vrt *_B01.TIF
         # gdal_translate -of GTiff -ot Byte -a_nodata 0 -scale 1 3500 1 255 -b 4 -b 3 -b 2 \
         # -co "COMPRESS=JPEG" -co "PHOTOMETRIC=YCBCR" -co "TILED=YES" \
         # $k\10m.vrt $k\tmp.TIF
