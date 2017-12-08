@@ -55,7 +55,7 @@ for i in `ls $1`
         -co "COMPRESS=JPEG" -co "PHOTOMETRIC=YCBCR"  $k\tmp2.TIF $k\QUICKLOOK.TIF
         rm $k\tmp2.TIF
         gdal_translate -of JPEG $k\QUICKLOOK.TIF $k\THUMBNAIL.JPG
-        cp $readme .
+        cp $readme $1/$i/
         cd $1
     done
 done
