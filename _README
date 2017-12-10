@@ -8,7 +8,7 @@ Sentinel-2 Analysis Ready Data datasets contain the following:
     
         - ARD-METADATA.yaml
         - ARD-METADATA.xml # An ISO-19115 xml schema of ARD-METADATA.yaml
-        - <Granule ID>.cloud.img # The output of the Fmask algorithm
+        - <Granule ID>.FMASK.TIM # The output of the Fmask algorithm
 
     NBAR/
 
@@ -81,7 +81,7 @@ VRT Band Order
     B8A
     B11
     B12
-* <Image ID>_20m.vrt
+* <Image ID>_60m.vrt
     B01
 
 
@@ -105,6 +105,8 @@ ADDITIONAL NOTES
 
 * File naming conventions are inherited from the parent L1C granule for each dataset.
 * The files written as the IMAGINE image format (*.img) may change in later releases to a GeoTiff.
+* Band 9 is not included as the radiative transfer is currently not evaluated correctly.
 * Band 10 is not included because the cirrus band wavelength interval is not suitable for surface reflectance (incident radiation does not reach the ground)
 * vrt are GDAL Virtual Raster Transform format files which provide a virtual aggregation of image bands to facilitate ease of user interaction within a image processing tool of GIS package
 * TIF files are generated using a cloud optimised GeoTIFF creation method
+* The FMASK image was generated using the pythonfmask module available at http://pythonfmask.org
