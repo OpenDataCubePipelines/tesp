@@ -112,4 +112,4 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    main(args.level1_path, args.filename, args.outdir)
+    main(args.level1_pathname, args.filename, args.outdir)
