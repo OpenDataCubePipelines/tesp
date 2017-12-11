@@ -49,10 +49,11 @@ def unpack(scene, granule, h5group, outdir):
             acq = [a for a in acqs if
                    a.band_name == dataset.attrs['band_name']][0]
 
-            base_dir = pjoin(splitext(basename(acq.pathname))[0], granule)
+            # base_dir = pjoin(splitext(basename(acq.pathname))[0], granule)
             base_fname = '{}.TIF'.format(splitext(basename(acq.uri))[0])
             out_fname = pjoin(outdir,
-                              base_dir.replace('L1C', 'ARD'),
+                              # base_dir.replace('L1C', 'ARD'),
+                              granule.replace('L1C', 'ARD'),
                               product,
                               base_fname.replace('L1C', product))
 
@@ -76,7 +77,8 @@ def unpack(scene, granule, h5group, outdir):
 
     # output metadata
     out_fname = pjoin(outdir,
-                      base_dir.replace('L1C', 'ARD'),
+                      # base_dir.replace('L1C', 'ARD'),
+                      granule.replace('L1C', 'ARD'),
                       'ARD-METADATA.yaml')
     with open(out_fname, 'w') as src:
         yaml.dump(tags, src, default_flow_style=False, indent=4)
