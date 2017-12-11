@@ -48,15 +48,15 @@ for i in `ls $1`
         # gdal_translate -of GTiff -ot Byte -a_nodata 0 -scale 1 3500 1 255 -b 4 -b 3 -b 2 \
         # -co "COMPRESS=JPEG" -co "PHOTOMETRIC=YCBCR" -co "TILED=YES" \
         # $k\10m.vrt $k\tmp.TIF
-        python $contrast --filename $k\10m.vrt --out_fname $k\tmp.TIF \
+        python $contrast --filename $k\10m.vrt --out_fname tmp.TIF \
         --src_min 1 --src_max 3500 --out_min 1
         gdalwarp -t_srs "EPSG:4326" -tap -tap -co "COMPRESS=JPEG" \
-        -co "PHOTOMETRIC=YCBCR" -co "TILED=YES" -tr 0.0001 0.0001 \ $k\tmp.TIF $k\tmp2.TIF
+        -co "PHOTOMETRIC=YCBCR" -co "TILED=YES" -tr 0.0001 0.0001 tmp.TIF tmp2.TIF
         rm $k\tmp.TIF
-        gdaladdo -r average $k\tmp2.TIF 2 4 8 16 32
+        gdaladdo -r average tmp2.TIF 2 4 8 16 32
         gdal_translate -co "TILED=YES" -co "COPY_SRC_OVERVIEWS=YES" \
-        -co "COMPRESS=JPEG" -co "PHOTOMETRIC=YCBCR"  $k\tmp2.TIF $k\QUICKLOOK.TIF
-        rm $k\tmp2.TIF
+        -co "COMPRESS=JPEG" -co "PHOTOMETRIC=YCBCR"  tmp2.TIF $k\QUICKLOOK.TIF
+        rm tmp2.TIF
         gdal_translate -of JPEG -outsize 10% 10% $k\QUICKLOOK.TIF $k\THUMBNAIL.JPG
         cp $readme $1/$i/README
         cd $1/$i
