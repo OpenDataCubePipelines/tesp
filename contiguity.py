@@ -31,7 +31,7 @@ def do_contiguity(fname, output):
             ones &= ds.read(band) > 0
 
     co_options = {'compress': 'deflate',
-                  'zelevel': 4,
+                  'zlevel': 4,
                   'blockxsize': xblock,
                   'blockysize': yblock}
     write_img(ones, output, cogtif=True, levels=[2, 4, 8, 16, 32],
