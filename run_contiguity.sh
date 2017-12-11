@@ -34,8 +34,9 @@ checksum=$cwd/checksum.py
 # done
 
 for i in `ls $1`
-    do for j in `ls $1/$i`
-        do cd $1/$i/$j/$3
+    do for j in `ls -d $1/$i`
+        # do cd $1/$i/$j/$3
+        do cd $1/$i/$j
         k=`ls *_B02.TIF | sed -e "s/B02\.TIF//g"`
         rm *B09*.TIF
         gdalbuildvrt -resolution user -tr 20 20 -separate -overwrite $k\ALLBANDS_20m.vrt *_B0[1-8].TIF *_B8A.TIF *_B1[1-2].TIF
@@ -58,7 +59,7 @@ for i in `ls $1`
         rm $k\tmp2.TIF
         gdal_translate -of JPEG -outsize 10% 10% $k\QUICKLOOK.TIF $k\THUMBNAIL.JPG
         cp $readme $1/$i/README
-        cd $i
+        cd $1/$i
         find $PWD/ -type f > tmp.txt
         python $checksum --filename tmp.txt
         rm tmp.txt
