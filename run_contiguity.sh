@@ -52,7 +52,7 @@ for i in `ls $1`
         --src_min 1 --src_max 3500 --out_min 1
         gdalwarp -t_srs "EPSG:4326" -tap -tap -co "COMPRESS=JPEG" \
         -co "PHOTOMETRIC=YCBCR" -co "TILED=YES" -tr 0.0001 0.0001 tmp.TIF tmp2.TIF
-        rm $k\tmp.TIF
+        rm tmp.TIF
         gdaladdo -r average tmp2.TIF 2 4 8 16 32
         gdal_translate -co "TILED=YES" -co "COPY_SRC_OVERVIEWS=YES" \
         -co "COMPRESS=JPEG" -co "PHOTOMETRIC=YCBCR"  tmp2.TIF $k\QUICKLOOK.TIF
