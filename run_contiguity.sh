@@ -34,7 +34,7 @@ checksum=$cwd/checksum.py
 # done
 
 for i in `ls $1`
-    do for j in `ls -d $1/$i`
+    do for j in NBAR NBART
         # do cd $1/$i/$j/$3
         do cd $1/$i/$j
         k=`ls *_B02.TIF | sed -e "s/B02\.TIF//g"`
