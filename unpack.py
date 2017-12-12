@@ -64,7 +64,7 @@ def unpack(scene, granule, h5group, outdir):
             write_img(dataset, out_fname, cogtif=True, levels=LEVELS,
                       nodata=dataset.attrs['no_data_value'],
                       geobox=GriddedGeoBox.from_dataset(dataset),
-                      resampling=Resampling.average,
+                      resampling=Resampling.nearest,
                       options={'blockxsize': dataset.chunks[1],
                                'blockysize': dataset.chunks[0],
                                'compress': 'deflate',
