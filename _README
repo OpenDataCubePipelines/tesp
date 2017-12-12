@@ -1,14 +1,11 @@
 Sentinel-2 Analysis Ready Data datasets contain the following:
 
-<Scene ID>/
-
-    - README.txt # The contents of this file
-
-    <Granule ID>/
+<Granule ID>/
     
-        - ARD-METADATA.yaml
-        - ARD-METADATA.xml # An ISO-19115 xml schema of ARD-METADATA.yaml
-        - <Granule ID>.FMASK.TIM # The output of the Fmask algorithm
+    - README # The contents of this file
+    - ARD-METADATA.yaml
+    - ARD-METADATA.xml # An ISO-19115 xml schema of ARD-METADATA.yaml
+    - <Granule ID>.FMASK.TIF # The output of the Fmask algorithm
 
     NBAR/
 
