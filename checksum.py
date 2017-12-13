@@ -5,26 +5,34 @@ import argparse
 from eodatasets.verify import PackageChecksum
 
 
-def main(filename):
+def main(out_fname):
     """
-    Checksum the package contents.
-    """
-    with open(filename, 'r') as src:
-        fnames = [Path(f.strip()) for f in src.readlines()]
+    Checksum all files adjacent to and heirarchially below the
+    output file.
 
+    :param out_fname:
+        The full file pathname of the file to contain the checksums.
+
+    :return:
+        None; the output is written directly to disk given by
+        `out_fname`.
+    """
+
+    out_fname = Path(out_fname)
+    files = [f for f in out_fname.parent.glob('**/*') if f.is_file()]
     chksum = PackageChecksum()
-    chksum.add_files(fnames)
-    chksum.write('CHECKSUM.SHA1')
+    chksum.add_files(files)
+    chksum.write(out_fname)
 
 
 if __name__ == '__main__':
     description = "Generate a package checksum."
     parser = argparse.ArgumentParser(description=description)
 
-    parser.add_argument("--filename", required=True,
-                        help=("The filename of the file containing "
-                              "the list of files to be checksummed."))
+    parser.add_argument("--out_fname", required=True,
+                        help=("The full file pathname of the file to contain "
+                              "the checksums."))
 
     args = parser.parse_args()
 
-    main(args.filename)
+    main(args.out_fname)

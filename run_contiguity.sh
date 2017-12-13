@@ -60,9 +60,7 @@ for i in `ls $1`
         gdal_translate -of JPEG -outsize 10% 10% $k\QUICKLOOK.TIF $k\THUMBNAIL.JPG
         cp $readme $1/$i/README
         cd $1/$i
-        find $PWD/ -type f > tmp.txt
-        python $checksum --filename tmp.txt
-        rm tmp.txt
+        python $checksum --out_fname $1/$i/CHECKSUM.sha1
         cd $1
     done
 done
