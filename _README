@@ -119,3 +119,4 @@ ADDITIONAL NOTES
 * vrt are GDAL Virtual Raster Transform format files which provide a virtual aggregation of image bands to facilitate ease of user interaction within a image processing tool of GIS package
 * TIF files are generated using a cloud optimised GeoTIFF creation method
 * The FMASK image was generated using the pythonfmask module available at http://pythonfmask.org
+* The overviews are built with Nearest Neighbour resampling, where possible. The overviews for the FMASK_QA file are built via pythonfmask
