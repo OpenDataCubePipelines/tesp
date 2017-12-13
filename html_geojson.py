@@ -29,7 +29,7 @@ def valid_region(fname, mask_value=None):
     logging.info("Valid regions for %s", fname)
     # ensure formats match
     with rasterio.open(str(fname), 'r') as dataset:
-        transform = dataset.transform
+        transform = ds.transform.to_gdal()
         img = dataset.read(1)
         if mask_value is not None:
             new_mask = img & mask_value == mask_value
