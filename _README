@@ -97,6 +97,18 @@ Band Alias
 * B11 SWIR 1
 * B12 SWIR 2
 
+
+FMASK_QA Classification Lookup
+------------------------------
+
+* 0 -> Null/Fill Value
+* 1 -> Valid
+* 2 -> Cloud
+* 3 -> Cloud Shadow
+* 4 -> Snow
+* 5 -> Water
+
+
 ADDITIONAL NOTES
 ----------------
 
