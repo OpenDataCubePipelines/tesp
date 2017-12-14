@@ -157,33 +157,15 @@ def main(output, datasets):
     outputs and write to the destination path specified by 'output'
     """
     logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.INFO)
-    outpath = os.path.abspath(output)
     for dataset in datasets:
+        outpath = os.path.join(os.path.abspath(output), dataset + '.fmask')
+        if not os.path.exists(outpath):
+            os.makedirs(outpath)
+
         path = Path(dataset)
         tasks = prepare_dataset(path)
         for i in tasks:
             fmask(path, i, outpath)
-
-            # img_dict, granule_id, mtd_xml = i
-            # out = os.path.join(output, granule_id)
-            # vrt = str(out)+".vrt"
-            # angles = out+".angles.img"
-            # cloud = out+".cloud.img"
-            # zipfile_path = os.path.join(outpath, Path(mtd_xml).name)
-            # logging.info("Unzipping "+mtd_xml)
-            # os.system("unzip -p "+str(path)+" "+mtd_xml+" > "+zipfile_path)
-            # command = ["gdalbuildvrt", "-resolution", "user", "-tr", "20", "20", "-separate", "-overwrite", vrt]
-            # for key in img_dict.keys():
-            #     command.append(" "+img_dict[key]['path'].replace('zip:', '/vsizip/').replace('!', "/"))
-            # command_str = ' '.join(command)
-            # logging.info("Create  VRT " + vrt)
-            # os.system(command_str)
-            # command = "fmask_sentinel2makeAnglesImage.py -i "+zipfile_path+" -o "+angles
-            # logging.info("Create angle file " + angles)
-            # os.system(command)
-            # command = "fmask_sentinel2Stacked.py -a "+vrt+" -z "+angles+" -o "+cloud
-            # logging.info("Create fmask output " + cloud)
-            # os.system(command)
 
             # TODO: proper final output location
             # command = ["gdal_translate", "-of", "GTiff", "-co", "COMPRESS=DEFLATE",
