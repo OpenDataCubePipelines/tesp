@@ -110,7 +110,8 @@ def fmask(dataset_path, task, outdir):
     Execute the fmask process.
     """
     img_dict, granule_id, mtd_xml = task
-    with tempfile.TemporaryDirectory(dir=outdir) as tmpdir:
+    with tempfile.TemporaryDirectory(dir=outdir,
+                                     prefix='pythonfmask-') as tmpdir:
         # filenames
         vrt_fname = os.path.join(tmpdir, granule_id + ".vrt")
         angles_fname = os.path.join(tmpdir, granule_id + ".angles.img")
