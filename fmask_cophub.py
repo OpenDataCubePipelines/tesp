@@ -6,7 +6,7 @@ Australian Copernicus Data Hub - http://www.copernicus.gov.au/ - for direct (zip
 by datacube.
 
 example usage:
-    fmask_cophub_contiguity.py S2A_MSIL1C_20170104T052712_N0204_R019_T43MDR_20170104T052713.zip
+    fmask_cophub.py S2A_MSIL1C_20170104T052712_N0204_R019_T43MDR_20170104T052713.zip
     --output /tmp/
 """
 from __future__ import absolute_import
