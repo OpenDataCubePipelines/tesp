@@ -13,6 +13,7 @@ import os
 import uuid
 import click
 import yaml
+import copy
 os.environ["CPL_ZIP_ENCODING"] = "UTF-8"
 
 def image_dict(target):
@@ -67,6 +68,7 @@ def merge(target_yaml, source_root):
         if granule == document['tile_id']:
             source = document
     # Merge source into yaml - add UUID
+    new_source = copy.deepcopy(source)
     merged_yaml = {
             'algorithm_information': target['algorithm_information'],
             'software_versions': target['software_versions'],
@@ -85,7 +87,7 @@ def merge(target_yaml, source_root):
                     'tile_reference': source['image']['tile_reference'],
                     'cloud_cover_percentage': source['image']['cloud_cover_percentage'],
                     'bands': image_dict(target_root)},
-            'lineage': {'source_datasets': source},
+            'lineage': {'source_datasets': new_source},
             }
 
     return merged_yaml
@@ -107,7 +109,7 @@ def main(targets, source):
         target_yaml = os.path.abspath(target_yaml)
         merged_yaml = merge(target_yaml, source)
         with open(target_yaml, 'w') as outfile:
-            yaml.dump(merged_yaml, outfile, default_flow_style=False)
+            yaml.safe_dump(merged_yaml, outfile, default_flow_style=False)
         logging.info("YAML target merge with source successful. Bye!")
 
 if __name__ == "__main__":
