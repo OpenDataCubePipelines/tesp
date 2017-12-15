@@ -26,29 +26,27 @@ def image_dict(target):
     nbart_match_dict = {'t-blue': 'B02', 't-green': 'B03', 't-red': 'B04', 't-nir': 'B08', 't-rededge1': 'B05',\
                   't-rededge2': 'B06', 't-rededge3': 'B07', 't-rededge4': 'B8A', 't-swir1': 'B11', 't-swir2': 'B12',\
                   't-aerosol': 'B01', 't-contiguity': 'CONTIGUITY'}
-    file_list = []
+    img_dict = {}
+
     for file in os.listdir(target):
         if '.TIF' in file:
-            file_list.append(os.path.join(os.path.abspath(target), file))        
-  
+            for band_label in nbar_match_dict.keys():
+                if nbar_match_dict[band_label] in file:
+                    img_dict[band_label] = {'path': os.path.join(target, file), 'layer': 1}
     nbar_target = os.path.join(target, 'NBAR')
-
-    img_dict = {}
+   
     for file in os.listdir(nbar_target):
         if '.TIF' in file:
             for band_label in nbar_match_dict.keys():
                 if nbar_match_dict[band_label] in file:
                     img_dict[band_label] = {'path': os.path.join(nbar_target, file), 'layer': 1}
-            path = os.path.join(nbar_target, file)      
-            file_list.append(str(path))
-    file_list = []
     nbart_target = os.path.join(target,'NBART')
     for file in os.listdir(nbart_target):
          if '.TIF' in file:
             for band_label in nbart_match_dict.keys():
                 if nbart_match_dict[band_label] in file:
                     img_dict[band_label] = {'path': os.path.join(nbart_target, file), 'layer': 1} 
-            file_list.append(str(path))
+
     return img_dict
 
 def merge(target_yaml, source_root):
