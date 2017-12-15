@@ -111,6 +111,8 @@ def main(l1_path, gaip_fname, fmask_path, yamls_path, outdir):
             with open(pjoin(out_path, 'ARD-METADATA.yaml'), 'w') as src:
                 yaml.dump(tags, src, default_flow_style=False, indent=4)
 
+            # build vrts, contiguity, quicklook, thumbnail ...
+
 
 if __name__ == '__main__':
     description = "Prepare or package a gaip output."
