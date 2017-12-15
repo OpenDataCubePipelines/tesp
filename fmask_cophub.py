@@ -158,7 +158,7 @@ def main(output, datasets):
     """
     logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.INFO)
     for dataset in datasets:
-        outpath = os.path.join(os.path.abspath(output), dataset + '.fmask')
+        outpath = os.path.join(os.path.abspath(output), dataset.name + '.fmask')
         if not os.path.exists(outpath):
             os.makedirs(outpath)
 
