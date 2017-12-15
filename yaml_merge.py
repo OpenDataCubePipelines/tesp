@@ -82,7 +82,7 @@ def merge_metadata(level1_tags, gaip_tags, package_dir):
     into a single ARD metadata yaml.
     """
     # TODO: extend yaml document to include fmask and gqa yamls
-    # Merge source into yaml - add UUID
+    # Merge tags from each input and create a UUID
     tags = copy.deepcopy(level1_tags)
     merged_yaml = {
         'algorithm_information': gaip_tags['algorithm_information'],
