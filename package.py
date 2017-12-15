@@ -15,6 +15,7 @@ from gaip.data import write_img
 from gaip.hdf5 import find
 from gaip.geobox import GriddedGeoBox
 
+from fmask_cophub import fmask_cogtif
 from yaml_merge import merge_metadata
 
 yaml.add_representer(numpy.int8, Representer.represent_int)
@@ -94,8 +95,17 @@ def main(l1_path, gaip_fname, fmask_path, yamls_path, outdir):
             else:
                 h5group = fid[granule]
 
-            out_path = pjoin(outdir, granule.replace('L1C', 'ARD'))
+            ard_granule = granule.replace('L1C', 'ARD')
+            out_path = pjoin(outdir, ard_granule)
+
+            # fmask cogtif conversion
+            fmask_cogtif(pjoin(fmask_path, '{}.cloud.img'.format(granule)),
+                         pjoin(out_path, '{}_QA.TIF'.format(ard_granule)))
+
+            # unpack the data produced by gaip
             gaip_tags = gaip_unpack(scene, granule, h5group, out_path)
+
+            # merge all the yaml documents
             tags = merge_metadata(l1_documents[granule], gaip_tags, out_path)
 
             with open(pjoin(out_path, 'ARD-METADATA.yaml'), 'w') as src:
