@@ -143,6 +143,28 @@ def fmask(dataset_path, task, outdir):
         os.system(command)
 
 
+def fmask_cogtif(fname, out_fname):
+    """
+    Convert the standard fmask output to a cloud optimised geotif.
+    """
+    command = ["gdal_translate",
+               "-of",
+               "GTiff",
+               "-co",
+               "COMPRESS=DEFLATE",
+               "-co",
+               "ZLEVEL=4",
+               "-co",
+               "PREDICTOR=2",
+               "-co",
+               "COPY_SRC_OVERVIEWS=YES",
+               fname,
+               out_fname]
+
+    logging.info("Create fmask cogtif " + out_fname)
+    os.system(command)
+
+
 @click.command(help=__doc__)
 @click.option('--output', help="Write datasets into this directory",
               type=click.Path(exists=False, writable=True, dir_okay=True))
@@ -168,11 +190,6 @@ def main(output, datasets):
         for i in tasks:
             fmask(path, i, outpath)
 
-            # TODO: proper final output location
-            # command = ["gdal_translate", "-of", "GTiff", "-co", "COMPRESS=DEFLATE",
-            #            "-co", "ZLEVEL=4", "-co", "PREDICTOR=2",
-            #            "-co", "COPY_SRC_OVERVIEWS=YES",
-            #            cloud, out+".FMASK_QA.TIF"]
 
 if __name__ == "__main__":
     main()
