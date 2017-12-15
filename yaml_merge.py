@@ -34,18 +34,18 @@ def image_dict(target):
                        'aerosol': 'B01',
                        'contiguity': 'CONTIGUITY'}
 
-    nbart_match_dict = {'t-blue': 'B02',
-                        't-green': 'B03',
-                        't-red': 'B04',
-                        't-nir': 'B08',
-                        't-rededge1': 'B05',
-                        't-rededge2': 'B06',
-                        't-rededge3': 'B07',
-                        't-rededge4': 'B8A',
-                        't-swir1': 'B11',
-                        't-swir2': 'B12',
-                        't-aerosol': 'B01',
-                        't-contiguity': 'CONTIGUITY'}
+    nbart_match_dict = {'t_blue': 'B02',
+                        't_green': 'B03',
+                        't_red': 'B04',
+                        't_nir': 'B08',
+                        't_rededge1': 'B05',
+                        't_rededge2': 'B06',
+                        't_rededge3': 'B07',
+                        't_rededge4': 'B8A',
+                        't_swir1': 'B11',
+                        't_swir2': 'B12',
+                        't_aerosol': 'B01',
+                        't_contiguity': 'CONTIGUITY'}
 
     pq_match_dict = {'pixel_quality': 'QA'}
 
