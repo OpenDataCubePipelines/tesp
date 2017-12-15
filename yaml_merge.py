@@ -20,6 +20,14 @@ def image_dict(target):
     """
     Returns a datacube-compatible dictionary of TIF image paths
     """
+<<<<<<< HEAD
+    nbar_match_dict = {'blue': 'B02', 'green': 'B03', 'red': 'B04', 'nir': 'B08', 'rededge1': 'B05',\
+                  'rededge2': 'B06', 'rededge3':'B07', 'rededge4': 'B8A',  'swir1': 'B11', 'swir2': 'B12',\
+                  'aerosol': 'B01', 'contiguity': 'CONTIGUITY', 'pixel_quality': 'QA'}     
+    nbart_match_dict = {'t-blue': 'B02', 't-green': 'B03', 't-red': 'B04', 't-nir': 'B08', 't-rededge1': 'B05',\
+                  't-rededge2': 'B06', 't-rededge3': 'B07', 't-rededge4': 'B8A', 't-swir1': 'B11', 't-swir2': 'B12',\
+                  't-aerosol': 'B01', 't-contiguity': 'CONTIGUITY'}
+=======
     nbar_match_dict = {'blue': 'B02',
                        'green': 'B03',
                        'red': 'B04',
@@ -48,10 +56,29 @@ def image_dict(target):
 
     pq_match_dict = {'pixel_quality': 'QA'}
 
+>>>>>>> 370a5c879510820cc3ea1bbf980e0112c40d32cd
     img_dict = {}
 
     for file in os.listdir(target):
         if '.TIF' in file:
+<<<<<<< HEAD
+            for band_label in nbar_match_dict.keys():
+                if nbar_match_dict[band_label] in file:
+                    img_dict[band_label] = {'path': os.path.join(target, file), 'layer': 1}
+    nbar_target = os.path.join(target, 'NBAR')
+   
+    for file in os.listdir(nbar_target):
+        if '.TIF' in file:
+            for band_label in nbar_match_dict.keys():
+                if nbar_match_dict[band_label] in file:
+                    img_dict[band_label] = {'path': os.path.join(nbar_target, file), 'layer': 1}
+    nbart_target = os.path.join(target,'NBART')
+    for file in os.listdir(nbart_target):
+         if '.TIF' in file:
+            for band_label in nbart_match_dict.keys():
+                if nbart_match_dict[band_label] in file:
+                    img_dict[band_label] = {'path': os.path.join(nbart_target, file), 'layer': 1} 
+=======
             for band_label, band_name in pq_match_dict.items():
                 if band_name in file:
                     fname = os.path.join(target, file)
@@ -72,6 +99,7 @@ def image_dict(target):
                 if band_name in file:
                     fname = os.path.join(nbart_target, file)
                     img_dict[band_label] = {'path': fname, 'layer': 1}
+>>>>>>> 370a5c879510820cc3ea1bbf980e0112c40d32cd
 
     return img_dict
 
