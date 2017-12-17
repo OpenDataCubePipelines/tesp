@@ -2,6 +2,9 @@
 
 import os
 from os.path import join as pjoin, basename, dirname, splitext, exists
+from subprocess import check_call
+import tempfile
+import glob
 import argparse
 import numpy
 import h5py
@@ -15,8 +18,11 @@ from gaip.data import write_img
 from gaip.hdf5 import find
 from gaip.geobox import GriddedGeoBox
 
-from fmask_cophub import fmask_cogtif
-from yaml_merge import merge_metadata
+from s2pkg.contiguity import do_contiguity
+from s2pkg.contrast import quicklook
+from s2pkg.fmask_cophub import fmask_cogtif
+from s2pkg.html_geojson import html_map
+from s2pkg.yaml_merge import merge_metadata
 
 yaml.add_representer(numpy.int8, Representer.represent_int)
 yaml.add_representer(numpy.uint8, Representer.represent_int)
@@ -36,6 +42,13 @@ PRODUCTS = ['NBAR', 'NBART']
 LEVELS = [2, 4, 8, 16, 32]
 
 
+def run_command(command, work_dir):
+    """
+    A simple utility to execute a subprocess command.
+    """
+    check_call(command, cwd=work_dir)
+
+
 def gaip_unpack(scene, granule, h5group, outdir):
     """
     Unpack and package the NBAR and NBART products.
@@ -47,6 +60,9 @@ def gaip_unpack(scene, granule, h5group, outdir):
         for pathname in [p for p in img_paths if '/{}/'.format(product) in p]:
 
             dataset = h5group[pathname]
+            if dataset.attrs['band_name'] == 'BAND-9':
+                continue
+
             acqs = scene.get_acquisitions(group=pathname.split('/')[0],
                                           granule=granule)
             acq = [a for a in acqs if
@@ -80,6 +96,161 @@ def gaip_unpack(scene, granule, h5group, outdir):
     return tags
 
 
+def build_vrts(outdir):
+    """
+    Build the various vrt's.
+    """
+    exe = 'gdalbuildvrt'
+
+    for product in PRODUCTS:
+        out_path = pjoin(outdir, product)
+        expr = pjoin(out_path, '*_B02.TIF')
+        base_name = basename(glob.glob(expr)[0]).replace('B02.TIF', '')
+
+        out_fname = '{}ALLBANDS_20m.vrt'.format(base_name)
+        cmd = [exe,
+               '-resolution',
+               'user',
+               '-tr',
+               '20',
+               '20',
+               '-separate',
+               '-overwrite',
+               out_fname,
+               '*_B0[1-8].TIF',
+               '*_B8A.TIF',
+               '*_B1[1-2].TIF']
+        run_command(cmd, out_path)
+
+        out_fname = '{}10m.vrt'.format(base_name)
+        cmd = [exe,
+               '-separate',
+               '-overwrite',
+               out_fname,
+               '*_B0[2-48].TIF']
+        run_command(cmd, out_path)
+
+        out_fname = '{}20m.vrt'.format(base_name)
+        cmd = [exe,
+               '-separate',
+               '-overwrite',
+               out_fname,
+               '*_B0[5-7].TIF',
+               '*_B8A.TIF',
+               '*_B1[1-2].TIF']
+        run_command(cmd, out_path)
+
+        out_fname = '{}60m.vrt'.format(base_name)
+        cmd = [exe,
+               '-separate',
+               '-overwrite',
+               out_fname,
+               '*_B01.TIF']
+        run_command(cmd, out_path)
+
+
+def create_contiguity(outdir):
+    """
+    Create the contiguity dataset for each
+    """
+    for product in PRODUCTS:
+        out_path = pjoin(outdir, product)
+        expr = pjoin(out_path, '*ALLBANDS_20m.vrt')
+        fname = glob.glob(expr)[0]
+        out_fname = fname.replace('.vrt', '_CONTIGUITY.TIF')
+
+        # create contiguity
+        do_contiguity(fname, out_fname)
+
+
+def create_html_map(outdir):
+    """
+    Create the html map and GeoJSON valid data extents files.
+    """
+    expr = pjoin(outdir, 'NBAR', '*_CONTIGUITY.TIF')
+    contiguity_fname = glob.glob(expr)[0]
+    html_fname = pjoin(outdir, 'map.html')
+    json_fname = pjoin(outdir, 'bounds.geojson')
+
+    # html valid data extents
+    html_map(contiguity_fname, html_fname, json_fname)
+
+
+def create_quicklook(outdir):
+    """
+    Create the quicklook and thumbnail images.
+    """
+    for product in PRODUCTS:
+        out_path = pjoin(outdir, product)
+        fname = glob.glob(pjoin(out_path, '*10m.vrt'))[0]
+        out_fname1 = fname.replace('10m.vrt', 'QUICKLOOK.TIF')
+        out_fname2 = fname.replace('10m.vrt', 'THUMBNAIL.TIF')
+
+        with tempfile.TemporaryDirectory(dir=out_path,
+                                         prefix='quicklook-') as tmpdir:
+
+            tmp_fname1 = pjoin(tmpdir, 'tmp1.tif')
+            tmp_fname2 = pjoin(tmpdir, 'tmp2.tif')
+            quicklook(fname, out_fname=tmp_fname1, src_min=1, src_max=3500,
+                      out_min=1)
+
+            # warp to Lon/Lat WGS84
+            cmd = ['gdalwarp',
+                   '-t_srs',
+                   '"EPSG:4326"',
+                   '-tap',
+                   '-tap',
+                   '-co',
+                   'COMPRESS=JPEG',
+                   '-co',
+                   'PHOTOMETRIC=YCBCR',
+                   '-co',
+                   'TILED=YES'
+                   '-tr',
+                   '0.0001',
+                   '0.0001',
+                   tmp_fname1,
+                   tmp_fname2]
+            run_command(cmd, out_path)
+
+            # build overviews/pyramids
+            cmd = ['gdaladdo',
+                   '-r',
+                   'average',
+                   tmp_fname2,
+                   '2',
+                   '4',
+                   '8',
+                   '16',
+                   '32']
+            run_command(cmd, out_path)
+
+            # create the cogtif
+            cmd = ['gdal_translate',
+                   '-co',
+                   'TILED=YES',
+                   '-co',
+                   'COPY_SRC_OVERVIEWS=YES',
+                   '-co',
+                   'COMPRESS=JPEG',
+                   '-co',
+                   'PHOTOMETRIC=YCBCR',
+                   tmp_fname2,
+                   out_fname1]
+            run_command(cmd, out_path)
+
+            # create the thumbnail
+            cmd = ['gdal_translate',
+                   '-of',
+                   'JPEG',
+                   '-outsize',
+                   '10%',
+                   '10%',
+                   out_fname1,
+                   out_fname2]
+            run_command(cmd, out_path)
+
+
 def main(l1_path, gaip_fname, fmask_path, yamls_path, outdir):
     """
     Main level
@@ -111,7 +282,11 @@ def main(l1_path, gaip_fname, fmask_path, yamls_path, outdir):
             with open(pjoin(out_path, 'ARD-METADATA.yaml'), 'w') as src:
                 yaml.dump(tags, src, default_flow_style=False, indent=4)
 
-            # build vrts, contiguity, quicklook, thumbnail ...
+            # vrts, contiguity, map, quicklook, thumbnail, readme, checksum
+            build_vrts(out_path)
+            create_contiguity(out_path)
+            create_html_map(out_path)
+            create_quicklook(out_path)
 
 
 if __name__ == '__main__':
