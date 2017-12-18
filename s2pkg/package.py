@@ -319,6 +319,9 @@ def package(l1_path, gaip_fname, fmask_path, yamls_path, outdir):
             ard_granule = granule.replace('L1C', 'ARD')
             out_path = pjoin(outdir, ard_granule)
 
+            if not exists(out_path):
+                os.makedirs(out_path)
+
             # fmask cogtif conversion
             fmask_cogtif(pjoin(fmask_path, '{}.cloud.img'.format(granule)),
                          pjoin(out_path, '{}_QA.TIF'.format(ard_granule)))
