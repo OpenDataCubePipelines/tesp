@@ -1,0 +1,26 @@
+#!/usr/bin/env python
+
+import argparse
+from s2pkg.package import package
+
+
+if __name__ == '__main__':
+    description = "Prepare or package a gaip output."
+    parser = argparse.ArgumentParser(description=description)
+
+    parser.add_argument("--level1-pathname", required=True,
+                        help="The level1 pathname.")
+    parser.add_argument("--gaip-filename", required=True,
+                        help="The filename of the gaip output.")
+    parser.add_argument("--fmask-pathname", required=True,
+                        help=("The pathname to the directory containing the "
+                              "fmask results for the level1 dataset."))
+    parser.add_argument("--prepare-yamls", required=True,
+                        help="The pathname to the level1 prepare yamls.")
+    parser.add_argument("--outdir", required=True,
+                        help="The output directory.")
+
+    args = parser.parse_args()
+
+    package(args.level1_pathname, args.gaip_filename, args.fmask_pathname,
+            args.prepare_yamls, args.outdir)
