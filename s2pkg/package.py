@@ -273,7 +273,30 @@ def create_checksum(outdir):
 
 def package(l1_path, gaip_fname, fmask_path, yamls_path, outdir):
     """
-    Main level
+    Package an L2 product.
+
+    :param l1_path:
+        A string containing the full file pathname to the Level-1
+        dataset.
+
+    :param gaip_fname:
+        A string containing the full file pathname to the gaip
+        output dataset.
+
+    :param fmask_path:
+        A string containing the full file pathname to the directory
+        containing the fmask datasets.
+
+    :param yamls_path:
+        A string containing the full file pathname to the yaml
+        documents for the indexed Level-1 datasets.
+
+    :param outdir:
+        A string containing the full file pathname to the directory
+        that will contain the packaged Level-2 datasets.
+
+    :return:
+        None; The packages will be written to disk directly.
     """
     scene = acquisitions(l1_path)
     with open(pjoin(yamls_path, '{}.yaml'.format(scene.label)), 'r') as src:
