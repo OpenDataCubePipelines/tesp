@@ -93,8 +93,8 @@ def html_map(contiguity_fname, html_out_fname, json_out_fname):
     #metadata = os.path.abspath(os.path.join(out_dir, "..", "ARD-METADATA.yaml"))
 
     logging.info("Create valid bounds " + json_out_fname)
-    geom = valid_region(contiguity_fname)
-    gpdsr, crs = gpd.GeoSeries([geom])
+    geom, crs = valid_region(contiguity_fname)
+    gpdsr = gpd.GeoSeries([geom])
     gpdsr.crs = crs
     gpdsr = gpdsr.to_crs({'init': 'epsg:4326'})
 
