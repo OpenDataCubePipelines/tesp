@@ -6,6 +6,7 @@ from subprocess import check_call
 import tempfile
 import glob
 import argparse
+from pkg_resources import resource_stream
 import numpy
 import h5py
 from rasterio.enums import Resampling
@@ -18,6 +19,8 @@ from gaip.data import write_img
 from gaip.hdf5 import find
 from gaip.geobox import GriddedGeoBox
 
+import s2pkg
+from s2pkg import checksum
 from s2pkg.contiguity import do_contiguity
 from s2pkg.contrast import quicklook
 from s2pkg.fmask_cophub import fmask_cogtif
@@ -251,6 +254,23 @@ def create_quicklook(outdir):
             run_command(cmd, out_path)
 
 
+def create_readme(outdir):
+    """
+    Create the readme file.
+    """
+    with resource_stream(s2pkg.__name__, '_README') as src:
+        with open(pjoin(outdir, 'README'), 'w') as out_src:
+            out_src.writelines([l.decode('utf-8') for l in src.readlines()])
+
+
+def create_checksum(outdir)
+    """
+    Create the checksum file.
+    """
+    out_fname = pjoin(outdir, 'CHECKSUM.sha1')
+    checksum(out_fname)
+
+
 def main(l1_path, gaip_fname, fmask_path, yamls_path, outdir):
     """
     Main level
@@ -287,6 +307,8 @@ def main(l1_path, gaip_fname, fmask_path, yamls_path, outdir):
             create_contiguity(out_path)
             create_html_map(out_path)
             create_quicklook(out_path)
+            create_readme(out_path)
+            create_checksum(out_path)
 
 
 if __name__ == '__main__':
