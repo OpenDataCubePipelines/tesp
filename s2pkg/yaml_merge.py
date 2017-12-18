@@ -87,7 +87,6 @@ def merge_metadata(level1_tags, gaip_tags, package_dir):
     """
     # TODO: extend yaml document to include fmask and gqa yamls
     # Merge tags from each input and create a UUID
-    tags = copy.deepcopy(level1_tags)
     merged_yaml = {
         'algorithm_information': gaip_tags['algorithm_information'],
         'software_versions': gaip_tags['software_versions'],
@@ -106,7 +105,8 @@ def merge_metadata(level1_tags, gaip_tags, package_dir):
             'tile_reference': level1_tags['image']['tile_reference'],
             'cloud_cover_percentage': level1_tags['image']['cloud_cover_percentage'],
             'bands': image_dict(package_dir)},
-        'lineage': {'source_datasets': tags},
+        'lineage': {
+            'source_datasets': {'S2MSI1C': copy.deepcopy(level1_tags)}},
         }
 
     return merged_yaml
