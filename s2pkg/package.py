@@ -6,6 +6,7 @@ from subprocess import check_call
 import tempfile
 import glob
 import argparse
+import re
 from pkg_resources import resource_stream
 import numpy
 import h5py
@@ -43,6 +44,7 @@ yaml.add_representer(numpy.ndarray, Representer.represent_list)
 
 PRODUCTS = ['NBAR', 'NBART']
 LEVELS = [2, 4, 8, 16, 32]
+PATTERN = re.compile(r'(.*_)(B[0-9][A0-9])(\.TIF)')
 
 
 def run_command(command, work_dir):
@@ -73,11 +75,13 @@ def gaip_unpack(scene, granule, h5group, outdir):
 
             # base_dir = pjoin(splitext(basename(acq.pathname))[0], granule)
             base_fname = '{}.TIF'.format(splitext(basename(acq.uri))[0])
+            match = PATTERN.match(base_fname)
+            fname = '{}{}_{}{}'.format(match[1], product, match[2], match[3])
             out_fname = pjoin(outdir,
                               # base_dir.replace('L1C', 'ARD'),
                               # granule.replace('L1C', 'ARD'),
                               product,
-                              base_fname.replace('L1C', product))
+                              fname.replace('L1C', 'ARD'))
 
             # output
             if not exists(dirname(out_fname)):
