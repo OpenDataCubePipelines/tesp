@@ -20,7 +20,7 @@ from gaip.hdf5 import find
 from gaip.geobox import GriddedGeoBox
 
 import s2pkg
-from s2pkg import checksum
+from s2pkg.checksum import checksum
 from s2pkg.contiguity import do_contiguity
 from s2pkg.contrast import quicklook
 from s2pkg.fmask_cophub import fmask_cogtif
@@ -263,7 +263,7 @@ def create_readme(outdir):
             out_src.writelines([l.decode('utf-8') for l in src.readlines()])
 
 
-def create_checksum(outdir)
+def create_checksum(outdir):
     """
     Create the checksum file.
     """
@@ -271,7 +271,7 @@ def create_checksum(outdir)
     checksum(out_fname)
 
 
-def main(l1_path, gaip_fname, fmask_path, yamls_path, outdir):
+def package(l1_path, gaip_fname, fmask_path, yamls_path, outdir):
     """
     Main level
     """
@@ -329,5 +329,5 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    main(args.level1_pathname, args.gaip_filename, args.fmask_pathname,
-         args.prepare_yamls, args.outdir)
+    package(args.level1_pathname, args.gaip_filename, args.fmask_pathname,
+            args.prepare_yamls, args.outdir)
