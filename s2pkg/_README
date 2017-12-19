@@ -4,51 +4,52 @@ Sentinel-2 Analysis Ready Data datasets contain the following:
     
     - README # The contents of this file
     - ARD-METADATA.yaml
-    - ARD-METADATA.xml # An ISO-19115 xml schema of ARD-METADATA.yaml
+    - ARD-METADATA.xml # An ISO-19115 xml schema of ARD-METADATA.yaml (To be produced in a BETA release.)
     - <Granule ID>.FMASK.TIF # The output of the Fmask algorithm
 
     NBAR/
 
-        - <Image ID>_B01.TIF
-        - <Image ID>_B02.TIF
-        - <Image ID>_B03.TIF
-        - <Image ID>_B04.TIF
-        - <Image ID>_B05.TIF
-        - <Image ID>_B06.TIF
-        - <Image ID>_B07.TIF
-        - <Image ID>_B08.TIF
-        - <Image ID>_B8A.TIF
-        - <Image ID>_B09.TIF
-        - <Image ID>_B11.TIF
-        - <Image ID>_B12.TIF
-        - <Image ID>_QUICKLOOK.TIF # Colour enhanced B08, B04, B03 composite
-        - <Image ID>_ALLBANDS_20m.contiguity.img # Combine all bands at 20m resolution and form a no-data mask
-        - <Image ID>_ALLBANDS_20m.vrt # A band stack of all bands at 20m resolution
-        - <Image ID>_10m.vrt # A band stack of the native 10m resolution data
-        - <Image ID>_20m.vrt # A band stack of the native 20m resolution data
-        - <Image ID>_60m.vrt # A band stack of the native 60m resolution data
-        - <Image ID>_THUMBNAIL.JPG # JPEG version of the QUICKLOOK
+        - <Image ID>_NBAR_B01.TIF
+        - <Image ID>_NBAR_B02.TIF
+        - <Image ID>_NBAR_B03.TIF
+        - <Image ID>_NBAR_B04.TIF
+        - <Image ID>_NBAR_B05.TIF
+        - <Image ID>_NBAR_B06.TIF
+        - <Image ID>_NBAR_B07.TIF
+        - <Image ID>_NBAR_B08.TIF
+        - <Image ID>_NBAR_B8A.TIF
+        - <Image ID>_NBAR_B09.TIF
+        - <Image ID>_NBAR_B11.TIF
+        - <Image ID>_NBAR_B12.TIF
+        - <Image ID>_NBAR_QUICKLOOK.TIF # Colour enhanced B08, B04, B03 composite
+        - <Image ID>_NBAR_ALLBANDS_20m_CONTIGUITY.img # Combine all bands at 20m resolution and form a no-data mask
+        - <Image ID>_NBAR_ALLBANDS_20m.vrt # A band stack of all bands at 20m resolution
+        - <Image ID>_NBAR_10m.vrt # A band stack of the native 10m resolution data
+        - <Image ID>_NBAR_20m.vrt # A band stack of the native 20m resolution data
+        - <Image ID>_NBAR_60m.vrt # A band stack of the native 60m resolution data
+        - <Image ID>_NBAR_THUMBNAIL.JPG # JPEG version of the QUICKLOOK
 
     NBART/
 
-        - <Image ID>_B01.TIF
-        - <Image ID>_B02.TIF
-        - <Image ID>_B03.TIF
-        - <Image ID>_B04.TIF
-        - <Image ID>_B05.TIF
-        - <Image ID>_B06.TIF
-        - <Image ID>_B07.TIF
-        - <Image ID>_B08.TIF
-        - <Image ID>_B8A.TIF
-        - <Image ID>_B09.TIF
-        - <Image ID>_B11.TIF
-        - <Image ID>_B12.TIF
-        - <Image ID>_QUICKLOOK.TIF # Colour enhanced B08, B04, B03 composite
-        - <Image ID>_ALLBANDS_20m.contiguity.img # Combine all bands at 20m resolution and form a no-data mask
-        - <Image ID>_ALLBANDS_20m.vrt # A band stack of all bands at 20m resolution
-        - <Image ID>_10m.vrt # A band stack of the native 10m resolution data
-        - <Image ID>_20m.vrt # A band stack of the native 20m resolution data
-        - <Image ID>_60m.vrt # A band stack of the native 60m resolution data
+        - <Image ID>_NBART_B01.TIF
+        - <Image ID>_NBART_B02.TIF
+        - <Image ID>_NBART_B03.TIF
+        - <Image ID>_NBART_B04.TIF
+        - <Image ID>_NBART_B05.TIF
+        - <Image ID>_NBART_B06.TIF
+        - <Image ID>_NBART_B07.TIF
+        - <Image ID>_NBART_B08.TIF
+        - <Image ID>_NBART_B8A.TIF
+        - <Image ID>_NBART_B09.TIF
+        - <Image ID>_NBART_B11.TIF
+        - <Image ID>_NBART_B12.TIF
+        - <Image ID>_NBART_QUICKLOOK.TIF # Colour enhanced B08, B04, B03 composite
+        - <Image ID>_NBART_ALLBANDS_20m_CONTIGUITY.img # Combine all bands at 20m resolution and form a no-data mask
+        - <Image ID>_NBART_ALLBANDS_20m.vrt # A band stack of all bands at 20m resolution
+        - <Image ID>_NBART_10m.vrt # A band stack of the native 10m resolution data
+        - <Image ID>_NBART_20m.vrt # A band stack of the native 20m resolution data
+        - <Image ID>_NBART_60m.vrt # A band stack of the native 60m resolution data
+        - <Image ID>_NBART_THUMBNAIL.JPG # JPEG version of the QUICKLOOK
 
 
 VRT Band Order
