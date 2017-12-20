@@ -120,7 +120,7 @@ ADDITIONAL NOTES
 * The files written as the IMAGINE image format (*.img) may change in later releases to a GeoTiff.
 * Band 9 is not included as the radiative transfer is currently not evaluated correctly.
 * Band 10 is not included because the cirrus band wavelength interval is not suitable for surface reflectance (incident radiation does not reach the ground)
-* vrt are GDAL Virtual Raster Transform format files which provide a virtual aggregation of image bands to facilitate ease of user interaction within an image processing tool of GIS package
+* vrt are GDAL Virtual Raster Transform format files which provide a virtual aggregation of image bands to facilitate ease of user interaction within an image processing tool or GIS package
 * TIF files are generated using a cloud optimised GeoTIFF creation method
 * The FMASK image was generated using the pythonfmask module available at http://pythonfmask.org
 * The overviews are built with Nearest Neighbour resampling, where possible. The overviews for the FMASK_QA file are built via pythonfmask
