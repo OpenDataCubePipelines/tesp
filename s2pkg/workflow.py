@@ -4,6 +4,7 @@ from os.path import join as pjoin, basename
 import luigi
 from luigi.local_target import LocalFileSystem
 
+from gaip.acquisition import acquisitions
 from gaip.singlefile_workflow import DataStandardisation
 from s2pkg.fmask_cophub import prepare_dataset, fmask
 from s2pkg.package import package
