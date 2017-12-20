@@ -106,13 +106,13 @@ def prepare_dataset(path):
     return tasks
 
 
-def fmask(dataset_path, task, out_fname):
+def fmask(dataset_path, task, out_fname, outdir):
     """
     Execute the fmask process.
     """
     dataset_path = Path(dataset_path)
     img_dict, granule_id, mtd_xml = task
-    with tempfile.TemporaryDirectory(dir=os.path.basename(out_fname),
+    with tempfile.TemporaryDirectory(dir=outdir,
                                      prefix='pythonfmask-') as tmpdir:
         # filenames
         vrt_fname = os.path.join(tmpdir, granule_id + ".vrt")
