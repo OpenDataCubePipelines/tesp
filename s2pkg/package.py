@@ -191,7 +191,7 @@ def create_quicklook(outdir):
         out_path = pjoin(outdir, product)
         fname = glob.glob(pjoin(out_path, '*10m.vrt'))[0]
         out_fname1 = fname.replace('10m.vrt', 'QUICKLOOK.TIF')
-        out_fname2 = fname.replace('10m.vrt', 'THUMBNAIL.TIF')
+        out_fname2 = fname.replace('10m.vrt', 'THUMBNAIL.JPG')
 
         with tempfile.TemporaryDirectory(dir=out_path,
                                          prefix='quicklook-') as tmpdir:
