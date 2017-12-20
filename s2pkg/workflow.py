@@ -110,7 +110,7 @@ class Package(luigi.Task):
                 self.work_dir, self.yamls_dir, self.pkg_dir)
 
 
-class Ard(luigi.WrapperTask):
+class ARD(luigi.WrapperTask):
 
     """
     A helper Task that issues Package Tasks for each Level-1
