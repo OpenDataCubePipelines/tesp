@@ -29,7 +29,7 @@ source {env}
 
 {daemon}
 
-luigi --module s2pkg.workflow ARD --level1-list {scene_list} --work-dir {outdir} --pkg-dir {pkgdir} --workers {workers}
+luigi --module s2pkg.workflow ARDP --level1-list {scene_list} --work-dir {outdir} --pkg-dir {pkgdir} --workers {workers}
 """)
 
 
@@ -80,7 +80,7 @@ def _submit_multiple(scattered, env, batch_logdir, batch_outdir, pkgdir,
 @click.command()
 @click.option("--level1-list", type=click.Path(exists=True, readable=True),
               help="The input level1 scene list.")
-@click.option("--outdir", type=click.Path(file_okay=False, writable=True),
+@click.option("--workdir", type=click.Path(file_okay=False, writable=True),
               help="The base output working directory.")
 @click.option("--logdir", type=click.Path(file_okay=False, writable=True),
               help="The base logging and scripts output directory.")
@@ -108,7 +108,7 @@ def _submit_multiple(scattered, env, batch_logdir, batch_outdir, pkgdir,
 
 
 # pylint: disable=too-many-arguments
-def main(level1_list, outdir, logdir, pkgdir, env, workers, nodes, memory,
+def main(level1_list, workdir, logdir, pkgdir, env, workers, nodes, memory,
          jobfs, project, queue, walltime, email, test):
     """
     Equally partition a list of scenes across n nodes and submit
@@ -121,7 +121,7 @@ def main(level1_list, outdir, logdir, pkgdir, env, workers, nodes, memory,
 
     batchid = uuid.uuid4().hex[0:10]
     batch_logdir = pjoin(logdir, 'batchid-{}'.format(batchid))
-    batch_outdir = pjoin(outdir, 'batchid-{}'.format(batchid))
+    batch_outdir = pjoin(workdir, 'batchid-{}'.format(batchid))
 
     pbs_resources = PBS_RESOURCES.format(project=project, queue=queue,
                                          walltime=walltime, memory=memory,
