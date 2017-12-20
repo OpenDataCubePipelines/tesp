@@ -26,6 +26,7 @@ def prepare_dataset(path):
     Returns a dictionary of image paths, granue id and metadata file location for the granules
     contained within the input file
     """
+    path = Path(path)
     tasks = []
     if path.suffix == '.zip':
         zipfile.ZipFile(str(path))
@@ -109,6 +110,7 @@ def fmask(dataset_path, task, out_fname):
     """
     Execute the fmask process.
     """
+    dataset_path = Path(dataset_path)
     img_dict, granule_id, mtd_xml = task
     with tempfile.TemporaryDirectory(dir=os.path.basename(out_fname),
                                      prefix='pythonfmask-') as tmpdir:
