@@ -21,7 +21,6 @@ Sentinel-2 Analysis Ready Data datasets contain the following:
         - <Image ID>_NBAR_B07.TIF
         - <Image ID>_NBAR_B08.TIF
         - <Image ID>_NBAR_B8A.TIF
-        - <Image ID>_NBAR_B09.TIF
         - <Image ID>_NBAR_B11.TIF
         - <Image ID>_NBAR_B12.TIF
         - <Image ID>_NBAR_QUICKLOOK.TIF # Colour enhanced B08, B04, B03 composite
@@ -43,7 +42,6 @@ Sentinel-2 Analysis Ready Data datasets contain the following:
         - <Image ID>_NBART_B07.TIF
         - <Image ID>_NBART_B08.TIF
         - <Image ID>_NBART_B8A.TIF
-        - <Image ID>_NBART_B09.TIF
         - <Image ID>_NBART_B11.TIF
         - <Image ID>_NBART_B12.TIF
         - <Image ID>_NBART_QUICKLOOK.TIF # Colour enhanced B08, B04, B03 composite
