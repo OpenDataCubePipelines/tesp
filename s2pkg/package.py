@@ -329,18 +329,20 @@ def package(l1_path, gaip_fname, fmask_path, yamls_path, outdir):
             # unpack the data produced by gaip
             gaip_tags = gaip_unpack(scene, granule, h5group, out_path)
 
-            # merge all the yaml documents
-            tags = merge_metadata(l1_documents[granule], gaip_tags, out_path)
-
-            with open(pjoin(out_path, 'ARD-METADATA.yaml'), 'w') as src:
-                yaml.dump(tags, src, default_flow_style=False, indent=4)
-
             # vrts, contiguity, map, quicklook, thumbnail, readme, checksum
             build_vrts(out_path)
             create_contiguity(out_path)
             create_html_map(out_path)
             create_quicklook(out_path)
             create_readme(out_path)
+
+            # merge all the yaml documents
+            tags = merge_metadata(l1_documents[granule], gaip_tags, out_path)
+
+            with open(pjoin(out_path, 'ARD-METADATA.yaml'), 'w') as src:
+                yaml.dump(tags, src, default_flow_style=False, indent=4)
+
+            # finally the checksum
             create_checksum(out_path)
 
 
