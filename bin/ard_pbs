@@ -1,0 +1,142 @@
+#!/usr/bin/env python
+
+"""
+PBS submission scripts.
+"""
+
+from __future__ import print_function
+
+import os
+from os.path import join as pjoin, dirname, exists
+import subprocess
+import uuid
+import click
+
+from gaip.tiling import scatter
+
+
+PBS_RESOURCES = ("""#!/bin/bash
+#PBS -P {project}
+#PBS -q {queue}
+#PBS -l walltime={walltime},mem={memory}GB,ncpus={ncpus},jobfs={jobfs}GB,other=pernodejobfs
+#PBS -l wd
+#PBS -me
+#PBS -M {email}
+""")
+
+NODE_TEMPLATE = ("""{pbs_resources}
+source {env}
+
+{daemon}
+
+luigi --module s2pkg.workflow ARDP --level1-list {scene_list} --work-dir {outdir} --pkg-dir {pkgdir} --workers {workers}
+""")
+
+
+FMT1 = 'level1-scenes-{jobid}.txt'
+FMT2 = 'ard-{jobid}.bash'
+DAEMON_FMT = 'luigid --background --logdir {}'
+
+
+# pylint: disable=too-many-arguments
+def _submit_multiple(scattered, env, batch_logdir, batch_outdir, pkgdir,
+                     workers, pbs_resources, test):
+    """Submit multiple PBS formatted jobs."""
+
+    # setup and submit each block of scenes for processing
+    for block in scattered:
+        jobid = uuid.uuid4().hex[0:6]
+        jobdir = pjoin(batch_logdir, 'jobid-{}'.format(jobid))
+        job_outdir = pjoin(batch_outdir, 'jobid-{}'.format(jobid))
+
+        if not exists(jobdir):
+            os.makedirs(jobdir)
+
+        if not exists(job_outdir):
+            os.makedirs(job_outdir)
+
+        out_fname = pjoin(jobdir, FMT1.format(jobid=jobid))
+        with open(out_fname, 'w') as src:
+            src.writelines(block)
+
+        pbs = NODE_TEMPLATE.format(pbs_resources=pbs_resources, env=env,
+                                   daemon=DAEMON_FMT.format(jobdir),
+                                   scene_list=out_fname, outdir=job_outdir,
+                                   pkgdir=pkgdir, workers=workers)
+
+        out_fname = pjoin(jobdir, FMT2.format(jobid=jobid))
+        with open(out_fname, 'w') as src:
+            src.write(pbs)
+
+        if test:
+            print("Mocking... Submitting Job: {} ...Mocking".format(jobid))
+            print("qsub {}".format(out_fname))
+        else:
+            os.chdir(dirname(out_fname))
+            print("Submitting Job: {}".format(jobid))
+            subprocess.call(['qsub', out_fname])
+
+
+@click.command()
+@click.option("--level1-list", type=click.Path(exists=True, readable=True),
+              help="The input level1 scene list.")
+@click.option("--workdir", type=click.Path(file_okay=False, writable=True),
+              help="The base output working directory.")
+@click.option("--logdir", type=click.Path(file_okay=False, writable=True),
+              help="The base logging and scripts output directory.")
+@click.option("--pkgdir", type=click.Path(file_okay=False, writable=True),
+              help="The base output packaged directory.")
+@click.option("--env", type=click.Path(exists=True, readable=True),
+              help="Environment script to source.")
+@click.option("--workers", type=click.IntRange(1, 16), default=16,
+              help="The number of workers to request per node.")
+@click.option("--nodes", default=1, help="The number of nodes to request.")
+@click.option("--memory", default=32,
+              help="The memory in GB to request per node.")
+@click.option("--jobfs", default=50,
+              help="The jobfs memory in GB to request per node.")
+@click.option("--project", required=True, help="Project code to run under.")
+@click.option("--queue", default='normal',
+              help="Queue to submit the job into, eg normal, express.")
+@click.option("--walltime", default="48:00:00",
+              help="Job walltime in `hh:mm:ss` format.")
+@click.option("--email", default="your.name@something.com",
+              help="Notification email address.")
+@click.option("--test", default=False, is_flag=True,
+              help=("Test job execution (Don't submit the job to the "
+                    "PBS queue)."))
+
+
+# pylint: disable=too-many-arguments
+def main(level1_list, workdir, logdir, pkgdir, env, workers, nodes, memory,
+         jobfs, project, queue, walltime, email, test):
+    """
+    Equally partition a list of scenes across n nodes and submit
+    n jobs into the PBS queue.
+    """
+    with open(level1_list, 'r') as src:
+        scenes = src.readlines()
+
+    scattered = scatter(scenes, nodes)
+
+    batchid = uuid.uuid4().hex[0:10]
+    batch_logdir = pjoin(logdir, 'batchid-{}'.format(batchid))
+    batch_outdir = pjoin(workdir, 'batchid-{}'.format(batchid))
+
+    pbs_resources = PBS_RESOURCES.format(project=project, queue=queue,
+                                         walltime=walltime, memory=memory,
+                                         ncpus=workers, jobfs=jobfs,
+                                         email=email)
+
+    if test:
+        print("Mocking... Submitting Batch: {} ...Mocking".format(batchid))
+    else:
+        print("Submitting Batch: {}".format(batchid))
+
+    print("Executing Batch: {}".format(batchid))
+    _submit_multiple(scattered, env, batch_logdir, batch_outdir,
+                     pkgdir, workers, pbs_resources, test)
+
+
+if __name__ == '__main__':
+    main()

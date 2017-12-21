@@ -1,6 +1,15 @@
 #!/usr/bin/env python
 
+"""
+A temporary workflow for processing S2 data into an ARD package.
+"""
+
+import os
 from os.path import join as pjoin, basename, dirname
+import logging
+import traceback
+from structlog import wrap_logger
+from structlog.processors import JSONRenderer
 import luigi
 from luigi.local_target import LocalFileSystem
 
@@ -10,12 +19,27 @@ from s2pkg.fmask_cophub import prepare_dataset, fmask
 from s2pkg.package import package
 
 
+ERROR_LOGGER = wrap_logger(logging.getLogger('ard-error'),
+                           processors=[JSONRenderer(indent=1, sort_keys=True)])
+INTERFACE_LOGGER = logging.getLogger('luigi-interface')
+
+
+@luigi.Task.event_handler(luigi.Event.FAILURE)
+def on_failure(task, exception):
+    """Capture any Task Failure here."""
+    ERROR_LOGGER.error(task=task.get_task_family(),
+                       params=task.to_str_params(),
+                       scene=task.level1,
+                       exception=exception.__str__(),
+                       traceback=traceback.format_exc().splitlines())
+
+
 class WorkDir(luigi.Task):
 
     """
     Initialises the working directory in a controlled manner.
     Alternatively this could be initialised upfront during the
-    Ard Task submission phase.
+    ARD Task submission phase.
     """
 
     level1 = luigi.Parameter()
@@ -85,6 +109,7 @@ class Package(luigi.Task):
     work_dir = luigi.Parameter()
     pkg_dir = luigi.Parameter()
     yamls_dir = luigi.Parameter()
+    cleanup = luigi.BoolParameter()
 
     def requires(self):
         tasks = {'gaip': DataStandardisation(self.level1, self.work_dir),
@@ -109,8 +134,11 @@ class Package(luigi.Task):
         package(self.level1, self.input()['gaip'].path,
                 self.work_dir, self.yamls_dir, self.pkg_dir)
 
+        if self.cleanup:
+            os.remove(self.work_dir)
 
-class Ard(luigi.WrapperTask):
+
+class ARDP(luigi.WrapperTask):
 
     """
     A helper Task that issues Package Tasks for each Level-1
