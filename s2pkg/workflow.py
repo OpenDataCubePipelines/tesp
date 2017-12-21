@@ -4,8 +4,8 @@
 A temporary workflow for processing S2 data into an ARD package.
 """
 
-import os
 from os.path import join as pjoin, basename, dirname
+import shutil
 import logging
 import traceback
 from structlog import wrap_logger
@@ -133,10 +133,10 @@ class Package(luigi.Task):
 
     def run(self):
         package(self.level1, self.input()['gaip'].path,
-                self.work_dir, self.yamls_dir, self.pkg_dir, s3_root)
+                self.work_dir, self.yamls_dir, self.pkg_dir, self.s3_root)
 
         if self.cleanup:
-            os.remove(self.work_dir)
+            shutil.rmtree(self.work_dir)
 
 
 class ARDP(luigi.WrapperTask):
