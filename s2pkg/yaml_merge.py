@@ -17,10 +17,14 @@ import yaml
 os.environ["CPL_ZIP_ENCODING"] = "UTF-8"
 
 
-def image_dict(target):
+def image_dict(target, root_path=None):
     """
     Returns a datacube-compatible dictionary of TIF image paths
     """
+    # method of using relative paths
+    if root_path is None:
+        root_path = ''
+
     nbar_match_dict = {'blue': 'B02',
                        'green': 'B03',
                        'red': 'B04',
@@ -80,11 +84,15 @@ def image_dict(target):
     return img_dict
 
 
-def merge_metadata(level1_tags, gaip_tags, package_dir):
+def merge_metadata(level1_tags, gaip_tags, package_dir, root_path=None):
     """
     Combine the metadata from input sources and output
     into a single ARD metadata yaml.
     """
+    # method of using relative paths
+    if root_path is None:
+        root_path = ''
+
     # TODO: extend yaml document to include fmask and gqa yamls
     # Merge tags from each input and create a UUID
     merged_yaml = {
@@ -104,7 +112,7 @@ def merge_metadata(level1_tags, gaip_tags, package_dir):
         'image': {
             'tile_reference': level1_tags['image']['tile_reference'],
             'cloud_cover_percentage': level1_tags['image']['cloud_cover_percentage'],
-            'bands': image_dict(package_dir)},
+            'bands': image_dict(package_dir, root_path)},
         'lineage': {
             'source_datasets': {'S2MSI1C': copy.deepcopy(level1_tags)}},
         }

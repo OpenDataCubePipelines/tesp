@@ -110,6 +110,7 @@ class Package(luigi.Task):
     pkg_dir = luigi.Parameter()
     yamls_dir = luigi.Parameter()
     cleanup = luigi.BoolParameter()
+    s3_root = luigi.Parameter()
 
     def requires(self):
         tasks = {'gaip': DataStandardisation(self.level1, self.work_dir),
@@ -132,7 +133,7 @@ class Package(luigi.Task):
 
     def run(self):
         package(self.level1, self.input()['gaip'].path,
-                self.work_dir, self.yamls_dir, self.pkg_dir)
+                self.work_dir, self.yamls_dir, self.pkg_dir, s3_root)
 
         if self.cleanup:
             os.remove(self.work_dir)
