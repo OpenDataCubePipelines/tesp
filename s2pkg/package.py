@@ -26,7 +26,7 @@ from s2pkg.contiguity import do_contiguity
 from s2pkg.contrast import quicklook
 from s2pkg.fmask_cophub import fmask_cogtif
 from s2pkg.html_geojson import html_map
-from s2pkg.yaml_merge import merge_metadata
+from s2pkg.yaml_merge import merge_metadata, image_dict
 
 yaml.add_representer(numpy.int8, Representer.represent_int)
 yaml.add_representer(numpy.uint8, Representer.represent_int)
@@ -344,10 +344,9 @@ def package(l1_path, gaip_fname, fmask_path, yamls_path, outdir,
             with open(pjoin(out_path, 'ARD-METADATA.yaml'), 'w') as src:
                 yaml.dump(tags, src, default_flow_style=False, indent=4)
 
-            # s3 paths for yaml doc
-            # merge all the yaml documents
-            tags = merge_metadata(l1_documents[granule], gaip_tags, out_path,
-                                  pjoin(s3_root, ard_granule))
+            # create s3 paths for s3 yaml doc
+            tags['image']['bands'] = image_dict(out_path,
+                                                pjoin(s3_root, ard_granule))
 
             with open(pjoin(out_path, 'ARD-METADATA-S3.yaml'), 'w') as src:
                 yaml.dump(tags, src, default_flow_style=False, indent=4)
