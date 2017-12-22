@@ -69,7 +69,7 @@ def image_dict(target, root_path=None):
         if '.TIF' in file:
             for band_label, band_name in nbar_match_dict.items():
                 if band_name in file:
-                    fname = os.path.join(root_path, file)
+                    fname = os.path.join(root_path, 'NBAR', file)
                     img_dict[band_label] = {'path': fname, 'layer': 1}
 
     # nbart datasets
@@ -78,7 +78,7 @@ def image_dict(target, root_path=None):
         if '.TIF' in file:
             for band_label, band_name in nbart_match_dict.items():
                 if band_name in file:
-                    fname = os.path.join(root_path, file)
+                    fname = os.path.join(root_path, 'NBART', file)
                     img_dict[band_label] = {'path': fname, 'layer': 1}
 
     return img_dict
