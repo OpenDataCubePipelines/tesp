@@ -347,7 +347,7 @@ def package(l1_path, gaip_fname, fmask_path, yamls_path, outdir,
             # s3 paths for yaml doc
             # merge all the yaml documents
             tags = merge_metadata(l1_documents[granule], gaip_tags, out_path,
-                                  s3_root)
+                                  pjoin(s3_root, ard_granule))
 
             with open(pjoin(out_path, 'ARD-METADATA-S3.yaml'), 'w') as src:
                 yaml.dump(tags, src, default_flow_style=False, indent=4)
