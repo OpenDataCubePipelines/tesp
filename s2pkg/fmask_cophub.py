@@ -18,91 +18,39 @@ from pathlib import Path
 import zipfile
 from collections import OrderedDict
 import click
+from pathlib import Path
+
+from gaip.acquisition import acquisitions
+
 os.environ["CPL_ZIP_ENCODING"] = "UTF-8"
 
 
-def prepare_dataset(path):
+def prepare_dataset(path, acq_parser_hint=None):
     """
     Returns a dictionary of image paths, granule id and metadata file location for the granules
     contained within the input file
     """
-    path = Path(path)
-    tasks = []
-    if path.suffix == '.zip':
-        zipfile.ZipFile(str(path))
-        z = zipfile.ZipFile(str(path))
-        xmlzipfiles = [s for s in z.namelist() if "MTD_MSIL1C.xml" in s]
-        if xmlzipfiles == []:
-            pattern = str(path.name)
-            pattern = pattern.replace('PRD_MSIL1C', 'MTD_SAFL1C')
-            pattern = pattern.replace('.zip', '.xml')
-            xmlzipfiles = [s for s in z.namelist() if pattern in s]
-        mtd_xml = z.read(xmlzipfiles[0])
-        root = ElementTree.XML(mtd_xml)
 
-    else:
-        root = ElementTree.parse(str(path)).getroot()
-    processing_baseline = root.findall('./*/Product_Info/PROCESSING_BASELINE')[0].text
-    single_granule_archive = False
-    granules = {granule.get('granuleIdentifier'): [imid.text for imid in granule.findall('IMAGE_ID')]
-                for granule in root.findall('./*/Product_Info/Product_Organisation/Granule_List/Granules')}
-    if not granules:
-        single_granule_archive = True
-        granules = {granule.get('granuleIdentifier'): [imid.text for imid in granule.findall('IMAGE_FILE')]
-                    for granule in root.findall('./*/Product_Info/Product_Organisation/Granule_List/Granule')}
-        if not [] in granules.values():
-            single_granule_archive = True
-        else:
-            # the dreaded third variant that looks like a single granule archive but has multiple granules...
-            granules = {granule.get('granuleIdentifier'): [imid.text for imid in granule.findall('IMAGE_ID')]
-                        for granule in root.findall('./*/Product_Info/Product_Organisation/Granule_List/Granule')}
-            single_granule_archive = False
-    for granule_id, images in granules.items():
-        images_ten_list = []
-        images_twenty_list = []
-        images_sixty_list = []
-        # Not required for Zip method - uses granule metadata
-        img_data_path = str(path.parent.joinpath('GRANULE', granule_id, 'IMG_DATA'))
-        if not path.suffix == '.zip':
-            gran_path = str(path.parent.joinpath('GRANULE', granule_id, granule_id[:-7].replace('MSI', 'MTD') + '.xml'))
-            root = ElementTree.parse(gran_path).getroot()
-        else:
-            xmlzipfiles = [s for s in z.namelist() if 'MTD_TL.xml' in s]
-            if xmlzipfiles == []:
-                pattern = granule_id.replace('MSI', 'MTD')
-                pattern = pattern.replace('_N'+processing_baseline, '.xml')
-                xmlzipfiles = [s for s in z.namelist() if pattern in s]
-            mtd_xml = z.read(xmlzipfiles[0])
-            root = ElementTree.XML(mtd_xml)
-            img_data_path = str(path)+'!'
-            img_data_path = 'zip:'+img_data_path+str(z.namelist()[0])
-            #for earlier versions of zip archive - use GRANULES
-            if single_granule_archive is False:
-                img_data_path = img_data_path+str(Path('GRANULE').joinpath(granule_id, 'IMG_DATA'))
-        # Add the QA band
-        qi_band = root.findall('./*/PVI_FILENAME')[0].text
-        qi_band = qi_band.replace('.jp2', '')
-        images.append(qi_band)
-        for image in images:
-            ten_list = ['B02', 'B03', 'B04', 'B08']
-            twenty_list = ['B05', 'B06', 'B07', 'B11', 'B12', 'B8A']
-            sixty_list = ['B01', 'B09', 'B10']
-            for item in ten_list:
-                if item in image:
-                    images_ten_list.append(os.path.join(img_data_path, image + ".jp2"))
-            for item in twenty_list:
-                if item in image:
-                    images_twenty_list.append(os.path.join(img_data_path, image + ".jp2"))
-            for item in sixty_list:
-                if item in image:
-                    images_sixty_list.append(os.path.join(img_data_path, image + ".jp2"))
-        img_dict = OrderedDict([('B01', ''), ('B02', ''), ('B03', ''), ('B04', ''), ('B05', ''), ('B06', ''), ('B07', ''), ('B08', ''), ('B8A', ''), ('B09', ''), ('B10', ''), ('B11', ''), ('B12', '')])
-        for image in images:
-            if image[-3:] in img_dict.keys():
-                img_path = os.path.join(img_data_path, image + ".jp2")
-                band_label = image[-3:]
-            img_dict[band_label] = {'path': img_path, 'layer': 1}
-        tasks.append((img_dict, granule_id, xmlzipfiles[0]))
+    acq_container = acquisitions(path, acq_parser_hint)
+    tasks = []
+
+    for granule_id in acq_container.granules:
+        image_dict = OrderedDict([
+            ('B01', {}), ('B02', {}), ('B03', {}), ('B04', {}), ('B05', {}),
+            ('B06', {}), ('B07', {}), ('B08', {}), ('B8A', {}), ('B09', {}),
+            ('B10', {}), ('B11', {}), ('B12', {})
+        ])
+
+        for group_id in acq_container.groups:
+            acqs = acq_container.get_acquisitions(granule=granule_id,
+                                                  group=group_id,
+                                                  only_configured_bands=False)
+
+            for acq in acqs:
+                image_dict[Path(acq.uri).stem] = {'path': acq.uri, 'layer': '1'}
+
+            tasks.append(tuple([image_dict, granule_id, acq.granule_xml]))
+
     return tasks
 
 
@@ -119,22 +67,29 @@ def fmask(dataset_path, task, out_fname, outdir):
         angles_fname = os.path.join(tmpdir, granule_id + ".angles.img")
 
         # zipfile extraction
-        zipfile_path = os.path.join(tmpdir, Path(mtd_xml).name)
-        logging.info("Unzipping "+mtd_xml)
-        os.system("unzip -p " + str(dataset_path) + " " + mtd_xml + " > " + zipfile_path)
+        archive_container = os.path.join(tmpdir, Path(mtd_xml).name)
+        if ".zip" in archive_container:
+            logging.info("Unzipping "+mtd_xml)
+            os.system("unzip -p " + str(dataset_path) + " " + mtd_xml + " > " + archive_container)
 
         # vrt creation
         command = ["gdalbuildvrt", "-resolution", "user", "-tr", "20", "20",
                    "-separate", "-overwrite", vrt_fname]
         for key in img_dict.keys():
-            command.append(" "+img_dict[key]['path'].replace('zip:', '/vsizip/').replace('!', "/"))
+            if ".zip" in archive_container:
+                command.append(img_dict[key]['path'].replace('zip:', '/vsizip/').replace('!', "/"))
+            else:
+                command.append(img_dict[key]['path'])
 
         command_str = ' '.join(command)
         logging.info("Create  VRT " + vrt_fname)
         os.system(command_str)
 
         # angles generation
-        command = "fmask_sentinel2makeAnglesImage.py -i " + zipfile_path + " -o " + angles_fname
+        if "zip" in archive_container:
+            command = "fmask_sentinel2makeAnglesImage.py -i " + zipfile_path + " -o " + angles_fname
+        else:
+            command = "fmask_sentinel2makeAnglesImage.py -i " + mtd_xml + " -o " + angles_fname
         logging.info("Create angle file " + angles_fname)
         os.system(command)
 

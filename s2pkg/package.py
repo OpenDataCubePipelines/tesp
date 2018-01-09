@@ -44,7 +44,9 @@ yaml.add_representer(numpy.ndarray, Representer.represent_list)
 
 PRODUCTS = ['NBAR', 'NBART']
 LEVELS = [2, 4, 8, 16, 32]
-PATTERN = re.compile(r'(.*_)(B[0-9][A0-9])(\.TIF)')
+PATTERN = re.compile(
+    r'(?P<prefix>(?:.*_)?)(?P<band_name>B[0-9][A0-9])'
+    r'(?P<extension>\.TIF)')
 
 
 def run_command(command, work_dir):
@@ -75,8 +77,10 @@ def gaip_unpack(scene, granule, h5group, outdir):
 
             # base_dir = pjoin(splitext(basename(acq.pathname))[0], granule)
             base_fname = '{}.TIF'.format(splitext(basename(acq.uri))[0])
-            match = PATTERN.match(base_fname)
-            fname = '{}{}_{}{}'.format(match[1], product, match[2], match[3])
+            match_dict = PATTERN.match(base_fname).groupdict()
+            fname = '{}{}_{}{}'.format(match_dict.get('prefix'), product,
+                                       match_dict.get('band_name'),
+                                       match.get('extension'))
             out_fname = pjoin(outdir,
                               # base_dir.replace('L1C', 'ARD'),
                               # granule.replace('L1C', 'ARD'),
@@ -276,7 +280,7 @@ def create_checksum(outdir):
 
 
 def package(l1_path, gaip_fname, fmask_path, yamls_path, outdir,
-            s3_root):
+            s3_root, acq_parser_hint=None):
     """
     Package an L2 product.
 
@@ -300,10 +304,13 @@ def package(l1_path, gaip_fname, fmask_path, yamls_path, outdir,
         A string containing the full file pathname to the directory
         that will contain the packaged Level-2 datasets.
 
+    :param acq_parser_hint:
+        A string that hints at which acquisition parser should be used.
+
     :return:
         None; The packages will be written to disk directly.
     """
-    scene = acquisitions(l1_path)
+    scene = acquisitions(l1_path, acq_parser_hint)
     yaml_fname = pjoin(yamls_path,
                        basename(dirname(l1_path)),
                        '{}.yaml'.format(scene.label))
