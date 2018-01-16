@@ -13,8 +13,8 @@ from structlog.processors import JSONRenderer
 import luigi
 from luigi.local_target import LocalFileSystem
 
-from gaip.acquisition import acquisitions
-from gaip.singlefile_workflow import DataStandardisation
+from wagl.acquisition import acquisitions
+from wagl.singlefile_workflow import DataStandardisation
 from s2pkg.fmask_cophub import prepare_dataset, fmask
 from s2pkg.package import package
 
@@ -102,7 +102,7 @@ class Fmask(luigi.WrapperTask):
 class Package(luigi.Task):
 
     """
-    Creates the final packaged product once gaip, Fmask
+    Creates the final packaged product once wagl, Fmask
     and gqa have executed successfully.
     """
 
@@ -115,7 +115,7 @@ class Package(luigi.Task):
     acq_parser_hint = luigi.Parameter(default=None)
 
     def requires(self):
-        tasks = {'gaip': DataStandardisation(self.level1, self.work_dir),
+        tasks = {'wagl': DataStandardisation(self.level1, self.work_dir),
                  'fmask': Fmask(self.level1, self.work_dir)}
         # TODO: GQA implementation
         # 'gqa': Gqa()}
@@ -134,7 +134,7 @@ class Package(luigi.Task):
         return targets
 
     def run(self):
-        package(self.level1, self.input()['gaip'].path,
+        package(self.level1, self.input()['wagl'].path,
                 self.work_dir, self.yamls_dir, self.pkg_dir, self.s3_root,
                 self.acq_parser_hint)
 
