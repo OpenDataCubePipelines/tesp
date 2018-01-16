@@ -39,7 +39,7 @@ def do_contiguity(fname, output):
 
 def prepare_dataset(path):
     """
-    Returns a dictionary of image paths, granue id and metadata file location for the granules
+    Returns a dictionary of image paths, granule id and metadata file location for the granules
     contained within the input file
     """
     tasks = []
@@ -91,7 +91,7 @@ def prepare_dataset(path):
             root = ElementTree.XML(mtd_xml)
             img_data_path = str(path)+'!'
             img_data_path = 'zip:'+img_data_path+str(z.namelist()[0])
-            #for earlier versions of zip archive - use GRANULES
+            # for earlier versions of zip archive - use GRANULES
             if single_granule_archive is False:
                 img_data_path = img_data_path+str(Path('GRANULE').joinpath(granule_id, 'IMG_DATA'))
         # Add the QA band
@@ -119,18 +119,18 @@ def prepare_dataset(path):
             img_dict[band_label] = {'path': img_path, 'layer': 1}
         tasks.append((img_dict, granule_id, xmlzipfiles[0]))
     return tasks
+
+
 @click.command(help=__doc__)
 @click.option('--output', help="Write datasets into this directory",
               type=click.Path(exists=False, writable=True, dir_okay=True))
 @click.argument('datasets',
                 type=click.Path(exists=True, readable=True, writable=False),
                 nargs=-1)
-
-
 def main(output, datasets):
     """
     For each dataset in input 'datasets' generate FMask and Contiguity
-    outputs and write to the destination path specified by 'output' 
+    outputs and write to the destination path specified by 'output'
     """
     logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.INFO)
     for dataset in datasets:
@@ -164,4 +164,3 @@ def main(output, datasets):
 
 if __name__ == "__main__":
     main()
-    
