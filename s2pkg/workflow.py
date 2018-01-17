@@ -13,8 +13,8 @@ from structlog.processors import JSONRenderer
 import luigi
 from luigi.local_target import LocalFileSystem
 
-from gaip.acquisition import acquisitions
-from gaip.singlefile_workflow import DataStandardisation
+from wagl.acquisition import acquisitions
+from wagl.singlefile_workflow import DataStandardisation
 from s2pkg.fmask_cophub import prepare_dataset, fmask
 from s2pkg.package import package
 
@@ -84,10 +84,11 @@ class Fmask(luigi.WrapperTask):
 
     level1 = luigi.Parameter()
     outdir = luigi.Parameter()
+    acq_parser_hint = luigi.Parameter(default=None)
 
     def requires(self):
         # issues task per granule
-        for task in prepare_dataset(self.level1):
+        for task in prepare_dataset(self.level1, self.acq_parser_hint):
             yield RunFmask(self.level1, task, self.outdir)
 
 
@@ -101,7 +102,7 @@ class Fmask(luigi.WrapperTask):
 class Package(luigi.Task):
 
     """
-    Creates the final packaged product once gaip, Fmask
+    Creates the final packaged product once wagl, Fmask
     and gqa have executed successfully.
     """
 
@@ -111,9 +112,10 @@ class Package(luigi.Task):
     yamls_dir = luigi.Parameter()
     cleanup = luigi.BoolParameter()
     s3_root = luigi.Parameter()
+    acq_parser_hint = luigi.Parameter(default=None)
 
     def requires(self):
-        tasks = {'gaip': DataStandardisation(self.level1, self.work_dir),
+        tasks = {'wagl': DataStandardisation(self.level1, self.work_dir),
                  'fmask': Fmask(self.level1, self.work_dir)}
         # TODO: GQA implementation
         # 'gqa': Gqa()}
@@ -122,7 +124,7 @@ class Package(luigi.Task):
 
     def output(self):
         targets = []
-        container = acquisitions(self.level1)
+        container = acquisitions(self.level1, self.acq_parser_hint)
         for granule in container.granules:
             out_fname = pjoin(self.pkg_dir,
                               granule.replace('L1C', 'ARD'),
@@ -132,8 +134,9 @@ class Package(luigi.Task):
         return targets
 
     def run(self):
-        package(self.level1, self.input()['gaip'].path,
-                self.work_dir, self.yamls_dir, self.pkg_dir, self.s3_root)
+        package(self.level1, self.input()['wagl'].path,
+                self.work_dir, self.yamls_dir, self.pkg_dir, self.s3_root,
+                self.acq_parser_hint)
 
         if self.cleanup:
             shutil.rmtree(self.work_dir)

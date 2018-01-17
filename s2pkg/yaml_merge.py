@@ -84,7 +84,7 @@ def image_dict(target, root_path=None):
     return img_dict
 
 
-def merge_metadata(level1_tags, gaip_tags, package_dir, root_path=None):
+def merge_metadata(level1_tags, wagl_tags, package_dir, root_path=None):
     """
     Combine the metadata from input sources and output
     into a single ARD metadata yaml.
@@ -96,10 +96,10 @@ def merge_metadata(level1_tags, gaip_tags, package_dir, root_path=None):
     # TODO: extend yaml document to include fmask and gqa yamls
     # Merge tags from each input and create a UUID
     merged_yaml = {
-        'algorithm_information': gaip_tags['algorithm_information'],
-        'software_versions': gaip_tags['software_versions'],
-        'source_data': gaip_tags['source_data'],
-        'system_information': gaip_tags['system_information'],
+        'algorithm_information': wagl_tags['algorithm_information'],
+        'software_versions': wagl_tags['software_versions'],
+        'source_data': wagl_tags['source_data'],
+        'system_information': wagl_tags['system_information'],
         'id': str(uuid.uuid4()),
         'processing_level': 'Level-2',
         'product_type': 'S2MSIARD',

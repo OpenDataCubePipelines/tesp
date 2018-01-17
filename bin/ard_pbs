@@ -12,7 +12,7 @@ import subprocess
 import uuid
 import click
 
-from gaip.tiling import scatter
+from wagl.tiling import scatter
 
 
 PBS_RESOURCES = ("""#!/bin/bash

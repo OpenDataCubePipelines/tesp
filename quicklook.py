@@ -1,6 +1,6 @@
 # coding=utf-8
 """
-Execution method for quicklook creatiob 
+Execution method for quicklook creation
 
 example usage:
     quicklook.py red.tif green.tif blue.tif --output quicklook.tif --scale 0 3500 0 255
@@ -46,7 +46,7 @@ def make_quicklook(datasets, src_min, src_max, null, output):
 
 def main(output, datasets):
     """
-    For input colour bands generate full resolution quickook
+    For input colour bands generate full resolution quicklook
     output in 8/24 bit colour and write to the destination path specified by 'output' 
     """
     logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.INFO)
@@ -62,4 +62,3 @@ def main(output, datasets):
 
 if __name__ == "__main__":
     main()
-    
