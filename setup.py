@@ -9,6 +9,7 @@ setup(name='s2pkg',
       packages=['s2pkg'],
       install_requires=[
           'click',
+          'click_datetime',
           'folium',
           'geopandas',
           'h5py',
@@ -19,7 +20,8 @@ setup(name='s2pkg',
           'scikit-image',
           'shapely',
           'structlog',
-          'eodatasets'
+          'eodatasets',
+          'checksumdir'
       ],
       dependency_links=[
           'git+http://github.com/GeoscienceAustralia/eo-datasets@develop#egg=eodatasets-0.1dev'
