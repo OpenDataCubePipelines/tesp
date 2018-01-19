@@ -29,7 +29,7 @@ source {env}
 
 {daemon}
 
-luigi --module s2pkg.workflow ARDP --level1-list {scene_list} --work-dir {outdir} --pkg-dir {pkgdir} --workers {workers}
+luigi --module s2pkg.workflow ARDP --level1-list {scene_list} --work-dir {outdir} --pkg-dir {pkgdir} --workers {workers} --parallel-scheduling
 """)
 
 
