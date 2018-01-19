@@ -80,7 +80,7 @@ def wagl_unpack(scene, granule, h5group, outdir):
             match_dict = PATTERN.match(base_fname).groupdict()
             fname = '{}{}_{}{}'.format(match_dict.get('prefix'), product,
                                        match_dict.get('band_name'),
-                                       match.get('extension'))
+                                       match_dict.get('extension'))
             out_fname = pjoin(outdir,
                               # base_dir.replace('L1C', 'ARD'),
                               # granule.replace('L1C', 'ARD'),

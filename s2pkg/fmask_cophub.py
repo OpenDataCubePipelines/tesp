@@ -44,7 +44,7 @@ def prepare_dataset(path, acq_parser_hint=None):
         for group_id in acq_container.groups:
             acqs = acq_container.get_acquisitions(granule=granule_id,
                                                   group=group_id,
-                                                  only_configured_bands=False)
+                                                  only_supported_bands=False)
 
             for acq in acqs:
                 image_dict[Path(acq.uri).stem] = {'path': acq.uri, 'layer': '1'}
