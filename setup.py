@@ -21,10 +21,14 @@ setup(name='s2pkg',
           'shapely',
           'structlog',
           'eodatasets',
-          'checksumdir'
+          'checksumdir',
+          'rios',
+          'python-fmask'
       ],
       dependency_links=[
-          'git+http://github.com/GeoscienceAustralia/eo-datasets@develop#egg=eodatasets-0.1dev'
+          'git+https://github.com/GeoscienceAustralia/eo-datasets@develop#egg=eodatasets-0.1dev',
+          'hg+https://bitbucket.org/chchrsc/rios@1.4.4/#egg=rios-1.4.4',
+          'hg+https://bitbucket.org/chchrsc/python-fmask@0.4.5#egg=python-fmask-0.4.5'
       ],
       scripts=['bin/s2package', 'bin/ard_pbs', 'bin/search_s2'],
       include_package_data=True)
