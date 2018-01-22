@@ -142,7 +142,7 @@ class Package(luigi.Task):
     def run(self):
         inputs = self.input()
         package(self.level1, inputs['wagl'].path, inputs['fmask'].path,
-                self.yamls_dir, self.pkgdir, self.s3_root,
+                self.yamls_dir, self.pkgdir, self.s3_root, self.granule,
                 self.acq_parser_hint)
 
         if self.cleanup:
