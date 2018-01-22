@@ -279,8 +279,8 @@ def create_checksum(outdir):
     checksum(out_fname)
 
 
-def package(l1_path, wagl_fname, fmask_path, yamls_path, outdir,
-            s3_root, acq_parser_hint=None):
+def package(l1_path, wagl_fname, fmask_fname, yamls_path, outdir,
+            s3_root, granule=None, acq_parser_hint=None):
     """
     Package an L2 product.
 
@@ -292,9 +292,9 @@ def package(l1_path, wagl_fname, fmask_path, yamls_path, outdir,
         A string containing the full file pathname to the wagl
         output dataset.
 
-    :param fmask_path:
-        A string containing the full file pathname to the directory
-        containing the fmask datasets.
+    :param fmask_fname:
+        A string containing the full file pathname to the fmask
+        dataset.
 
     :param yamls_path:
         A string containing the full file pathname to the yaml
@@ -318,48 +318,40 @@ def package(l1_path, wagl_fname, fmask_path, yamls_path, outdir,
         l1_documents = {doc['tile_id']: doc for doc in yaml.load_all(src)}
 
     with h5py.File(wagl_fname, 'r') as fid:
-        for granule in scene.granules:
-            if granule is None:
-                h5group = fid['/']
-            else:
-                h5group = fid[granule]
+        grn_id = granule.replace('L1C', 'ARD')
+        out_path = pjoin(outdir, grn_id)
 
-            ard_granule = granule.replace('L1C', 'ARD')
-            out_path = pjoin(outdir, ard_granule)
+        if not exists(out_path):
+            os.makedirs(out_path)
 
-            if not exists(out_path):
-                os.makedirs(out_path)
+        # fmask cogtif conversion
+        fmask_cogtif(fmask_fname, pjoin(out_path, '{}_QA.TIF'.format(grn_id)))
 
-            # fmask cogtif conversion
-            fmask_cogtif(pjoin(fmask_path, '{}.cloud.img'.format(granule)),
-                         pjoin(out_path, '{}_QA.TIF'.format(ard_granule)))
+        # unpack the data produced by wagl
+        wagl_tags = wagl_unpack(scene, granule, fid, out_path)
 
-            # unpack the data produced by wagl
-            wagl_tags = wagl_unpack(scene, granule, h5group, out_path)
+        # vrts, contiguity, map, quicklook, thumbnail, readme, checksum
+        build_vrts(out_path)
+        create_contiguity(out_path)
+        create_html_map(out_path)
+        create_quicklook(out_path)
+        create_readme(out_path)
 
-            # vrts, contiguity, map, quicklook, thumbnail, readme, checksum
-            build_vrts(out_path)
-            create_contiguity(out_path)
-            create_html_map(out_path)
-            create_quicklook(out_path)
-            create_readme(out_path)
+        # relative paths yaml doc
+        # merge all the yaml documents
+        tags = merge_metadata(l1_documents[granule], wagl_tags, out_path)
 
-            # relative paths yaml doc
-            # merge all the yaml documents
-            tags = merge_metadata(l1_documents[granule], wagl_tags, out_path)
+        with open(pjoin(out_path, 'ARD-METADATA.yaml'), 'w') as src:
+            yaml.dump(tags, src, default_flow_style=False, indent=4)
 
-            with open(pjoin(out_path, 'ARD-METADATA.yaml'), 'w') as src:
-                yaml.dump(tags, src, default_flow_style=False, indent=4)
+        # create s3 paths for s3 yaml doc
+        tags['image']['bands'] = image_dict(out_path, pjoin(s3_root, grn_id))
 
-            # create s3 paths for s3 yaml doc
-            tags['image']['bands'] = image_dict(out_path,
-                                                pjoin(s3_root, ard_granule))
+        with open(pjoin(out_path, 'ARD-METADATA-S3.yaml'), 'w') as src:
+            yaml.dump(tags, src, default_flow_style=False, indent=4)
 
-            with open(pjoin(out_path, 'ARD-METADATA-S3.yaml'), 'w') as src:
-                yaml.dump(tags, src, default_flow_style=False, indent=4)
-
-            # finally the checksum
-            create_checksum(out_path)
+        # finally the checksum
+        create_checksum(out_path)
 
 
 if __name__ == '__main__':
