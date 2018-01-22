@@ -122,7 +122,7 @@ class Package(luigi.Task):
     def requires(self):
         # task items for fmask
         ftask = prepare_dataset(self.level1, self.acq_parser_hint,
-                                self.granule)
+                                self.granule)[0]
 
         tasks = {'wagl': DataStandardisation(self.level1, self.workdir,
                                              self.granule),
