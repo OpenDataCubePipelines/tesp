@@ -43,10 +43,10 @@ class WorkDir(luigi.Task):
     """
 
     level1 = luigi.Parameter()
-    outdir = luigi.Parameter()
+    workdir = luigi.Parameter()
 
     def output(self):
-        return luigi.LocalTarget(self.outdir)
+        return luigi.LocalTarget(self.workdir)
 
     def run(self):
         local_fs = LocalFileSystem()
@@ -61,22 +61,22 @@ class RunFmask(luigi.Task):
 
     level1 = luigi.Parameter()
     task = luigi.TupleParameter()
-    outdir = luigi.Parameter()
+    workdir = luigi.Parameter()
 
     def requires(self):
         # for the time being have fmask require wagl,
         # no point in running fmask if wagl fails...
-        # return WorkDir(self.level1, dirname(self.outdir))
-        return DataStandardisation(self.level1, self.outdir, self.task[1])
+        # return WorkDir(self.level1, dirname(self.workdir))
+        return DataStandardisation(self.level1, self.workdir, self.task[1])
 
     def output(self):
-        out_fname = pjoin(self.outdir, '{}.cloud.img'.format(self.task[1]))
+        out_fname = pjoin(self.workdir, '{}.cloud.img'.format(self.task[1]))
 
         return luigi.LocalTarget(out_fname)
 
     def run(self):
         with self.output().temporary_path() as out_fname:
-            fmask(self.level1, self.task, out_fname, self.outdir)
+            fmask(self.level1, self.task, out_fname, self.workdir)
 
 
 # useful for testing fmask via the CLI
@@ -87,13 +87,13 @@ class Fmask(luigi.WrapperTask):
     """
 
     level1 = luigi.Parameter()
-    outdir = luigi.Parameter()
+    workdir = luigi.Parameter()
     acq_parser_hint = luigi.Parameter(default=None)
 
     def requires(self):
         # issues task per granule
         for task in prepare_dataset(self.level1, self.acq_parser_hint):
-            yield RunFmask(self.level1, task, self.outdir)
+            yield RunFmask(self.level1, task, self.workdir)
 
 
 # TODO: GQA implementation
@@ -111,9 +111,9 @@ class Package(luigi.Task):
     """
 
     level1 = luigi.Parameter()
-    work_dir = luigi.Parameter()
+    workdir = luigi.Parameter()
     granule = luigi.Parameter(default=None)
-    pkg_dir = luigi.Parameter()
+    pkgdir = luigi.Parameter()
     yamls_dir = luigi.Parameter()
     cleanup = luigi.BoolParameter()
     s3_root = luigi.Parameter()
@@ -124,9 +124,9 @@ class Package(luigi.Task):
         ftask = prepare_dataset(self.level1, self.acq_parser_hint,
                                 self.granule)
 
-        tasks = {'wagl': DataStandardisation(self.level1, self.work_dir,
+        tasks = {'wagl': DataStandardisation(self.level1, self.workdir,
                                              self.granule),
-                 'fmask': RunFmask(self.level1, ftask, self.work_dir)}
+                 'fmask': RunFmask(self.level1, ftask, self.workdir)}
         # TODO: GQA implementation
         # 'gqa': Gqa()}
 
@@ -134,7 +134,7 @@ class Package(luigi.Task):
 
     def output(self):
         granule = self.granule if self.granule else ''
-        out_fname = pjoin(self.pkg_dir, granule.replace('L1C', 'ARD'),
+        out_fname = pjoin(self.pkgdir, granule.replace('L1C', 'ARD'),
                           'CHECKSUM.sha1')
 
         return luigi.LocalTarget(out_fname)
@@ -142,11 +142,11 @@ class Package(luigi.Task):
     def run(self):
         inputs = self.input()
         package(self.level1, inputs['wagl'].path, inputs['fmask'].path,
-                self.yamls_dir, self.pkg_dir, self.s3_root,
+                self.yamls_dir, self.pkgdir, self.s3_root,
                 self.acq_parser_hint)
 
         if self.cleanup:
-            shutil.rmtree(self.work_dir)
+            shutil.rmtree(self.workdir)
 
 
 class ARDP(luigi.WrapperTask):
@@ -157,8 +157,8 @@ class ARDP(luigi.WrapperTask):
     """
 
     level1_list = luigi.Parameter()
-    outdir = luigi.Parameter()
-    pkg_dir = luigi.Parameter()
+    workdir = luigi.Parameter()
+    pkgdir = luigi.Parameter()
     acq_parser_hint = luigi.Parameter(default=None)
 
     def requires(self):
@@ -166,13 +166,13 @@ class ARDP(luigi.WrapperTask):
             level1_scenes = [scene.strip() for scene in src.readlines()]
 
         for scene in level1_scenes:
-            work_root = pjoin(self.outdir, '{}.ARD'.format(basename(scene)))
+            work_root = pjoin(self.workdir, '{}.ARD'.format(basename(scene)))
             container = acquisitions(scene, self.acq_parser_hint)
             for granule in container.granules:
                 work_dir = container.get_root(work_root, granule=granule)
-                # TODO; pkg_dir for landsat data
-                pkg_dir = pjoin(self.pkg_dir, basename(dirname(scene)))
-                yield Package(scene, work_dir, granule, pkg_dir)
+                # TODO; pkgdir for landsat data
+                pkgdir = pjoin(self.pkgdir, basename(dirname(scene)))
+                yield Package(scene, work_dir, granule, pkgdir)
 
 
 if __name__ == '__main__':
