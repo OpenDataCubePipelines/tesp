@@ -94,7 +94,7 @@ def fmask(dataset_path, task, out_fname, outdir):
 
         # angles generation
         if "zip" in archive_container:
-            command = "fmask_sentinel2makeAnglesImage.py -i " + zipfile_path + " -o " + angles_fname
+            command = "fmask_sentinel2makeAnglesImage.py -i " + archive_container + " -o " + angles_fname
         else:
             command = "fmask_sentinel2makeAnglesImage.py -i " + mtd_xml + " -o " + angles_fname
         logging.info("Create angle file " + angles_fname)
