@@ -25,7 +25,7 @@ from wagl.acquisition import acquisitions
 os.environ["CPL_ZIP_ENCODING"] = "UTF-8"
 
 
-def prepare_dataset(path, acq_parser_hint=None):
+def prepare_dataset(path, acq_parser_hint=None, granule=None):
     """
     Returns a dictionary of image paths, granule id and metadata file location for the granules
     contained within the input file
@@ -34,7 +34,12 @@ def prepare_dataset(path, acq_parser_hint=None):
     acq_container = acquisitions(path, acq_parser_hint)
     tasks = []
 
-    for granule_id in acq_container.granules:
+    if granule is None:
+        granules = acq_container.granules
+    else:
+        granules = [granule]
+
+    for granule_id in granules:
         image_dict = OrderedDict([
             ('B01', {}), ('B02', {}), ('B03', {}), ('B04', {}), ('B05', {}),
             ('B06', {}), ('B07', {}), ('B08', {}), ('B8A', {}), ('B09', {}),
