@@ -29,7 +29,7 @@ def on_failure(task, exception):
     """Capture any Task Failure here."""
     ERROR_LOGGER.error(task=task.get_task_family(),
                        params=task.to_str_params(),
-                       scene=task.level1,
+                       level1=task.level1,
                        exception=exception.__str__(),
                        traceback=traceback.format_exc().splitlines())
 
@@ -163,16 +163,16 @@ class ARDP(luigi.WrapperTask):
 
     def requires(self):
         with open(self.level1_list) as src:
-            level1_scenes = [scene.strip() for scene in src.readlines()]
+            level1_list = [level1.strip() for level1 in src.readlines()]
 
-        for scene in level1_scenes:
-            work_root = pjoin(self.workdir, '{}.ARD'.format(basename(scene)))
-            container = acquisitions(scene, self.acq_parser_hint)
+        for level1 in level1_list:
+            work_root = pjoin(self.workdir, '{}.ARD'.format(basename(level1)))
+            container = acquisitions(level1, self.acq_parser_hint)
             for granule in container.granules:
                 work_dir = container.get_root(work_root, granule=granule)
                 # TODO; pkgdir for landsat data
-                pkgdir = pjoin(self.pkgdir, basename(dirname(scene)))
-                yield Package(scene, work_dir, granule, pkgdir)
+                pkgdir = pjoin(self.pkgdir, basename(dirname(level1)))
+                yield Package(level1, work_dir, granule, pkgdir)
 
 
 if __name__ == '__main__':
