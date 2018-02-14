@@ -88,7 +88,7 @@ def _submit_multiple(scattered, env, batch_logdir, batch_outdir, pkgdir,
               help="The base output packaged directory.")
 @click.option("--env", type=click.Path(exists=True, readable=True),
               help="Environment script to source.")
-@click.option("--workers", type=click.IntRange(1, 16), default=16,
+@click.option("--workers", type=click.IntRange(1, 32), default=16,
               help="The number of workers to request per node.")
 @click.option("--nodes", default=1, help="The number of nodes to request.")
 @click.option("--memory", default=32,
