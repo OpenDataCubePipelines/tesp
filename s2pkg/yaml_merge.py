@@ -57,6 +57,9 @@ def image_dict(target, root_path=None):
 
     # pixel quality datasets
     for file in os.listdir(target):
+        if '.aux.xml' in file:
+            continue
+
         if '.TIF' in file:
             for band_label, band_name in pq_match_dict.items():
                 if band_name in file:
