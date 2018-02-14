@@ -33,8 +33,10 @@ luigi --module s2pkg.workflow ARDP --level1-list {scene_list} --workdir {outdir}
 """)
 
 
-FMT1 = 'level1-scenes-{jobid}.txt'
-FMT2 = 'ard-{jobid}.bash'
+FMT1 = 'batchid-{batchid}.bash'
+FMT2 = 'jobid-{jobid}'
+FMT3 = 'level1-scenes-{jobid}.txt'
+FMT4 = 'jobid-{jobid}.bash'
 DAEMON_FMT = 'luigid --background --logdir {}'
 
 
@@ -46,8 +48,8 @@ def _submit_multiple(scattered, env, batch_logdir, batch_outdir, pkgdir,
     # setup and submit each block of scenes for processing
     for block in scattered:
         jobid = uuid.uuid4().hex[0:6]
-        jobdir = pjoin(batch_logdir, 'jobid-{}'.format(jobid))
-        job_outdir = pjoin(batch_outdir, 'jobid-{}'.format(jobid))
+        jobdir = pjoin(batch_logdir, FMT2.format(jobid))
+        job_outdir = pjoin(batch_outdir, FMT2.format(jobid))
 
         if not exists(jobdir):
             os.makedirs(jobdir)
@@ -55,7 +57,8 @@ def _submit_multiple(scattered, env, batch_logdir, batch_outdir, pkgdir,
         if not exists(job_outdir):
             os.makedirs(job_outdir)
 
-        out_fname = pjoin(jobdir, FMT1.format(jobid=jobid))
+        # write level1 data listing
+        out_fname = pjoin(jobdir, FMT3.format(jobid=jobid))
         with open(out_fname, 'w') as src:
             src.writelines(block)
 
@@ -64,7 +67,8 @@ def _submit_multiple(scattered, env, batch_logdir, batch_outdir, pkgdir,
                                    scene_list=out_fname, outdir=job_outdir,
                                    pkgdir=pkgdir, workers=workers)
 
-        out_fname = pjoin(jobdir, FMT2.format(jobid=jobid))
+        # write pbs script
+        out_fname = pjoin(jobdir, FMT4.format(jobid=jobid))
         with open(out_fname, 'w') as src:
             src.write(pbs)
 
@@ -120,8 +124,8 @@ def main(level1_list, workdir, logdir, pkgdir, env, workers, nodes, memory,
     scattered = scatter(scenes, nodes)
 
     batchid = uuid.uuid4().hex[0:10]
-    batch_logdir = pjoin(logdir, 'batchid-{}'.format(batchid))
-    batch_outdir = pjoin(workdir, 'batchid-{}'.format(batchid))
+    batch_logdir = pjoin(logdir, FMT1.format(batchid))
+    batch_outdir = pjoin(workdir, FMT1.format(batchid))
 
     pbs_resources = PBS_RESOURCES.format(project=project, queue=queue,
                                          walltime=walltime, memory=memory,
