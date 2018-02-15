@@ -44,6 +44,7 @@ yaml.add_representer(numpy.ndarray, Representer.represent_list)
 
 PRODUCTS = ['NBAR', 'NBART']
 LEVELS = [2, 4, 8, 16, 32]
+# TODO re-work so that pattern is not needed or caters for landsat
 PATTERN = re.compile(
     r'(?P<prefix>(?:.*_)?)(?P<band_name>B[0-9][A0-9])'
     r'(?P<extension>\.TIF)')
@@ -68,6 +69,7 @@ def wagl_unpack(scene, granule, h5group, outdir):
 
             dataset = h5group[pathname]
             if dataset.attrs['band_name'] == 'BAND-9':
+                # TODO re-work so that a valid BAND-9 from another sensor isn't skipped
                 continue
 
             acqs = scene.get_acquisitions(group=pathname.split('/')[0],
@@ -107,6 +109,7 @@ def wagl_unpack(scene, granule, h5group, outdir):
     return tags
 
 
+# TODO re-work so that it is sensor independent
 def build_vrts(outdir):
     """
     Build the various vrt's.
@@ -328,7 +331,7 @@ def package(l1_path, wagl_fname, fmask_fname, yamls_path, outdir,
         fmask_cogtif(fmask_fname, pjoin(out_path, '{}_QA.TIF'.format(grn_id)))
 
         # unpack the data produced by wagl
-        wagl_tags = wagl_unpack(scene, granule, fid, out_path)
+        wagl_tags = wagl_unpack(scene, granule, fid[granule], out_path)
 
         # vrts, contiguity, map, quicklook, thumbnail, readme, checksum
         build_vrts(out_path)
