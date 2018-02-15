@@ -20,13 +20,13 @@ from wagl.data import write_img
 from wagl.hdf5 import find
 from wagl.geobox import GriddedGeoBox
 
-import s2pkg
-from s2pkg.checksum import checksum
-from s2pkg.contiguity import do_contiguity
-from s2pkg.contrast import quicklook
-from s2pkg.fmask_cophub import fmask_cogtif
-from s2pkg.html_geojson import html_map
-from s2pkg.yaml_merge import merge_metadata, image_dict
+import tesp
+from tesp.checksum import checksum
+from tesp.contiguity import do_contiguity
+from tesp.contrast import quicklook
+from tesp.fmask_cophub import fmask_cogtif
+from tesp.html_geojson import html_map
+from tesp.yaml_merge import merge_metadata, image_dict
 
 yaml.add_representer(numpy.int8, Representer.represent_int)
 yaml.add_representer(numpy.uint8, Representer.represent_int)
@@ -269,7 +269,7 @@ def create_readme(outdir):
     """
     Create the readme file.
     """
-    with resource_stream(s2pkg.__name__, '_README') as src:
+    with resource_stream(tesp.__name__, '_README') as src:
         with open(pjoin(outdir, 'README'), 'w') as out_src:
             out_src.writelines([l.decode('utf-8') for l in src.readlines()])
 

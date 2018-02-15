@@ -15,8 +15,8 @@ from luigi.local_target import LocalFileSystem
 
 from wagl.acquisition import acquisitions
 from wagl.singlefile_workflow import DataStandardisation
-from s2pkg.fmask_cophub import prepare_dataset, fmask
-from s2pkg.package import package
+from tesp.fmask_cophub import prepare_dataset, fmask
+from tesp.package import package
 
 
 ERROR_LOGGER = wrap_logger(logging.getLogger('ard-error'),

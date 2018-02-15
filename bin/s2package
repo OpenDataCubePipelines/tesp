@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import argparse
-from s2pkg.package import package
+from tesp.package import package
 
 
 if __name__ == '__main__':
