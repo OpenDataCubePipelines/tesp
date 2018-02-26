@@ -44,10 +44,11 @@ yaml.add_representer(numpy.ndarray, Representer.represent_list)
 
 PRODUCTS = ['NBAR', 'NBART']
 LEVELS = [2, 4, 8, 16, 32]
-# TODO re-work so that pattern is not needed or caters for landsat
-PATTERN = re.compile(
-    r'(?P<prefix>(?:.*_)?)(?P<band_name>B[0-9][A0-9])'
+PATTERN1 = re.compile(
+    r'(?P<prefix>(?:.*_)?)(?P<band_name>B[0-9][A0-9]|B[0-9]*|B[0-9a-zA-z]*)'
     r'(?P<extension>\.TIF)')
+PATTERN2 = re.compile('(L1[GTC]{1,2})')
+ARD = 'ARD'
 
 
 def run_command(command, work_dir):
@@ -64,26 +65,23 @@ def wagl_unpack(scene, granule, h5group, outdir):
     # listing of all datasets of IMAGE CLASS type
     img_paths = find(h5group, 'IMAGE')
 
+    # TODO pass products through from the scheduler rather than hard code
     for product in PRODUCTS:
         for pathname in [p for p in img_paths if '/{}/'.format(product) in p]:
 
             dataset = h5group[pathname]
-            if dataset.attrs['band_name'] == 'BAND-9':
-                # TODO re-work so that a valid BAND-9 from another sensor isn't skipped
-                continue
 
             acqs = scene.get_acquisitions(group=pathname.split('/')[0],
                                           granule=granule)
             acq = [a for a in acqs if
                    a.band_name == dataset.attrs['band_name']][0]
 
-            # base_dir = pjoin(splitext(basename(acq.pathname))[0], granule)
             base_fname = '{}.TIF'.format(splitext(basename(acq.uri))[0])
-            match_dict = PATTERN.match(base_fname).groupdict()
+            match_dict = PATTERN1.match(base_fname).groupdict()
             fname = '{}{}_{}{}'.format(match_dict.get('prefix'), product,
                                        match_dict.get('band_name'),
                                        match_dict.get('extension'))
-            out_fname = pjoin(outdir, product, fname.replace('L1C', 'ARD'))
+            out_fname = pjoin(outdir, product, re.sub(PATTERN2, ARD, fname))
 
             # output
             if not exists(dirname(out_fname)):
@@ -317,7 +315,7 @@ def package(l1_path, wagl_fname, fmask_fname, yamls_path, outdir,
         l1_documents = {doc['tile_id']: doc for doc in yaml.load_all(src)}
 
     with h5py.File(wagl_fname, 'r') as fid:
-        grn_id = granule.replace('L1C', 'ARD')
+        grn_id = re.sub(PATTERN2, ARD, granule)
         out_path = pjoin(outdir, grn_id)
 
         if not exists(out_path):
