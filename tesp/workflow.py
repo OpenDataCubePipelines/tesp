@@ -270,8 +270,9 @@ class ARDP_S3(luigi.WrapperTask):
             container = acquisitions(level1, self.acq_parser_hint)
             for granule in container.granules:
                 work_dir = container.get_root(work_root, granule=granule)
-                # TODO; pkgdir for landsat data
-                pkgdir = pjoin(self.pkgdir, basename(dirname(level1)))
+                acq = container.get_acquisitions(None, granule, False)
+                ymd = acq.acquisition_datetime.strftime('%Y-%m-%d')
+                pkgdir = pjoin(self.pkgdir, ymd)
                 yield Package_S3(
                     level1, work_dir, granule, pkgdir, s3_bucket=self.s3_bucket,
                     s3_key_prefix=self.s3_key_prefix,
