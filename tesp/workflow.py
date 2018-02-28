@@ -117,7 +117,7 @@ class Package(luigi.Task):
     workdir = luigi.Parameter()
     granule = luigi.Parameter(default=None)
     pkgdir = luigi.Parameter()
-    s3_root = luigi.Parameter()
+    url_root = luigi.Parameter()
     yamls_dir = luigi.Parameter()
     cleanup = luigi.BoolParameter()
     acq_parser_hint = luigi.Parameter(default=None)
@@ -141,7 +141,7 @@ class Package(luigi.Task):
     def run(self):
         inputs = self.input()
         package(self.level1, inputs['wagl'].path, inputs['fmask'].path,
-                self.yamls_dir, self.pkgdir, self.s3_root, self.granule,
+                self.yamls_dir, self.pkgdir, self.url_root, self.granule,
                 self.acq_parser_hint)
 
         if self.cleanup:
@@ -158,7 +158,7 @@ class ARDP(luigi.WrapperTask):
     level1_list = luigi.Parameter()
     workdir = luigi.Parameter()
     pkgdir = luigi.Parameter()
-    s3_root = luigi.Parameter()
+    url_root = luigi.Parameter()
     acq_parser_hint = luigi.Parameter(default=None)
 
     def requires(self):
@@ -173,8 +173,8 @@ class ARDP(luigi.WrapperTask):
                 acq = container.get_acquisitions(None, granule, False)[0]
                 ymd = acq.acquisition_datetime.strftime('%Y-%m-%d')
                 pkgdir = pjoin(self.pkgdir, ymd)
-                s3dir = pjoin(self.s3_root, ymd)
-                yield Package(level1, work_dir, granule, pkgdir, s3dir)
+                url_root = pjoin(self.url_root, ymd)
+                yield Package(level1, work_dir, granule, pkgdir, url_root)
 
 
 if __name__ == '__main__':
