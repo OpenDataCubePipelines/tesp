@@ -2,11 +2,11 @@
 
 import os
 from os.path import join as pjoin, basename, dirname, splitext, exists
+from posixpath import join as ppjoin
 from pathlib import Path
 from subprocess import check_call
 import tempfile
 import glob
-import argparse
 import re
 from pkg_resources import resource_stream
 import numpy
@@ -17,6 +17,7 @@ import yaml
 from yaml.representer import Representer
 
 from wagl.acquisition import acquisitions
+from wagl.constants import DatasetName, GroupName
 from wagl.data import write_img
 from wagl.hdf5 import find
 from wagl.geobox import GriddedGeoBox
@@ -51,6 +52,8 @@ PATTERN1 = re.compile(
     r'(?P<extension>\.TIF)')
 PATTERN2 = re.compile('(L1[GTPC]{1,2})')
 ARD = 'ARD'
+QA = 'QA'
+SUPPS = 'SUPPLEMENTARY'
 
 
 def run_command(command, work_dir):
@@ -60,7 +63,36 @@ def run_command(command, work_dir):
     check_call(' '.join(command), shell=True, cwd=work_dir)
 
 
-def wagl_unpack(container, granule, h5group, outdir):
+def _write_cogtif(dataset, out_fname):
+    """
+    Easy wrapper for writing a cogtif, that takes care of datasets
+    that are written row by row rather square(ish) blocks.
+    """
+    if dataset.chunks[1] == dataset.shape[1]:
+        blockxsize = 512
+        blockysize = 512
+        data = dataset[:]
+    else:
+        blockysize, blockxsize = dataset.chunks
+        data = dataset
+
+    options = {'blockxsize': blockxsize,
+               'blockysize': blockysize,
+               'compress': 'deflate',
+               'zlevel': 4}
+
+    nodata = dataset.attrs.get('no_data_value')
+    geobox = GriddedGeoBox.from_dataset(dataset)
+
+    # path existence
+    if not exists(dirname(out_fname)):
+        os.makedirs(dirname(out_fname))
+
+    write_img(data, out_fname, cogtif=True, levels=LEVELS, nodata=nodata,
+              geobox=geobox, resampling=Resampling.nearest, options=options)
+
+
+def unpack_products(container, granule, h5group, outdir):
     """
     Unpack and package the NBAR and NBART products.
     """
@@ -85,24 +117,77 @@ def wagl_unpack(container, granule, h5group, outdir):
                                        match_dict.get('extension'))
             out_fname = pjoin(outdir, product, re.sub(PATTERN2, ARD, fname))
 
-            # output
-            if not exists(dirname(out_fname)):
-                os.makedirs(dirname(out_fname))
-
-            write_img(dataset, out_fname, cogtif=True, levels=LEVELS,
-                      nodata=dataset.attrs['no_data_value'],
-                      geobox=GriddedGeoBox.from_dataset(dataset),
-                      resampling=Resampling.nearest,
-                      options={'blockxsize': dataset.chunks[1],
-                               'blockysize': dataset.chunks[0],
-                               'compress': 'deflate',
-                               'zlevel': 4})
+            _write_cogtif(dataset, out_fname)
 
     # retrieve metadata
     scalar_paths = find(h5group, 'SCALAR')
     pathname = [pth for pth in scalar_paths if 'NBAR-METADATA' in pth][0]
     tags = yaml.load(h5group[pathname][()])
     return tags
+
+
+def unpack_supplementary(container, granule, h5group, outdir):
+    """
+    Unpack the angles + other supplementary datasets produced by wagl.
+    Currently only the mode resolution group gets extracted.
+    """
+    _, res_grp = container.get_mode_resolution(granule)
+    grn_id = re.sub(PATTERN2, ARD, granule)
+    fmt = '{}_{}.TIF'
+
+    # satellite and solar angles
+    grp = h5group[ppjoin(res_grp, GroupName.sat_sol_group.value)]
+    dnames = [DatasetName.satellite_view.value,
+              DatasetName.satellite_azimuth.value,
+              DatasetName.solar_zenith.value,
+              DatasetName.solar_azimuth.value,
+              DatasetName.relative_azimuth.value,
+              DatasetName.time.value]
+
+    for dname in dnames:
+        out_fname = pjoin(outdir, SUPPS, fmt.format(grn_id, dname))
+        dset = grp[dname]
+        _write_cogtif(dset, out_fname.replace('-', '_'))
+
+    # incident angles
+    grp = h5group[ppjoin(res_grp, GroupName.incident_group.value)]
+    dnames = [DatasetName.incident.value,
+              DatasetName.azimuthal_incident.value]
+
+    for dname in dnames:
+        out_fname = pjoin(outdir, SUPPS, fmt.format(grn_id, dname))
+        dset = grp[dname]
+        _write_cogtif(dset, out_fname.replace('-', '_'))
+
+    # exiting angles
+    grp = h5group[ppjoin(res_grp, GroupName.exiting_group.value)]
+    dnames = [DatasetName.exiting.value,
+              DatasetName.azimuthal_exiting.value]
+
+    for dname in dnames:
+        out_fname = pjoin(outdir, SUPPS, fmt.format(grn_id, dname))
+        dset = grp[dname]
+        _write_cogtif(dset, out_fname.replace('-', '_'))
+
+    # relative slope
+    grp = h5group[ppjoin(res_grp, GroupName.rel_slp_group.value)]
+    dnames = [DatasetName.relative_slope.value]
+
+    for dname in dnames:
+        out_fname = pjoin(outdir, SUPPS, fmt.format(grn_id, dname))
+        dset = grp[dname]
+        _write_cogtif(dset, out_fname.replace('-', '_'))
+
+    # terrain shadow
+    grp = h5group[ppjoin(res_grp, GroupName.shadow_group.value)]
+    dnames = [DatasetName.combined_shadow.value]
+
+    for dname in dnames:
+        out_fname = pjoin(outdir, QA, fmt.format(grn_id, dname))
+        dset = grp[dname]
+        _write_cogtif(dset, out_fname.replace('-', '_'))
+
+    # TODO do we also include slope and aspect?
 
 
 # TODO re-work so that it is sensor independent
@@ -167,18 +252,17 @@ def create_contiguity(container, granule, outdir):
     # this rule is expected to change once more people get involved
     # in the decision making process
     acqs, _ = container.get_mode_resolution(granule)
+    grn_id = re.sub(PATTERN2, ARD, granule)
 
     with tempfile.TemporaryDirectory(dir=outdir,
                                      prefix='contiguity-') as tmpdir:
         for product in PRODUCTS:
-            out_path = pjoin(outdir, product)
-            fnames = [str(f) for f in Path(out_path).glob('*.TIF')]
+            search_path = pjoin(outdir, product)
+            fnames = [str(f) for f in Path(search_path).glob('*.TIF')]
 
             # output filename
-            match = PATTERN1.match(fnames[0]).groupdict()
-            out_fname = '{}{}{}'.format(match.get('prefix'),
-                                        'CONTIGUITY',
-                                        match.get('extension'))
+            base_fname = '{}_{}_CONTIGUITY.TIF'.format(grn_id, product)
+            out_fname = pjoin(outdir, QA, base_fname)
 
             # temp vrt
             tmp_fname = pjoin(tmpdir, '{}.vrt'.format(product))
@@ -378,14 +462,18 @@ def package(l1_path, wagl_fname, fmask_fname, yamls_path, outdir,
         if not exists(out_path):
             os.makedirs(out_path)
 
-        # unpack the data produced by wagl
-        wagl_tags = wagl_unpack(container, granule, fid[granule], out_path)
+        # unpack the standardised products produced by wagl
+        wagl_tags = unpack_products(container, granule, fid[granule], out_path)
+
+        # unpack supplementary datasets produced by wagl
+        unpack_supplementary(container, granule, fid[granule], out_path)
 
         # file based globbing, so can't have any other tifs on disk
         create_contiguity(container, granule, out_path)
 
         # fmask cogtif conversion
-        fmask_cogtif(fmask_fname, pjoin(out_path, '{}_QA.TIF'.format(grn_id)))
+        fmask_cogtif(fmask_fname,
+                     pjoin(out_path, QA, '{}_FMASK.TIF'.format(grn_id)))
 
         # map, quicklook/thumbnail, readme, checksum
         create_html_map(out_path)
@@ -407,25 +495,3 @@ def package(l1_path, wagl_fname, fmask_fname, yamls_path, outdir,
 
         # finally the checksum
         create_checksum(out_path)
-
-
-if __name__ == '__main__':
-    description = "Prepare or package a wagl output."
-    parser = argparse.ArgumentParser(description=description)
-
-    parser.add_argument("--level1-pathname", required=True,
-                        help="The level1 pathname.")
-    parser.add_argument("--wagl-filename", required=True,
-                        help="The filename of the wagl output.")
-    parser.add_argument("--fmask-pathname", required=True,
-                        help=("The pathname to the directory containing the "
-                              "fmask results for the level1 dataset."))
-    parser.add_argument("--prepare-yamls", required=True,
-                        help="The pathname to the level1 prepare yamls.")
-    parser.add_argument("--outdir", required=True,
-                        help="The output directory.")
-
-    args = parser.parse_args()
-
-    package(args.level1_pathname, args.wagl_filename, args.fmask_pathname,
-            args.prepare_yamls, args.outdir)
