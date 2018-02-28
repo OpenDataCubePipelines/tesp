@@ -125,10 +125,14 @@ class Package(luigi.Task):
     granule = luigi.Parameter(default=None)
     pkgdir = luigi.Parameter()
 <<<<<<< HEAD
+<<<<<<< HEAD
     url_root = luigi.Parameter()
 =======
     s3_root = luigi.Parameter()
 >>>>>>> Include the s3_root param in the ARDP task. Append the yyyy-mm-dd format to the s3_root path; This makes the functionality idential to the pkgdir param.
+=======
+    url_root = luigi.Parameter()
+>>>>>>> Changed s3_root to url_root to imply a generic http url path.
     yamls_dir = luigi.Parameter()
     cleanup = luigi.BoolParameter()
     acq_parser_hint = luigi.Parameter(default=None)
@@ -169,10 +173,14 @@ class ARDP(luigi.WrapperTask):
     workdir = luigi.Parameter()
     pkgdir = luigi.Parameter()
 <<<<<<< HEAD
+<<<<<<< HEAD
     url_root = luigi.Parameter()
 =======
     s3_root = luigi.Parameter()
 >>>>>>> Include the s3_root param in the ARDP task. Append the yyyy-mm-dd format to the s3_root path; This makes the functionality idential to the pkgdir param.
+=======
+    url_root = luigi.Parameter()
+>>>>>>> Changed s3_root to url_root to imply a generic http url path.
     acq_parser_hint = luigi.Parameter(default=None)
 
     def requires(self):
@@ -187,6 +195,7 @@ class ARDP(luigi.WrapperTask):
                 acq = container.get_acquisitions(None, granule, False)[0]
                 ymd = acq.acquisition_datetime.strftime('%Y-%m-%d')
                 pkgdir = pjoin(self.pkgdir, ymd)
+<<<<<<< HEAD
 <<<<<<< HEAD
                 url_root = pjoin(self.url_root, ymd)
                 yield Package(level1, work_dir, granule, pkgdir, url_root)
