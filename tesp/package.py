@@ -31,6 +31,9 @@ from tesp.yaml_merge import merge_metadata
 from eugl.fmask import fmask_cogtif
 from eugl.contiguity import contiguity
 
+from eugl.fmask import fmask_cogtif
+from eugl.contiguity import contiguity
+
 yaml.add_representer(numpy.int8, Representer.represent_int)
 yaml.add_representer(numpy.uint8, Representer.represent_int)
 yaml.add_representer(numpy.int16, Representer.represent_int)
@@ -93,7 +96,7 @@ def _write_cogtif(dataset, out_fname):
               geobox=geobox, resampling=Resampling.nearest, options=options)
 
 
-def unpack_products(container, granule, h5group, outdir):
+def wagl_unpack(container, granule, h5group, outdir):
     """
     Unpack and package the NBAR and NBART products.
     """
@@ -214,60 +217,6 @@ def unpack_supplementary(container, granule, h5group, outdir):
     return rel_paths
 
 
-# TODO re-work so that it is sensor independent
-def build_vrts(outdir):
-    """
-    Build the various vrt's.
-    """
-    exe = 'gdalbuildvrt'
-
-    for product in PRODUCTS:
-        out_path = pjoin(outdir, product)
-        expr = pjoin(out_path, '*_B02.TIF')
-        base_name = basename(glob.glob(expr)[0]).replace('B02.TIF', '')
-
-        out_fname = '{}ALLBANDS_20m.vrt'.format(base_name)
-        cmd = [exe,
-               '-resolution',
-               'user',
-               '-tr',
-               '20',
-               '20',
-               '-separate',
-               '-overwrite',
-               out_fname,
-               '*_B0[1-8].TIF',
-               '*_B8A.TIF',
-               '*_B1[1-2].TIF']
-        run_command(cmd, out_path)
-
-        out_fname = '{}10m.vrt'.format(base_name)
-        cmd = [exe,
-               '-separate',
-               '-overwrite',
-               out_fname,
-               '*_B0[2-48].TIF']
-        run_command(cmd, out_path)
-
-        out_fname = '{}20m.vrt'.format(base_name)
-        cmd = [exe,
-               '-separate',
-               '-overwrite',
-               out_fname,
-               '*_B0[5-7].TIF',
-               '*_B8A.TIF',
-               '*_B1[1-2].TIF']
-        run_command(cmd, out_path)
-
-        out_fname = '{}60m.vrt'.format(base_name)
-        cmd = [exe,
-               '-separate',
-               '-overwrite',
-               out_fname,
-               '*_B01.TIF']
-        run_command(cmd, out_path)
-
-
 def create_contiguity(container, granule, outdir):
     """
     Create the contiguity (all pixels valid) dataset.
@@ -294,6 +243,14 @@ def create_contiguity(container, granule, outdir):
 
             alias = ALIAS_FMT[product].format('contiguity')
             rel_paths[alias] = {'path': rel_path, 'layer': 1}
+            out_path = pjoin(outdir, product)
+            fnames = [str(f) for f in Path(out_path).glob('*.TIF')]
+
+            # output filename
+            match = PATTERN1.match(fnames[0]).groupdict()
+            out_fname = '{}{}{}'.format(match.get('prefix'),
+                                        'CONTIGUITY',
+                                        match.get('extension'))
 
             # temp vrt
             tmp_fname = pjoin(tmpdir, '{}.vrt'.format(product))
