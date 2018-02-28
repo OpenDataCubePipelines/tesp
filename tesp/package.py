@@ -96,7 +96,7 @@ def _write_cogtif(dataset, out_fname):
               geobox=geobox, resampling=Resampling.nearest, options=options)
 
 
-def wagl_unpack(container, granule, h5group, outdir):
+def unpack_products(container, granule, h5group, outdir):
     """
     Unpack and package the NBAR and NBART products.
     """
@@ -245,12 +245,6 @@ def create_contiguity(container, granule, outdir):
             rel_paths[alias] = {'path': rel_path, 'layer': 1}
             out_path = pjoin(outdir, product)
             fnames = [str(f) for f in Path(out_path).glob('*.TIF')]
-
-            # output filename
-            match = PATTERN1.match(fnames[0]).groupdict()
-            out_fname = '{}{}{}'.format(match.get('prefix'),
-                                        'CONTIGUITY',
-                                        match.get('extension'))
 
             # temp vrt
             tmp_fname = pjoin(tmpdir, '{}.vrt'.format(product))
