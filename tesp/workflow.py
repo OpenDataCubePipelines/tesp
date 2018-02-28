@@ -271,7 +271,7 @@ class ARDP_S3(luigi.WrapperTask):
             container = acquisitions(level1, self.acq_parser_hint)
             for granule in container.granules:
                 work_dir = container.get_root(work_root, granule=granule)
-                acq = container.get_acquisitions(None, granule, False)
+                acq = container.get_acquisitions(None, granule, False)[0]
                 ymd = acq.acquisition_datetime.strftime('%Y-%m-%d')
                 pkgdir = pjoin(self.pkgdir, ymd)
                 yield Package_S3(
