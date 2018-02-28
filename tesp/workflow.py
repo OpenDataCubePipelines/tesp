@@ -7,6 +7,7 @@ A temporary workflow for processing S2 data into an ARD package.
 from os.path import join as pjoin, basename, dirname
 from pathlib import Path
 import shutil
+import re
 import logging
 import traceback
 from structlog import wrap_logger
@@ -20,8 +21,9 @@ from luigi.contrib.s3 import S3FlagTarget, S3Client
 
 from wagl.acquisition import acquisitions
 from wagl.singlefile_workflow import DataStandardisation
-from tesp.fmask_cophub import fmask
-from tesp.package import package
+from tesp.package import package, PATTERN2, ARD
+
+from eugl.fmask import fmask
 
 
 ERROR_LOGGER = wrap_logger(logging.getLogger('ard-error'),
@@ -137,9 +139,8 @@ class Package(luigi.Task):
         return tasks
 
     def output(self):
-        granule = self.granule if self.granule else ''
-        out_fname = pjoin(self.pkgdir, granule.replace('L1C', 'ARD'),
-                          'CHECKSUM.sha1')
+        granule = re.sub(PATTERN2, ARD, self.granule)
+        out_fname = pjoin(self.pkgdir, granule, 'CHECKSUM.sha1')
 
         return luigi.LocalTarget(out_fname)
 
