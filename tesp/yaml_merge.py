@@ -17,85 +17,11 @@ import yaml
 os.environ["CPL_ZIP_ENCODING"] = "UTF-8"
 
 
-def image_dict(target, root_path=None):
-    """
-    Returns a datacube-compatible dictionary of TIF image paths
-    """
-    # method of using relative paths
-    if root_path is None:
-        root_path = ''
-
-    nbar_match_dict = {'blue': 'B02',
-                       'green': 'B03',
-                       'red': 'B04',
-                       'nir': 'B08',
-                       'rededge1': 'B05',
-                       'rededge2': 'B06',
-                       'rededge3': 'B07',
-                       'rededge4': 'B8A',
-                       'swir1': 'B11',
-                       'swir2': 'B12',
-                       'aerosol': 'B01',
-                       'contiguity': 'CONTIGUITY'}
-
-    nbart_match_dict = {'t_blue': 'B02',
-                        't_green': 'B03',
-                        't_red': 'B04',
-                        't_nir': 'B08',
-                        't_rededge1': 'B05',
-                        't_rededge2': 'B06',
-                        't_rededge3': 'B07',
-                        't_rededge4': 'B8A',
-                        't_swir1': 'B11',
-                        't_swir2': 'B12',
-                        't_aerosol': 'B01',
-                        't_contiguity': 'CONTIGUITY'}
-
-    pq_match_dict = {'pixel_quality': 'QA'}
-
-    img_dict = {}
-
-    # pixel quality datasets
-    for file in os.listdir(target):
-        if '.aux.xml' in file:
-            continue
-
-        if '.TIF' in file:
-            for band_label, band_name in pq_match_dict.items():
-                if band_name in file:
-                    fname = os.path.join(root_path, file)
-                    img_dict[band_label] = {'path': fname, 'layer': 1}
-
-    # nbar datasets
-    nbar_target = os.path.join(target, 'NBAR')
-    for file in os.listdir(nbar_target):
-        if '.TIF' in file:
-            for band_label, band_name in nbar_match_dict.items():
-                if band_name in file:
-                    fname = os.path.join(root_path, 'NBAR', file)
-                    img_dict[band_label] = {'path': fname, 'layer': 1}
-
-    # nbart datasets
-    nbart_target = os.path.join(target, 'NBART')
-    for file in os.listdir(nbart_target):
-        if '.TIF' in file:
-            for band_label, band_name in nbart_match_dict.items():
-                if band_name in file:
-                    fname = os.path.join(root_path, 'NBART', file)
-                    img_dict[band_label] = {'path': fname, 'layer': 1}
-
-    return img_dict
-
-
-def merge_metadata(level1_tags, wagl_tags, package_dir, root_path=None):
+def merge_metadata(level1_tags, wagl_tags, image_paths):
     """
     Combine the metadata from input sources and output
     into a single ARD metadata yaml.
     """
-    # method of using relative paths
-    if root_path is None:
-        root_path = ''
-
     # TODO: extend yaml document to include fmask and gqa yamls
     # Merge tags from each input and create a UUID
     merged_yaml = {
@@ -115,7 +41,7 @@ def merge_metadata(level1_tags, wagl_tags, package_dir, root_path=None):
         'image': {
             'tile_reference': level1_tags['image']['tile_reference'],
             'cloud_cover_percentage': level1_tags['image']['cloud_cover_percentage'],
-            'bands': image_dict(package_dir, root_path)},
+            'bands': image_paths},
         'lineage': {
             'source_datasets': {'S2MSI1C': copy.deepcopy(level1_tags)}},
         }
