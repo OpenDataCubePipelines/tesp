@@ -26,7 +26,7 @@ import tesp
 from tesp.checksum import checksum
 from tesp.contrast import quicklook
 from tesp.html_geojson import html_map
-from tesp.yaml_merge import merge_metadata, image_dict
+from tesp.yaml_merge import merge_metadata
 
 from eugl.fmask import fmask_cogtif
 from eugl.contiguity import contiguity
@@ -46,6 +46,7 @@ yaml.add_representer(numpy.float64, Representer.represent_float)
 yaml.add_representer(numpy.ndarray, Representer.represent_list)
 
 PRODUCTS = ['NBAR', 'NBART']
+ALIAS_FMT = {'NBAR': '{}', 'NBART': 't_{}'}
 LEVELS = [2, 4, 8, 16, 32]
 PATTERN1 = re.compile(
     r'(?P<prefix>(?:.*_)?)(?P<band_name>B[0-9][A0-9]|B[0-9]*|B[0-9a-zA-z]*)'
@@ -99,6 +100,9 @@ def unpack_products(container, granule, h5group, outdir):
     # listing of all datasets of IMAGE CLASS type
     img_paths = find(h5group, 'IMAGE')
 
+    # relative paths of each dataset for ODC metadata doc
+    rel_paths = {}
+
     # TODO pass products through from the scheduler rather than hard code
     for product in PRODUCTS:
         for pathname in [p for p in img_paths if '/{}/'.format(product) in p]:
@@ -115,15 +119,20 @@ def unpack_products(container, granule, h5group, outdir):
             fname = '{}{}_{}{}'.format(match_dict.get('prefix'), product,
                                        match_dict.get('band_name'),
                                        match_dict.get('extension'))
-            out_fname = pjoin(outdir, product, re.sub(PATTERN2, ARD, fname))
+            rel_path = pjoin(product, re.sub(PATTERN2, ARD, fname))
+            out_fname = pjoin(outdir, rel_path)
 
             _write_cogtif(dataset, out_fname)
+
+            # alias name for ODC metadata doc
+            alias = ALIAS_FMT[product].format(dataset.attrs['alias'])
+            rel_paths[alias.lower()] = {'path': rel_path, 'layer': 1}
 
     # retrieve metadata
     scalar_paths = find(h5group, 'SCALAR')
     pathname = [pth for pth in scalar_paths if 'NBAR-METADATA' in pth][0]
     tags = yaml.load(h5group[pathname][()])
-    return tags
+    return tags, rel_paths
 
 
 def unpack_supplementary(container, granule, h5group, outdir):
@@ -135,6 +144,9 @@ def unpack_supplementary(container, granule, h5group, outdir):
     grn_id = re.sub(PATTERN2, ARD, granule)
     fmt = '{}_{}.TIF'
 
+    # relative paths of each dataset for ODC metadata doc
+    rel_paths = {}
+
     # satellite and solar angles
     grp = h5group[ppjoin(res_grp, GroupName.sat_sol_group.value)]
     dnames = [DatasetName.satellite_view.value,
@@ -145,8 +157,10 @@ def unpack_supplementary(container, granule, h5group, outdir):
               DatasetName.time.value]
 
     for dname in dnames:
-        out_fname = pjoin(outdir, SUPPS, fmt.format(grn_id, dname))
+        rel_path = pjoin(SUPPS, fmt.format(grn_id, dname))
+        out_fname = pjoin(outdir, rel_path)
         dset = grp[dname]
+        rel_paths[dset.attrs['alias'].lower()] = {'path': rel_path, 'layer': 1}
         _write_cogtif(dset, out_fname.replace('-', '_'))
 
     # incident angles
@@ -155,8 +169,10 @@ def unpack_supplementary(container, granule, h5group, outdir):
               DatasetName.azimuthal_incident.value]
 
     for dname in dnames:
-        out_fname = pjoin(outdir, SUPPS, fmt.format(grn_id, dname))
+        rel_path = pjoin(SUPPS, fmt.format(grn_id, dname))
+        out_fname = pjoin(outdir, rel_path)
         dset = grp[dname]
+        rel_paths[dset.attrs['alias'].lower()] = {'path': rel_path, 'layer': 1}
         _write_cogtif(dset, out_fname.replace('-', '_'))
 
     # exiting angles
@@ -165,8 +181,10 @@ def unpack_supplementary(container, granule, h5group, outdir):
               DatasetName.azimuthal_exiting.value]
 
     for dname in dnames:
-        out_fname = pjoin(outdir, SUPPS, fmt.format(grn_id, dname))
+        rel_path = pjoin(SUPPS, fmt.format(grn_id, dname))
+        out_fname = pjoin(outdir, rel_path)
         dset = grp[dname]
+        rel_paths[dset.attrs['alias'].lower()] = {'path': rel_path, 'layer': 1}
         _write_cogtif(dset, out_fname.replace('-', '_'))
 
     # relative slope
@@ -174,8 +192,10 @@ def unpack_supplementary(container, granule, h5group, outdir):
     dnames = [DatasetName.relative_slope.value]
 
     for dname in dnames:
-        out_fname = pjoin(outdir, SUPPS, fmt.format(grn_id, dname))
+        rel_path = pjoin(SUPPS, fmt.format(grn_id, dname))
+        out_fname = pjoin(outdir, rel_path)
         dset = grp[dname]
+        rel_paths[dset.attrs['alias'].lower()] = {'path': rel_path, 'layer': 1}
         _write_cogtif(dset, out_fname.replace('-', '_'))
 
     # terrain shadow
@@ -183,11 +203,15 @@ def unpack_supplementary(container, granule, h5group, outdir):
     dnames = [DatasetName.combined_shadow.value]
 
     for dname in dnames:
-        out_fname = pjoin(outdir, QA, fmt.format(grn_id, dname))
+        rel_path = pjoin(QA, fmt.format(grn_id, dname))
+        out_fname = pjoin(outdir, rel_path)
         dset = grp[dname]
+        rel_paths[dset.attrs['alias'].lower()] = {'path': rel_path, 'layer': 1}
         _write_cogtif(dset, out_fname.replace('-', '_'))
 
     # TODO do we also include slope and aspect?
+
+    return rel_paths
 
 
 # TODO re-work so that it is sensor independent
@@ -254,6 +278,9 @@ def create_contiguity(container, granule, outdir):
     acqs, _ = container.get_mode_resolution(granule)
     grn_id = re.sub(PATTERN2, ARD, granule)
 
+    # relative paths of each dataset for ODC metadata doc
+    rel_paths = {}
+
     with tempfile.TemporaryDirectory(dir=outdir,
                                      prefix='contiguity-') as tmpdir:
         for product in PRODUCTS:
@@ -262,7 +289,11 @@ def create_contiguity(container, granule, outdir):
 
             # output filename
             base_fname = '{}_{}_CONTIGUITY.TIF'.format(grn_id, product)
-            out_fname = pjoin(outdir, QA, base_fname)
+            rel_path = pjoin(QA, base_fname)
+            out_fname = pjoin(outdir, rel_path)
+
+            alias = ALIAS_FMT[product].format('contiguity')
+            rel_paths[alias] = {'path': rel_path, 'layer': 1}
 
             # temp vrt
             tmp_fname = pjoin(tmpdir, '{}.vrt'.format(product))
@@ -279,6 +310,8 @@ def create_contiguity(container, granule, outdir):
 
             # create contiguity
             contiguity(tmp_fname, out_fname)
+
+    return rel_paths
 
 
 def create_html_map(outdir):
@@ -463,32 +496,49 @@ def package(l1_path, wagl_fname, fmask_fname, yamls_path, outdir,
             os.makedirs(out_path)
 
         # unpack the standardised products produced by wagl
-        wagl_tags = unpack_products(container, granule, fid[granule], out_path)
+        wagl_tags, img_paths = unpack_products(container, granule,
+                                               fid[granule], out_path)
 
         # unpack supplementary datasets produced by wagl
-        unpack_supplementary(container, granule, fid[granule], out_path)
+        supp_paths = unpack_supplementary(container, granule, fid[granule],
+                                          out_path)
+
+        # add in supp paths
+        for key in supp_paths:
+            img_paths[key] = supp_paths[key]
 
         # file based globbing, so can't have any other tifs on disk
-        create_contiguity(container, granule, out_path)
+        qa_paths = create_contiguity(container, granule, out_path)
+
+        # add in qa paths
+        for key in qa_paths:
+            img_paths[key] = qa_paths[key]
 
         # fmask cogtif conversion
-        fmask_cogtif(fmask_fname,
-                     pjoin(out_path, QA, '{}_FMASK.TIF'.format(grn_id)))
+        rel_path = pjoin(QA, '{}_FMASK.TIF'.format(grn_id))
+        img_paths['pixel_quality'] = {'path': rel_path, 'layer': 1}
+        fmask_cogtif(fmask_fname, pjoin(out_path, rel_path))
 
         # map, quicklook/thumbnail, readme, checksum
         create_html_map(out_path)
         create_quicklook(container, out_path)
         create_readme(out_path)
 
-        # relative paths yaml doc
         # merge all the yaml documents
+        # TODO include gqa yaml, and fmask yaml (if we go ahead and create one)
+        # relative paths yaml doc
         tags = merge_metadata(l1_documents[granule], wagl_tags, out_path)
 
         with open(pjoin(out_path, 'ARD-METADATA.yaml'), 'w') as src:
             yaml.dump(tags, src, default_flow_style=False, indent=4)
 
+        # update to url/http paths
+        url_paths = img_paths.copy()
+        for key in url_paths:
+            url_paths[key]['path'] = pjoin(url_root, url_paths[key]['path'])
+
         # create http paths for s3 yaml doc
-        tags['image']['bands'] = image_dict(out_path, pjoin(url_root, grn_id))
+        tags['image']['bands'] = url_paths
 
         with open(pjoin(out_path, 'ARD-METADATA-S3.yaml'), 'w') as src:
             yaml.dump(tags, src, default_flow_style=False, indent=4)
