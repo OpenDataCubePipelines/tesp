@@ -31,9 +31,6 @@ from tesp.yaml_merge import merge_metadata
 from eugl.fmask import fmask_cogtif
 from eugl.contiguity import contiguity
 
-from eugl.fmask import fmask_cogtif
-from eugl.contiguity import contiguity
-
 yaml.add_representer(numpy.int8, Representer.represent_int)
 yaml.add_representer(numpy.uint8, Representer.represent_int)
 yaml.add_representer(numpy.int16, Representer.represent_int)
@@ -243,8 +240,6 @@ def create_contiguity(container, granule, outdir):
 
             alias = ALIAS_FMT[product].format('contiguity')
             rel_paths[alias] = {'path': rel_path, 'layer': 1}
-            out_path = pjoin(outdir, product)
-            fnames = [str(f) for f in Path(out_path).glob('*.TIF')]
 
             # temp vrt
             tmp_fname = pjoin(tmpdir, '{}.vrt'.format(product))
