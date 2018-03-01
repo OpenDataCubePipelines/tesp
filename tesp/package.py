@@ -434,7 +434,7 @@ def create_readme(outdir):
     Create the readme file.
     """
     with resource_stream(tesp.__name__, '_README') as src:
-        with open(pjoin(outdir, 'README'), 'w') as out_src:
+        with open(pjoin(outdir, 'README.md'), 'w') as out_src:
             out_src.writelines([l.decode('utf-8') for l in src.readlines()])
 
 
