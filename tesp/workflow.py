@@ -5,6 +5,7 @@ A temporary workflow for processing S2 data into an ARD package.
 """
 
 from os.path import join as pjoin, basename, dirname
+from pathlib import Path
 import shutil
 import logging
 import traceback
@@ -12,6 +13,10 @@ from structlog import wrap_logger
 from structlog.processors import JSONRenderer
 import luigi
 from luigi.local_target import LocalFileSystem
+from luigi.util import inherits
+from luigi.contrib.s3 import S3FlagTarget, S3Client
+# Note that utilising the luigi.contrib.s3 module requires boto to be installed
+# This affects the Package_S3 and ARDP_S3 Tasks
 
 from wagl.acquisition import acquisitions
 from wagl.singlefile_workflow import DataStandardisation
@@ -174,6 +179,103 @@ class ARDP(luigi.WrapperTask):
                 # TODO; pkgdir for landsat data
                 pkgdir = pjoin(self.pkgdir, basename(dirname(level1)))
                 yield Package(level1, work_dir, granule, pkgdir, s3_root=self.s3_root)
+
+
+@inherits(Package)
+class Package_S3(luigi.Task):
+
+    """
+    Uploads the packaged data to an s3_bucket and prefix after running the
+    Package task successfully.
+    s3_bucket and s3_prefix_key are used for the destination path,
+    s3_bucket_region is used to resolve s3_root for the S3-ARD.yml
+    """
+
+    s3_bucket = luigi.Parameter()
+    s3_key_prefix = luigi.Parameter()
+    s3_bucket_region = luigi.Parameter()
+
+    MEDIA_TYPES = {
+        'geojson': 'application/geo+json',
+        'htm': 'text/html',
+        'html': 'text/html',
+        'jpg': 'image/jpeg',
+        'sha1': 'text/plain',
+        'tif': 'image/tiff',
+        'tiff': 'image/tiff',
+        'vrt': 'text/xml',
+        'xml': 'text/xml',
+        'yaml': 'text/plain',
+        'yml': 'text/plain',
+    }
+
+    def requires(self):
+        return Package(self.level1, self.workdir, self.granule, self.pkgdir)
+
+    def output(self):
+        # Assumes that the flag file is at the root of the package
+        resolved_checksum = Path(self.input().path).resolve()
+        return S3FlagTarget(
+            's3://{}/{}/'.format(self.s3_bucket, self.s3_key_prefix) + \
+            resolved_checksum.parent.stem + '/',
+            flag=resolved_checksum.stem + resolved_checksum.suffix
+        )
+
+    def run(self):
+        s3 = S3Client()
+        granule = Path(self.input().path).resolve().parent
+        granule_prefix_len = len(granule.parent.as_posix())
+        for path in granule.rglob('*'):
+            if path.is_dir():
+                continue
+
+            s3.put_multipart(
+                path,
+                's3://{}/{}'.format(self.s3_bucket, self.s3_key_prefix) + \
+                path.as_posix()[granule_prefix_len:],  # resolves the relative path including granule id
+                headers={'Content-Type': self._get_content_mediatype(path)}
+            )
+
+    @classmethod
+    def _get_content_mediatype(cls, path):
+        # Special case, README files don't have a suffix
+        if path.stem == 'README':
+            return 'text/plain'
+
+        return cls.MEDIA_TYPES.get(
+            str(path.suffix)[1:].lower(),
+            'application/octet-stream'
+        )
+
+
+@inherits(ARDP)
+class ARDP_S3(luigi.WrapperTask):
+
+    """
+    A helper Task that issues Package_S3 tasks for each Level-1
+    dataset listed in the `level1_list` parameter.
+    """
+
+    s3_bucket = luigi.Parameter()
+    s3_key_prefix = luigi.Parameter()
+    s3_bucket_region = luigi.Parameter()
+
+    def requires(self):
+        with open(self.level1_list) as src:
+            level1_list = [level1.strip() for level1 in src.readlines()]
+
+        for level1 in level1_list:
+            work_root = pjoin(self.workdir, '{}.ARD'.format(basename(level1)))
+            container = acquisitions(level1, self.acq_parser_hint)
+            for granule in container.granules:
+                work_dir = container.get_root(work_root, granule=granule)
+                # TODO; pkgdir for landsat data
+                pkgdir = pjoin(self.pkgdir, basename(dirname(level1)))
+                yield Package_S3(
+                    level1, work_dir, granule, pkgdir, s3_bucket=self.s3_bucket,
+                    s3_key_prefix=self.s3_key_prefix,
+                    s3_bucket_region=self.s3_bucket_region
+                )
 
 
 if __name__ == '__main__':
