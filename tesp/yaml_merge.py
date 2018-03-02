@@ -17,11 +17,27 @@ import yaml
 os.environ["CPL_ZIP_ENCODING"] = "UTF-8"
 
 
-def merge_metadata(level1_tags, wagl_tags, image_paths):
+def merge_metadata(level1_tags, wagl_tags, granule, image_paths):
     """
     Combine the metadata from input sources and output
     into a single ARD metadata yaml.
     """
+    # TODO enforce metdata is generated upstream and passed to here
+    if level1_tags is None:
+        extent = {}
+        grid_spatial = {}
+        tile_reference = {}
+        source_datasets = {}
+        cloud_pct = {}
+    else:
+        extent = level1_tags['extent']
+        grid_spatial = level1_tags['grid_spatial']
+        tile_reference = level1_tags['image']['tile_reference']
+        source_datasets = {'S2MSI1C': copy.deepcopy(level1_tags)}
+        cloud_pct = level1_tags['image']['cloud_cover_percentage']
+
+    # TODO product_type, source_datasets key name
+
     # TODO: extend yaml document to include fmask and gqa yamls
     # Merge tags from each input and create a UUID
     merged_yaml = {
@@ -32,18 +48,18 @@ def merge_metadata(level1_tags, wagl_tags, image_paths):
         'id': str(uuid.uuid4()),
         'processing_level': 'Level-2',
         'product_type': 'S2MSIARD',
-        'platform': level1_tags['platform'],
-        'instrument': level1_tags['instrument'],
+        'platform': wagl_tags['source_data']['platform_id'],
+        'instrument': wagl_tags['source_data']['sensor_id'],
         'format': {'name': 'GeoTIFF'},
-        'tile_id': level1_tags['tile_id'],
-        'extent': level1_tags['extent'],
-        'grid_spatial': level1_tags['grid_spatial'],
+        'tile_id': granule,
+        'extent': extent,
+        'grid_spatial': grid_spatial,
         'image': {
-            'tile_reference': level1_tags['image']['tile_reference'],
-            'cloud_cover_percentage': level1_tags['image']['cloud_cover_percentage'],
+            'tile_reference': tile_reference,
+            'cloud_cover_percentage': cloud_pct,
             'bands': image_paths},
         'lineage': {
-            'source_datasets': {'S2MSI1C': copy.deepcopy(level1_tags)}},
+            'source_datasets': source_datasets},
         }
 
     return merged_yaml
