@@ -22,13 +22,11 @@ setup(name='tesp',
           'structlog',
           'eodatasets',
           'checksumdir',
-          'rios',
-          'python-fmask'
+          'eugl'
       ],
       dependency_links=[
           'git+https://github.com/GeoscienceAustralia/eo-datasets@develop#egg=eodatasets-0.1dev',
-          'hg+https://bitbucket.org/chchrsc/rios@1.4.4/#egg=rios-1.4.4',
-          'hg+https://bitbucket.org/chchrsc/python-fmask@0.4.5#egg=python-fmask-0.4.5'
+          'git+https://github.com/OpenDataCubePipelines/eugl.git'
       ],
       scripts=['bin/s2package', 'bin/ard_pbs', 'bin/search_s2'],
       include_package_data=True)
