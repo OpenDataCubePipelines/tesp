@@ -428,11 +428,19 @@ def package(l1_path, wagl_fname, fmask_fname, yamls_path, outdir,
         None; The packages will be written to disk directly.
     """
     container = acquisitions(l1_path, acq_parser_hint)
+
+    # TODO define a consistent file structure where yaml metadata exists
     yaml_fname = pjoin(yamls_path,
                        basename(dirname(l1_path)),
                        '{}.yaml'.format(container.label))
-    with open(yaml_fname, 'r') as src:
-        l1_documents = {doc['tile_id']: doc for doc in yaml.load_all(src)}
+
+    # quick workaround if no source yaml
+    if exists(yaml_fname):
+        with open(yaml_fname, 'r') as src:
+            l1_documents = {doc['tile_id']: doc for doc in yaml.load_all(src)}
+            l1_tags = l1_documents[granule]
+    else:
+        l1_tags = None
 
     with h5py.File(wagl_fname, 'r') as fid:
         grn_id = re.sub(PATTERN2, ARD, granule)
@@ -473,7 +481,7 @@ def package(l1_path, wagl_fname, fmask_fname, yamls_path, outdir,
         # merge all the yaml documents
         # TODO include gqa yaml, and fmask yaml (if we go ahead and create one)
         # relative paths yaml doc
-        tags = merge_metadata(l1_documents[granule], wagl_tags, out_path)
+        tags = merge_metadata(l1_tags, wagl_tags, granule, img_paths)
 
         with open(pjoin(out_path, 'ARD-METADATA.yaml'), 'w') as src:
             yaml.dump(tags, src, default_flow_style=False, indent=4)
