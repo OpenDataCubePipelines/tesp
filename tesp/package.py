@@ -214,60 +214,6 @@ def unpack_supplementary(container, granule, h5group, outdir):
     return rel_paths
 
 
-# TODO re-work so that it is sensor independent
-def build_vrts(outdir):
-    """
-    Build the various vrt's.
-    """
-    exe = 'gdalbuildvrt'
-
-    for product in PRODUCTS:
-        out_path = pjoin(outdir, product)
-        expr = pjoin(out_path, '*_B02.TIF')
-        base_name = basename(glob.glob(expr)[0]).replace('B02.TIF', '')
-
-        out_fname = '{}ALLBANDS_20m.vrt'.format(base_name)
-        cmd = [exe,
-               '-resolution',
-               'user',
-               '-tr',
-               '20',
-               '20',
-               '-separate',
-               '-overwrite',
-               out_fname,
-               '*_B0[1-8].TIF',
-               '*_B8A.TIF',
-               '*_B1[1-2].TIF']
-        run_command(cmd, out_path)
-
-        out_fname = '{}10m.vrt'.format(base_name)
-        cmd = [exe,
-               '-separate',
-               '-overwrite',
-               out_fname,
-               '*_B0[2-48].TIF']
-        run_command(cmd, out_path)
-
-        out_fname = '{}20m.vrt'.format(base_name)
-        cmd = [exe,
-               '-separate',
-               '-overwrite',
-               out_fname,
-               '*_B0[5-7].TIF',
-               '*_B8A.TIF',
-               '*_B1[1-2].TIF']
-        run_command(cmd, out_path)
-
-        out_fname = '{}60m.vrt'.format(base_name)
-        cmd = [exe,
-               '-separate',
-               '-overwrite',
-               out_fname,
-               '*_B01.TIF']
-        run_command(cmd, out_path)
-
-
 def create_contiguity(container, granule, outdir):
     """
     Create the contiguity (all pixels valid) dataset.
