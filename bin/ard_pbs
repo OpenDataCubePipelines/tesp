@@ -33,7 +33,7 @@ luigi --module tesp.workflow ARDP --level1-list {scene_list} --workdir {outdir} 
 """)
 
 
-FMT1 = 'batchid-{batchid}.bash'
+FMT1 = 'batchid-{batchid}'
 FMT2 = 'jobid-{jobid}'
 FMT3 = 'level1-scenes-{jobid}.txt'
 FMT4 = 'jobid-{jobid}.bash'
