@@ -45,8 +45,8 @@ yaml.add_representer(numpy.float32, Representer.represent_float)
 yaml.add_representer(numpy.float64, Representer.represent_float)
 yaml.add_representer(numpy.ndarray, Representer.represent_list)
 
-PRODUCTS = ['NBAR', 'NBART']
-ALIAS_FMT = {'NBAR': '{}', 'NBART': 't_{}'}
+PRODUCTS = ['LAMBERTIAN', 'NBAR', 'NBART', 'SBT']
+ALIAS_FMT = {'LAMBERTIAN': 'l_{}', 'NBAR': '{}', 'NBART': 't_{}', 'SBT': '{}'}
 LEVELS = [2, 4, 8, 16, 32]
 PATTERN1 = re.compile(
     r'(?P<prefix>(?:.*_)?)(?P<band_name>B[0-9][A0-9]|B[0-9]*|B[0-9a-zA-z]*)'
@@ -233,6 +233,10 @@ def create_contiguity(container, granule, outdir):
             search_path = pjoin(outdir, product)
             fnames = [str(f) for f in Path(search_path).glob('*.TIF')]
 
+            # quick work around for products that aren't being packaged
+            if not fnames:
+                continue
+
             # output filename
             base_fname = '{}_{}_CONTIGUITY.TIF'.format(grn_id, product)
             rel_path = pjoin(QA, base_fname)
@@ -295,6 +299,9 @@ def create_quicklook(container, outdir):
                                      prefix='quicklook-') as tmpdir:
 
         for product in PRODUCTS:
+            if product == 'SBT':
+                # no sbt quicklook for the time being
+                continue
             out_path = Path(pjoin(outdir, product))
             fnames = [str(f) for f in out_path.glob(wcard)]
 
