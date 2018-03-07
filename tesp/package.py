@@ -284,7 +284,7 @@ def create_quicklook(container, outdir):
     """
     Create the quicklook and thumbnail images.
     """
-    acq = container.get_acquisitions()[0]
+    acq = container.get_acquisitions(None, None, False)[0]
 
     # are quicklooks still needed?
     # this wildcard mechanism needs to change if quicklooks are to
@@ -321,6 +321,7 @@ def create_quicklook(container, outdir):
             tmp_fname1 = pjoin(tmpdir, '{}.vrt'.format(product))
             cmd = ['gdalbuildvrt',
                    '-separate',
+                   '-overwrite',
                    tmp_fname1]
             cmd.extend(fnames)
             run_command(cmd, tmpdir)
