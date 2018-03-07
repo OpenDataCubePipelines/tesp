@@ -444,7 +444,9 @@ def package(l1_path, wagl_fname, fmask_fname, yamls_path, outdir,
     # quick workaround if no source yaml
     if exists(yaml_fname):
         with open(yaml_fname, 'r') as src:
-            l1_documents = {doc[granule]: doc for doc in yaml.load_all(src)}
+            # TODO harmonise field names for different sensors
+            l1_documents = {doc.get('tile_id', doc['label']): doc for doc in
+                            yaml.load_all(src)}
             l1_tags = l1_documents[granule]
     else:
         raise IOError('yaml file not found: {}'.format(yaml_fname))
