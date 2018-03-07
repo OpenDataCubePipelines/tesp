@@ -79,14 +79,14 @@ def quicklook(fname, out_fname, src_min, src_max, out_min=0, out_max=255):
                   'blockysize': 512}
 
         with rasterio.open(out_fname, 'w', **kwargs) as out_ds:
-            for i, band in enumerate(bands):
+            for band in range(1, 4):
                 scaled = rescale_intensity(ds.read(band),
                                            in_range=(src_min, src_max),
                                            out_range=(out_min, out_max))
                 scaled = scaled.astype('uint8')
                 scaled[nulls] = 0
 
-                out_ds.write(scaled, i + 1)
+                out_ds.write(scaled, band)
 
             # as we're warping after this, it is probably not needed
             # out_ds.build_overviews(FACTORS, Resampling.average)
