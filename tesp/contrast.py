@@ -57,12 +57,11 @@ def quicklook(fname, out_fname, src_min, src_max, out_min=0, out_max=255):
         None; The output will be written directly to disk.
         The output datatype will be `UInt8`.
     """
-    bands = [4, 3, 2]
     with rasterio.open(fname) as ds:
 
         # no data locations
         nulls = numpy.zeros((ds.height, ds.width), dtype='bool')
-        for band in bands:
+        for band in range(1, 4):
             nulls |= ds.read(band) == ds.nodata
 
         kwargs = {'driver': "GTiff",
