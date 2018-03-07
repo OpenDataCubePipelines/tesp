@@ -157,11 +157,11 @@ def unpack_supplementary(container, granule, h5group, outdir):
               DatasetName.time.value]
 
     for dname in dnames:
-        rel_path = pjoin(SUPPS, fmt.format(grn_id, dname))
+        rel_path = pjoin(SUPPS, fmt.format(grn_id, dname.replace('-', '_')))
         out_fname = pjoin(outdir, rel_path)
         dset = grp[dname]
         rel_paths[dset.attrs['alias'].lower()] = {'path': rel_path, 'layer': 1}
-        _write_cogtif(dset, out_fname.replace('-', '_'))
+        _write_cogtif(dset, out_fname)
 
     # incident angles
     grp = h5group[ppjoin(res_grp, GroupName.incident_group.value)]
@@ -169,11 +169,11 @@ def unpack_supplementary(container, granule, h5group, outdir):
               DatasetName.azimuthal_incident.value]
 
     for dname in dnames:
-        rel_path = pjoin(SUPPS, fmt.format(grn_id, dname))
+        rel_path = pjoin(SUPPS, fmt.format(grn_id, dname.replace('-', '_')))
         out_fname = pjoin(outdir, rel_path)
         dset = grp[dname]
         rel_paths[dset.attrs['alias'].lower()] = {'path': rel_path, 'layer': 1}
-        _write_cogtif(dset, out_fname.replace('-', '_'))
+        _write_cogtif(dset, out_fname)
 
     # exiting angles
     grp = h5group[ppjoin(res_grp, GroupName.exiting_group.value)]
@@ -181,33 +181,33 @@ def unpack_supplementary(container, granule, h5group, outdir):
               DatasetName.azimuthal_exiting.value]
 
     for dname in dnames:
-        rel_path = pjoin(SUPPS, fmt.format(grn_id, dname))
+        rel_path = pjoin(SUPPS, fmt.format(grn_id, dname.replace('-', '_')))
         out_fname = pjoin(outdir, rel_path)
         dset = grp[dname]
         rel_paths[dset.attrs['alias'].lower()] = {'path': rel_path, 'layer': 1}
-        _write_cogtif(dset, out_fname.replace('-', '_'))
+        _write_cogtif(dset, out_fname)
 
     # relative slope
     grp = h5group[ppjoin(res_grp, GroupName.rel_slp_group.value)]
     dnames = [DatasetName.relative_slope.value]
 
     for dname in dnames:
-        rel_path = pjoin(SUPPS, fmt.format(grn_id, dname))
+        rel_path = pjoin(SUPPS, fmt.format(grn_id, dname.replace('-', '_')))
         out_fname = pjoin(outdir, rel_path)
         dset = grp[dname]
         rel_paths[dset.attrs['alias'].lower()] = {'path': rel_path, 'layer': 1}
-        _write_cogtif(dset, out_fname.replace('-', '_'))
+        _write_cogtif(dset, out_fname)
 
     # terrain shadow
     grp = h5group[ppjoin(res_grp, GroupName.shadow_group.value)]
     dnames = [DatasetName.combined_shadow.value]
 
     for dname in dnames:
-        rel_path = pjoin(QA, fmt.format(grn_id, dname))
+        rel_path = pjoin(QA, fmt.format(grn_id, dname.replace('-', '_')))
         out_fname = pjoin(outdir, rel_path)
         dset = grp[dname]
         rel_paths[dset.attrs['alias'].lower()] = {'path': rel_path, 'layer': 1}
-        _write_cogtif(dset, out_fname.replace('-', '_'))
+        _write_cogtif(dset, out_fname)
 
     # TODO do we also include slope and aspect?
 
