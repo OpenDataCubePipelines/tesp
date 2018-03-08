@@ -271,7 +271,7 @@ def create_html_map(outdir):
     """
     Create the html map and GeoJSON valid data extents files.
     """
-    expr = pjoin(outdir, QA, '*_CONTIGUITY.TIF')
+    expr = pjoin(outdir, QA, '*_FMASK.TIF')
     contiguity_fname = glob.glob(expr)[0]
     html_fname = pjoin(outdir, 'map.html')
     json_fname = pjoin(outdir, 'bounds.geojson')
