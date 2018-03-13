@@ -3,7 +3,7 @@ Analysis Ready Data (ARD) Package Contents Outline
 
 ARD packages are structured as follows:
 
-<Granule ID>/
+<Granule ID>/ # Granule ID is akin to Scene ID for Landsat and Tile ID for Sentinel-2
     
     - README.md # The contents of this file
     - ARD-METADATA.yaml
@@ -28,7 +28,7 @@ ARD packages are structured as follows:
         - <Granule ID>_SOLAR_ZENITH.TIF
         - <Granule ID>_SOLAR_AZIMUTH.TIF
         - <Granule ID>_RELATIVE_AZIMUTH.TIF
-        - <Granule ID>_TIME.TIF
+        - <Granule ID>_TIME.TIF # Time from apogee in seconds
         - <Granule ID>_INCIDENT.TIF
         - <Granule ID>_AZIMUTHAL_INCIDENT.TIF
         - <Granule ID>_EXITING.TIF
@@ -86,4 +86,4 @@ ADDITIONAL NOTES
 * The number of bands available in a given product i.e. *NBAR*, depend on the supported attribute given in:
 [wagl](https://github.com/GeoscienceAustralia/wagl/blob/develop/wagl/acquisition/sensors.json)
 * If SBT is availble quicklooks and thumbnails are currently not generated as the bulk of the products will be single band anyway.
-* Angular datasets such as SATELLITE_VIEW
+* Datasets containing angles such as SATELLITE_VIEW, will be expressed in degress, not radians.
