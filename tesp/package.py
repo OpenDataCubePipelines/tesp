@@ -140,9 +140,25 @@ def unpack_supplementary(container, granule, h5group, outdir):
     Unpack the angles + other supplementary datasets produced by wagl.
     Currently only the mode resolution group gets extracted.
     """
+    def _write(dataset_names, h5_group, granule_id, basedir):
+        """
+        An internal util for serialising the supplementary
+        H5Datasets to cogtif.
+        """
+        fmt = '{}_{}.TIF'
+        paths = {}
+        for dname in dataset_names:
+            rel_path = pjoin(basedir,
+                             fmt.format(granule_id, dname.replace('-', '_')))
+            out_fname = pjoin(outdir, rel_path)
+            dset = h5_group[dname]
+            paths[dset.attrs['alias'].lower()] = {'path': rel_path, 'layer': 1}
+            _write_cogtif(dset, out_fname)
+
+        return paths
+
     _, res_grp = container.get_mode_resolution(granule)
     grn_id = re.sub(PATTERN2, ARD, granule)
-    fmt = '{}_{}.TIF'
 
     # relative paths of each dataset for ODC metadata doc
     rel_paths = {}
@@ -155,59 +171,39 @@ def unpack_supplementary(container, granule, h5group, outdir):
               DatasetName.solar_azimuth.value,
               DatasetName.relative_azimuth.value,
               DatasetName.time.value]
-
-    for dname in dnames:
-        rel_path = pjoin(SUPPS, fmt.format(grn_id, dname.replace('-', '_')))
-        out_fname = pjoin(outdir, rel_path)
-        dset = grp[dname]
-        rel_paths[dset.attrs['alias'].lower()] = {'path': rel_path, 'layer': 1}
-        _write_cogtif(dset, out_fname)
+    paths = _write(dnames, grp, grn_id, SUPPS)
+    for key in paths:
+        rel_paths[key] = paths[key]
 
     # incident angles
     grp = h5group[ppjoin(res_grp, GroupName.incident_group.value)]
     dnames = [DatasetName.incident.value,
               DatasetName.azimuthal_incident.value]
-
-    for dname in dnames:
-        rel_path = pjoin(SUPPS, fmt.format(grn_id, dname.replace('-', '_')))
-        out_fname = pjoin(outdir, rel_path)
-        dset = grp[dname]
-        rel_paths[dset.attrs['alias'].lower()] = {'path': rel_path, 'layer': 1}
-        _write_cogtif(dset, out_fname)
+    paths = _write(dnames, grp, grn_id, SUPPS)
+    for key in paths:
+        rel_paths[key] = paths[key]
 
     # exiting angles
     grp = h5group[ppjoin(res_grp, GroupName.exiting_group.value)]
     dnames = [DatasetName.exiting.value,
               DatasetName.azimuthal_exiting.value]
-
-    for dname in dnames:
-        rel_path = pjoin(SUPPS, fmt.format(grn_id, dname.replace('-', '_')))
-        out_fname = pjoin(outdir, rel_path)
-        dset = grp[dname]
-        rel_paths[dset.attrs['alias'].lower()] = {'path': rel_path, 'layer': 1}
-        _write_cogtif(dset, out_fname)
+    paths = _write(dnames, grp, grn_id, SUPPS)
+    for key in paths:
+        rel_paths[key] = paths[key]
 
     # relative slope
     grp = h5group[ppjoin(res_grp, GroupName.rel_slp_group.value)]
     dnames = [DatasetName.relative_slope.value]
-
-    for dname in dnames:
-        rel_path = pjoin(SUPPS, fmt.format(grn_id, dname.replace('-', '_')))
-        out_fname = pjoin(outdir, rel_path)
-        dset = grp[dname]
-        rel_paths[dset.attrs['alias'].lower()] = {'path': rel_path, 'layer': 1}
-        _write_cogtif(dset, out_fname)
+    paths = _write(dnames, grp, grn_id, SUPPS)
+    for key in paths:
+        rel_paths[key] = paths[key]
 
     # terrain shadow
     grp = h5group[ppjoin(res_grp, GroupName.shadow_group.value)]
     dnames = [DatasetName.combined_shadow.value]
-
-    for dname in dnames:
-        rel_path = pjoin(QA, fmt.format(grn_id, dname.replace('-', '_')))
-        out_fname = pjoin(outdir, rel_path)
-        dset = grp[dname]
-        rel_paths[dset.attrs['alias'].lower()] = {'path': rel_path, 'layer': 1}
-        _write_cogtif(dset, out_fname)
+    paths = _write(dnames, grp, grn_id, QA)
+    for key in paths:
+        rel_paths[key] = paths[key]
 
     # TODO do we also include slope and aspect?
 
