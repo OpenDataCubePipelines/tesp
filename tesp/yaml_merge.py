@@ -50,6 +50,7 @@ def merge_metadata(level1_tags, wagl_tags, granule, image_paths):
         'image': {
             'bands': image_paths},
         'lineage': {
+            'ancillary': wagl_tags['ancillary'],
             'source_datasets': source_tags},
         }
 
