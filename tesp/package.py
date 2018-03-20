@@ -46,7 +46,7 @@ yaml.add_representer(numpy.float64, Representer.represent_float)
 yaml.add_representer(numpy.ndarray, Representer.represent_list)
 
 PRODUCTS = ['LAMBERTIAN', 'NBAR', 'NBART', 'SBT']
-ALIAS_FMT = {'LAMBERTIAN': 'l_{}', 'NBAR': '{}', 'NBART': 't_{}', 'SBT': '{}'}
+ALIAS_FMT = {'LAMBERTIAN': 'lambertian_{}', 'NBAR': 'nbar_{}', 'NBART': 'nbart_{}', 'SBT': 'sbt_{}'}
 LEVELS = [2, 4, 8, 16, 32]
 PATTERN1 = re.compile(
     r'(?P<prefix>(?:.*_)?)(?P<band_name>B[0-9][A0-9]|B[0-9]*|B[0-9a-zA-z]*)'
