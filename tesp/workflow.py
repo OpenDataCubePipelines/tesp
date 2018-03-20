@@ -6,7 +6,9 @@ A temporary workflow for processing S2 data into an ARD package.
 
 from os.path import join as pjoin, basename, dirname
 from pathlib import Path
+from posixpath import join as ppjoin
 import shutil
+import re
 import logging
 import traceback
 from structlog import wrap_logger
@@ -20,8 +22,9 @@ from luigi.contrib.s3 import S3FlagTarget, S3Client
 
 from wagl.acquisition import acquisitions
 from wagl.singlefile_workflow import DataStandardisation
-from tesp.fmask_cophub import prepare_dataset, fmask
-from tesp.package import package
+from tesp.package import package, PATTERN2, ARD
+
+from eugl.fmask import fmask
 
 
 ERROR_LOGGER = wrap_logger(logging.getLogger('ard-error'),
@@ -65,23 +68,25 @@ class RunFmask(luigi.Task):
     """
 
     level1 = luigi.Parameter()
-    task = luigi.TupleParameter()
+    granule = luigi.Parameter()
     workdir = luigi.Parameter()
+    acq_parser_hint = luigi.Parameter(default=None)
 
     def requires(self):
         # for the time being have fmask require wagl,
         # no point in running fmask if wagl fails...
         # return WorkDir(self.level1, dirname(self.workdir))
-        return DataStandardisation(self.level1, self.workdir, self.task[1])
+        return DataStandardisation(self.level1, self.workdir, self.granule)
 
     def output(self):
-        out_fname = pjoin(self.workdir, '{}.cloud.img'.format(self.task[1]))
+        out_fname = pjoin(self.workdir, '{}.fmask.img'.format(self.granule))
 
         return luigi.LocalTarget(out_fname)
 
     def run(self):
         with self.output().temporary_path() as out_fname:
-            fmask(self.level1, self.task, out_fname, self.workdir)
+            fmask(self.level1, self.granule, out_fname, self.workdir,
+                  self.acq_parser_hint)
 
 
 # useful for testing fmask via the CLI
@@ -97,8 +102,9 @@ class Fmask(luigi.WrapperTask):
 
     def requires(self):
         # issues task per granule
-        for task in prepare_dataset(self.level1, self.acq_parser_hint):
-            yield RunFmask(self.level1, task, self.workdir)
+        container = acquisitions(self.level1, self.acq_parser_hint)
+        for granule in container.granules:
+            yield RunFmask(self.level1, granule, self.workdir)
 
 
 # TODO: GQA implementation
@@ -119,35 +125,30 @@ class Package(luigi.Task):
     workdir = luigi.Parameter()
     granule = luigi.Parameter(default=None)
     pkgdir = luigi.Parameter()
+    url_root = luigi.Parameter()
     yamls_dir = luigi.Parameter()
     cleanup = luigi.BoolParameter()
-    s3_root = luigi.Parameter()
     acq_parser_hint = luigi.Parameter(default=None)
 
     def requires(self):
-        # task items for fmask
-        ftask = prepare_dataset(self.level1, self.acq_parser_hint,
-                                self.granule)[0]
-
         tasks = {'wagl': DataStandardisation(self.level1, self.workdir,
                                              self.granule),
-                 'fmask': RunFmask(self.level1, ftask, self.workdir)}
+                 'fmask': RunFmask(self.level1, self.granule, self.workdir)}
         # TODO: GQA implementation
         # 'gqa': Gqa()}
 
         return tasks
 
     def output(self):
-        granule = self.granule if self.granule else ''
-        out_fname = pjoin(self.pkgdir, granule.replace('L1C', 'ARD'),
-                          'CHECKSUM.sha1')
+        granule = re.sub(PATTERN2, ARD, self.granule)
+        out_fname = pjoin(self.pkgdir, granule, 'CHECKSUM.sha1')
 
         return luigi.LocalTarget(out_fname)
 
     def run(self):
         inputs = self.input()
         package(self.level1, inputs['wagl'].path, inputs['fmask'].path,
-                self.yamls_dir, self.pkgdir, self.s3_root, self.granule,
+                self.yamls_dir, self.pkgdir, self.url_root, self.granule,
                 self.acq_parser_hint)
 
         if self.cleanup:
@@ -164,8 +165,8 @@ class ARDP(luigi.WrapperTask):
     level1_list = luigi.Parameter()
     workdir = luigi.Parameter()
     pkgdir = luigi.Parameter()
+    url_root = luigi.Parameter()
     acq_parser_hint = luigi.Parameter(default=None)
-    s3_root = luigi.Parameter()
 
     def requires(self):
         with open(self.level1_list) as src:
@@ -176,9 +177,11 @@ class ARDP(luigi.WrapperTask):
             container = acquisitions(level1, self.acq_parser_hint)
             for granule in container.granules:
                 work_dir = container.get_root(work_root, granule=granule)
-                # TODO; pkgdir for landsat data
-                pkgdir = pjoin(self.pkgdir, basename(dirname(level1)))
-                yield Package(level1, work_dir, granule, pkgdir, s3_root=self.s3_root)
+                acq = container.get_acquisitions(None, granule, False)[0]
+                ymd = acq.acquisition_datetime.strftime('%Y-%m-%d')
+                pkgdir = pjoin(self.pkgdir, ymd)
+                url_root = pjoin(self.url_root, ymd)
+                yield Package(level1, work_dir, granule, pkgdir, url_root)
 
 
 @inherits(Package)
@@ -207,12 +210,14 @@ class Package_S3(luigi.Task):
         'xml': 'text/xml',
         'yaml': 'text/plain',
         'yml': 'text/plain',
+        'md': 'text/plain',
     }
 
     def requires(self):
         s3_root = "http://{}.s3-{}.amazonaws.com/{}".format(
             self.s3_bucket, self.s3_bucket_region, self.s3_key_prefix)
-        return Package(self.level1, self.workdir, self.granule, self.pkgdir, s3_root=s3_root)
+        return Package(self.level1, self.workdir, self.granule, self.pkgdir,
+                       s3_root)
 
     def output(self):
         # Assumes that the flag file is at the root of the package
@@ -271,11 +276,12 @@ class ARDP_S3(luigi.WrapperTask):
             container = acquisitions(level1, self.acq_parser_hint)
             for granule in container.granules:
                 work_dir = container.get_root(work_root, granule=granule)
-                # TODO; pkgdir for landsat data
-                pkgdir = pjoin(self.pkgdir, basename(dirname(level1)))
+                acq = container.get_acquisitions(None, granule, False)[0]
+                ymd = acq.acquisition_datetime.strftime('%Y-%m-%d')
+                pkgdir = pjoin(self.pkgdir, ymd)
                 yield Package_S3(
                     level1, work_dir, granule, pkgdir, s3_bucket=self.s3_bucket,
-                    s3_key_prefix=self.s3_key_prefix,
+                    s3_key_prefix=ppjoin(self.s3_key_prefix, ymd),
                     s3_bucket_region=self.s3_bucket_region
                 )
 

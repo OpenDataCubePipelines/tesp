@@ -57,12 +57,11 @@ def quicklook(fname, out_fname, src_min, src_max, out_min=0, out_max=255):
         None; The output will be written directly to disk.
         The output datatype will be `UInt8`.
     """
-    bands = [4, 3, 2]
     with rasterio.open(fname) as ds:
 
         # no data locations
         nulls = numpy.zeros((ds.height, ds.width), dtype='bool')
-        for band in bands:
+        for band in range(1, 4):
             nulls |= ds.read(band) == ds.nodata
 
         kwargs = {'driver': "GTiff",
@@ -80,14 +79,14 @@ def quicklook(fname, out_fname, src_min, src_max, out_min=0, out_max=255):
                   'blockysize': 512}
 
         with rasterio.open(out_fname, 'w', **kwargs) as out_ds:
-            for i, band in enumerate(bands):
+            for band in range(1, 4):
                 scaled = rescale_intensity(ds.read(band),
                                            in_range=(src_min, src_max),
                                            out_range=(out_min, out_max))
                 scaled = scaled.astype('uint8')
                 scaled[nulls] = 0
 
-                out_ds.write(scaled, i + 1)
+                out_ds.write(scaled, band)
 
             # as we're warping after this, it is probably not needed
             # out_ds.build_overviews(FACTORS, Resampling.average)
