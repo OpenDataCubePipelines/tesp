@@ -26,7 +26,7 @@ setup(name='tesp',
       ],
       dependency_links=[
           'git+https://github.com/GeoscienceAustralia/eo-datasets@develop#egg=eodatasets-0.1dev',
-          'git+https://github.com/OpenDataCubePipelines/eugl.git'
+          'git+https://github.com/OpenDataCubePipelines/eugl.git#egg=eugl-0.0.1'
       ],
       scripts=['bin/s2package', 'bin/ard_pbs', 'bin/search_s2'],
       include_package_data=True)
