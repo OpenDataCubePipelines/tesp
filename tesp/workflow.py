@@ -4,7 +4,7 @@
 A temporary workflow for processing S2 data into an ARD package.
 """
 
-from os.path import join as pjoin, basename, dirname
+from os.path import join as pjoin, basename
 from pathlib import Path
 from posixpath import join as ppjoin
 import shutil
@@ -16,9 +16,10 @@ from structlog.processors import JSONRenderer
 import luigi
 from luigi.local_target import LocalFileSystem
 from luigi.util import inherits
+
 from luigi.contrib.s3 import S3FlagTarget, S3Client
 # Note that utilising the luigi.contrib.s3 module requires boto to be installed
-# This affects the Package_S3 and ARDP_S3 Tasks
+# This affects the PackageS3 and ARDPS3 Tasks
 
 from wagl.acquisition import acquisitions
 from wagl.singlefile_workflow import DataStandardisation
@@ -185,7 +186,7 @@ class ARDP(luigi.WrapperTask):
 
 
 @inherits(Package)
-class Package_S3(luigi.Task):
+class PackageS3(luigi.Task):
 
     """
     Uploads the packaged data to an s3_bucket and prefix after running the
@@ -197,6 +198,8 @@ class Package_S3(luigi.Task):
     s3_bucket = luigi.Parameter()
     s3_key_prefix = luigi.Parameter()
     s3_bucket_region = luigi.Parameter()
+    s3_object_base_tags = luigi.DictParameter(default={},
+                                              significant=False)
 
     MEDIA_TYPES = {
         'geojson': 'application/geo+json',
@@ -214,10 +217,10 @@ class Package_S3(luigi.Task):
     }
 
     def requires(self):
-        s3_root = "http://{}.s3-{}.amazonaws.com/{}".format(
+        url_root = "http://{}.s3-{}.amazonaws.com/{}".format(
             self.s3_bucket, self.s3_bucket_region, self.s3_key_prefix)
         return Package(self.level1, self.workdir, self.granule, self.pkgdir,
-                       s3_root)
+                       url_root)
 
     def output(self):
         # Assumes that the flag file is at the root of the package
@@ -229,18 +232,24 @@ class Package_S3(luigi.Task):
         )
 
     def run(self):
-        s3 = S3Client()
+        s3_client = S3Client()
+        http_header_tags = "&".join(["{}={}".format(k, v) for k, v in
+                                     self.s3_object_base_tags.items()])
+
         granule = Path(self.input().path).resolve().parent
         granule_prefix_len = len(granule.parent.as_posix())
         for path in granule.rglob('*'):
             if path.is_dir():
                 continue
 
-            s3.put_multipart(
+            s3_client.put_multipart(
                 path,
                 's3://{}/{}'.format(self.s3_bucket, self.s3_key_prefix) + \
-                path.as_posix()[granule_prefix_len:],  # resolves the relative path including granule id
-                headers={'Content-Type': self._get_content_mediatype(path)}
+                path.as_posix()[granule_prefix_len:],  # relative path inc. granule_id
+                headers={
+                    'Content-Type': self._get_content_mediatype(path),
+                    'x-amz-tagging': http_header_tags
+                }
             )
 
     @classmethod
@@ -256,10 +265,10 @@ class Package_S3(luigi.Task):
 
 
 @inherits(ARDP)
-class ARDP_S3(luigi.WrapperTask):
+class ARDPS3(luigi.WrapperTask):
 
     """
-    A helper Task that issues Package_S3 tasks for each Level-1
+    A helper Task that issues PackageS3 tasks for each Level-1
     dataset listed in the `level1_list` parameter.
     """
 
@@ -279,7 +288,7 @@ class ARDP_S3(luigi.WrapperTask):
                 acq = container.get_acquisitions(None, granule, False)[0]
                 ymd = acq.acquisition_datetime.strftime('%Y-%m-%d')
                 pkgdir = pjoin(self.pkgdir, ymd)
-                yield Package_S3(
+                yield PackageS3(
                     level1, work_dir, granule, pkgdir, s3_bucket=self.s3_bucket,
                     s3_key_prefix=ppjoin(self.s3_key_prefix, ymd),
                     s3_bucket_region=self.s3_bucket_region
