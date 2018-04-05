@@ -33,10 +33,10 @@ from tesp.package import package, PATTERN2, ARD
 from eugl.fmask import fmask
 
 
-ERROR_LOGGER = wrap_logger(logging.getLogger('wagl-error.packaging'),
+ERROR_LOGGER = wrap_logger(logging.getLogger('errors'),
                            processors=[JSONRenderer(indent=1, sort_keys=True)])
-STATUS_LOGGER = wrap_logger(logging.getLogger('wagl-status.packaging'),
-                          processors=[JSONRenderer(indent=1, sort_keys=True)])
+STATUS_LOGGER = wrap_logger(logging.getLogger('status'),
+                            processors=[JSONRenderer(indent=1, sort_keys=True)])
 INTERFACE_LOGGER = logging.getLogger('luigi-interface')
 
 
