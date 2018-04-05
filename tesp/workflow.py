@@ -223,9 +223,32 @@ class PackageS3(luigi.Task):
         'md': 'text/plain',
     }
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(args, kwargs)
-        self.s3_client = S3Client(**self.s3_client_args)
+    def get_s3_client(self):
+        s3_client = S3Client(**self.s3_client_args)
+        s3_client.s3 = self._boto3_assume_role()
+
+        return s3_client
+
+    def _boto3_assume_role(self):
+        """
+        Role credentials are fetched via boto3 to enable session token
+        configuration for authentication
+        """
+        import boto3
+        import boto.s3.connection
+
+        sts = boto3.client('sts')
+        credentials = sts.assume_role(
+            RoleArn=self.s3_client_args['aws_role_arn'],
+            RoleSessionName=self.s3_client_args['aws_role_session_name']
+        )
+
+        return boto.s3.connection.S3Connection(
+            aws_access_key_id=credentials['Credentials']['AccessKeyId'],
+            aws_secret_access_key=credentials['Credentials']['SecretAccessKey'],
+            security_token=credentials['Credentials']['SessionToken']
+        )
+
 
     def requires(self):
         url_root = "http://{}.s3-{}.amazonaws.com/{}".format(
@@ -248,7 +271,7 @@ class PackageS3(luigi.Task):
 
         return S3FlagTarget(
             path=target_prefix,
-            client=self.s3_client,
+            client=self.get_s3_client(),
             flag=resolved_checksum.name
         )
 
@@ -256,6 +279,7 @@ class PackageS3(luigi.Task):
         granule = Path(self.input().path).resolve().parent
         granule_prefix_len = len(granule.parent.as_posix())
         target_prefix = 's3://{}/{}'.format(self.s3_bucket, self.s3_key_prefix)
+        s3_client = self.get_s3_client()
 
         for path in granule.rglob('*'):
             if path.is_dir():
@@ -274,7 +298,7 @@ class PackageS3(luigi.Task):
                 headers=headers
             )
 
-            self.s3_client.put_multipart(
+            s3_client.put_multipart(
                 local_path=path,
                 destination_s3_path=target_prefix + target_path,
                 headers=headers
