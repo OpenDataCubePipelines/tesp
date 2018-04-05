@@ -6,7 +6,7 @@ and the source Level 1 yaml
 example usage:
     python yaml_merge.py /g/data/v10/tmp/S2A_OPER_MSI_ARD_TL_SGS__20160703T061054_A005376_T52KGA_N02.04/ARD-METADATA.yaml
         --source /g/data/v10/AGDCv2/indexed_datasets/cophub/s2/s2_l1c_yamls/
-"""
+"""  # nopep8
 from __future__ import absolute_import
 import logging
 import os

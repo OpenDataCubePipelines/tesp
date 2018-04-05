@@ -56,7 +56,12 @@ def valid_region(fname, mask_value=None):
     geom = geom.intersection(shapely.geometry.box(0, 0, mask.shape[1], mask.shape[0]))
 
     # transform from pixel space into CRS space
-    geom = shapely.affinity.affine_transform(geom, (transform[1], transform[2], transform[4], transform[5], transform[0], transform[3]))
+    geom = shapely.affinity.affine_transform(
+        geom, (
+            transform[1], transform[2], transform[4],
+            transform[5], transform[0], transform[3]
+        )
+    )
 
     return geom, crs
 
@@ -90,7 +95,7 @@ def html_map(contiguity_fname, html_out_fname, json_out_fname):
         pass
 
     # Find metadata yaml and add to geopandas attributes
-    #metadata = os.path.abspath(os.path.join(out_dir, "..", "ARD-METADATA.yaml"))
+    # metadata = os.path.abspath(os.path.join(out_dir, "..", "ARD-METADATA.yaml"))
 
     logging.info("Create valid bounds " + json_out_fname)
     geom, crs = valid_region(contiguity_fname)
@@ -99,29 +104,27 @@ def html_map(contiguity_fname, html_out_fname, json_out_fname):
     gpdsr = gpdsr.to_crs({'init': 'epsg:4326'})
 
     # TODO - Add metadata to PopUp
-    #with open(metadata, 'r') as stream:
-    #    try:
-    #        yaml_metadata = yaml.load(stream)
-    #    except yaml.YAMLError as exc:
-    #        print(exc)
-    #gpdyaml = gpd.GeoSeries(yaml_metadata)
+    # with open(metadata, 'r') as stream:
+    #     try:
+    #         yaml_metadata = yaml.load(stream)
+    #     except yaml.YAMLError as exc:
+    #         print(exc)
+    # gpdyaml = gpd.GeoSeries(yaml_metadata)
 
     gpdsr.to_file(json_out_fname, driver='GeoJSON')
     m = folium.Map()
 
-    #GeoJson(gpdsr, name='geojson').add_to(m)
-    style_function = lambda x: {'fillColor': None,
-                                'color' : '#0000ff'}
+    # GeoJson(gpdsr, name='geojson').add_to(m)
+    def style_function(*args):
+        return {'fillColor': None, 'color': '#0000ff'}
+
     GeoJson(json_out_fname, name='bounds.geojson', style_function=style_function).add_to(m)
     # TODO - add MGRS tile reference to map with layer active = False
-    #style_function = lambda x: {'fillColor': None, 'fillOpacity': 0.1, 'weight': 0.1,
-    #                               'color' : '#ff0000'}
-    #GeoJson('/home/simonaoliver/reference/agdcv2-reference/MGRS_Australia.geojson', name='MGRS_tiles.geojson', style_function=style_function).add_to(m)
 
     m.fit_bounds(GeoJson(gpdsr).get_bounds())
     folium.LatLngPopup().add_to(m)
 
-    #m.add_child(folium.Popup("Insert Date Here"))
+    # m.add_child(folium.Popup("Insert Date Here"))
     folium.LayerControl().add_to(m)
     m.save(html_out_fname)
 
