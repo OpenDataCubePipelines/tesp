@@ -21,8 +21,10 @@ from luigi.local_target import LocalFileSystem
 from luigi.util import inherits
 
 from luigi.contrib.s3 import S3FlagTarget, S3Client
-# Note that utilising the luigi.contrib.s3 module requires boto to be installed
-# This affects the PackageS3 and ARDPS3 Tasks
+
+# Required for the ...S3 Workflow
+import boto3
+import boto.s3.connection
 
 from wagl.acquisition import acquisitions
 from wagl.singlefile_workflow import DataStandardisation
@@ -224,30 +226,36 @@ class PackageS3(luigi.Task):
     }
 
     def get_s3_client(self):
-        s3_client = S3Client(**self.s3_client_args)
-        s3_client.s3 = self._boto3_assume_role()
+        s3_client = S3Client()
+
+        if 'aws_role_arn' in self.s3_client_args:
+            s3_client.s3 = self._boto3_refresh_authentication()
 
         return s3_client
 
-    def _boto3_assume_role(self):
+    def _boto3_refresh_authentication(self):
         """
         Role credentials are fetched via boto3 to enable session token
         configuration for authentication
         """
-        import boto3
-        import boto.s3.connection
+        s3_connection_args = {}
 
-        sts = boto3.client('sts')
-        credentials = sts.assume_role(
-            RoleArn=self.s3_client_args['aws_role_arn'],
-            RoleSessionName=self.s3_client_args['aws_role_session_name']
-        )
+        if 'aws_role_arn' in self.s3_client_args:
+            sts = boto3.client('sts')
+            credentials = sts.assume_role(
+                RoleArn=self.s3_client_args['aws_role_arn'],
+                RoleSessionName=self.s3_client_args.get(
+                    'aws_role_session_name', 'tesp_packaging'
+                )
+            )
 
-        return boto.s3.connection.S3Connection(
-            aws_access_key_id=credentials['Credentials']['AccessKeyId'],
-            aws_secret_access_key=credentials['Credentials']['SecretAccessKey'],
-            security_token=credentials['Credentials']['SessionToken']
-        )
+            s3_connection_args.update({
+                'aws_access_key_id': credentials['Credentials']['AccessKeyId'],
+                'aws_secret_access_key': credentials['Credentials']['SecretAccessKey'],
+                'security_token': credentials['Credentials']['SessionToken']
+            })
+
+        return boto.s3.connection.S3Connection(**s3_connection_args)
 
 
     def requires(self):
