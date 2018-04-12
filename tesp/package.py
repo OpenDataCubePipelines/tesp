@@ -178,43 +178,43 @@ def unpack_supplementary(container, granule, h5group, outdir):
     rel_paths = {}
 
     # satellite and solar angles
-    grp = h5group[ppjoin(res_grp, GroupName.sat_sol_group.value)]
-    dnames = [DatasetName.satellite_view.value,
-              DatasetName.satellite_azimuth.value,
-              DatasetName.solar_zenith.value,
-              DatasetName.solar_azimuth.value,
-              DatasetName.relative_azimuth.value,
-              DatasetName.time.value]
+    grp = h5group[ppjoin(res_grp, GroupName.SAT_SOL_GROUP.value)]
+    dnames = [DatasetName.SATELLITE_VIEW.value,
+              DatasetName.SATELLITE_AZIMUTH.value,
+              DatasetName.SOLAR_ZENITH.value,
+              DatasetName.SOLAR_AZIMUTH.value,
+              DatasetName.RELATIVE_AZIMUTH.value,
+              DatasetName.TIME.value]
     paths = _write(dnames, grp, grn_id, SUPPS)
     for key in paths:
         rel_paths[key] = paths[key]
 
     # incident angles
-    grp = h5group[ppjoin(res_grp, GroupName.incident_group.value)]
-    dnames = [DatasetName.incident.value,
-              DatasetName.azimuthal_incident.value]
+    grp = h5group[ppjoin(res_grp, GroupName.INCIDENT_GROUP.value)]
+    dnames = [DatasetName.INCIDENT.value,
+              DatasetName.AZIMUTHAL_INCIDENT.value]
     paths = _write(dnames, grp, grn_id, SUPPS)
     for key in paths:
         rel_paths[key] = paths[key]
 
     # exiting angles
-    grp = h5group[ppjoin(res_grp, GroupName.exiting_group.value)]
-    dnames = [DatasetName.exiting.value,
-              DatasetName.azimuthal_exiting.value]
+    grp = h5group[ppjoin(res_grp, GroupName.EXITING_GROUP.value)]
+    dnames = [DatasetName.EXITING.value,
+              DatasetName.AZIMUTHAL_EXITING.value]
     paths = _write(dnames, grp, grn_id, SUPPS)
     for key in paths:
         rel_paths[key] = paths[key]
 
     # relative slope
-    grp = h5group[ppjoin(res_grp, GroupName.rel_slp_group.value)]
-    dnames = [DatasetName.relative_slope.value]
+    grp = h5group[ppjoin(res_grp, GroupName.REL_SLP_GROUP.value)]
+    dnames = [DatasetName.RELATIVE_SLOPE.value]
     paths = _write(dnames, grp, grn_id, SUPPS)
     for key in paths:
         rel_paths[key] = paths[key]
 
     # terrain shadow
-    grp = h5group[ppjoin(res_grp, GroupName.shadow_group.value)]
-    dnames = [DatasetName.combined_shadow.value]
+    grp = h5group[ppjoin(res_grp, GroupName.SHADOW_GROUP.value)]
+    dnames = [DatasetName.COMBINED_SHADOW.value]
     paths = _write(dnames, grp, grn_id, QA)
     for key in paths:
         rel_paths[key] = paths[key]
