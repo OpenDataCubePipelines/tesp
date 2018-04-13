@@ -28,7 +28,7 @@ ARD packages are structured as follows:
         - <Granule ID>_SOLAR_ZENITH.TIF
         - <Granule ID>_SOLAR_AZIMUTH.TIF
         - <Granule ID>_RELATIVE_AZIMUTH.TIF
-        - <Granule ID>_TIME.TIF # Time from apogee in seconds
+        - <Granule ID>_TIMEDELTA.TIF # Time from apogee in seconds
         - <Granule ID>_INCIDENT.TIF
         - <Granule ID>_AZIMUTHAL_INCIDENT.TIF
         - <Granule ID>_EXITING.TIF

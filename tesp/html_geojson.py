@@ -118,7 +118,8 @@ def html_map(contiguity_fname, html_out_fname, json_out_fname):
     def style_function(*args):
         return {'fillColor': None, 'color': '#0000ff'}
 
-    GeoJson(json_out_fname, name='bounds.geojson', style_function=style_function).add_to(m)
+    with open(json_out_fname, 'r') as src:
+        GeoJson(src, name='bounds.geojson', style_function=style_function).add_to(m)
     # TODO - add MGRS tile reference to map with layer active = False
 
     m.fit_bounds(GeoJson(gpdsr).get_bounds())
