@@ -6,6 +6,7 @@ Execution method for creation of map.html and bounding geojson:
 from __future__ import absolute_import
 import os
 import logging
+import json
 import rasterio
 import rasterio.features
 import folium
@@ -94,38 +95,28 @@ def html_map(contiguity_fname, html_out_fname, json_out_fname):
     except OSError:
         pass
 
-    # Find metadata yaml and add to geopandas attributes
-    # metadata = os.path.abspath(os.path.join(out_dir, "..", "ARD-METADATA.yaml"))
-
     logging.info("Create valid bounds " + json_out_fname)
     geom, crs = valid_region(contiguity_fname)
     gpdsr = gpd.GeoSeries([geom])
     gpdsr.crs = crs
     gpdsr = gpdsr.to_crs({'init': 'epsg:4326'})
 
-    # TODO - Add metadata to PopUp
-    # with open(metadata, 'r') as stream:
-    #     try:
-    #         yaml_metadata = yaml.load(stream)
-    #     except yaml.YAMLError as exc:
-    #         print(exc)
-    # gpdyaml = gpd.GeoSeries(yaml_metadata)
-
     gpdsr.to_file(json_out_fname, driver='GeoJSON')
     m = folium.Map()
 
-    # GeoJson(gpdsr, name='geojson').add_to(m)
     def style_function(*args):
         return {'fillColor': None, 'color': '#0000ff'}
 
     with open(json_out_fname, 'r') as src:
-        GeoJson(src, name='bounds.geojson', style_function=style_function).add_to(m)
+        # Manual handling of json load for multi-version support of folium
+        _geojson = json.load(src)
+        GeoJson(_geojson, name='bounds.geojson', style_function=style_function).add_to(m)
+
     # TODO - add MGRS tile reference to map with layer active = False
 
     m.fit_bounds(GeoJson(gpdsr).get_bounds())
     folium.LatLngPopup().add_to(m)
 
-    # m.add_child(folium.Popup("Insert Date Here"))
     folium.LayerControl().add_to(m)
     m.save(html_out_fname)
 
