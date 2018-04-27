@@ -3,7 +3,7 @@
 from setuptools import setup
 
 setup(name='tesp',
-      version='0.0.1',
+      version='0.0.4',
       description=('A temporary solution to get packaging underway. '
                    'Code will eventually be ported eo-datasets.'),
       packages=['tesp'],
