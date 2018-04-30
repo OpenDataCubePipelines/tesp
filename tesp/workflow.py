@@ -155,8 +155,10 @@ class Package(luigi.Task):
 
     def run(self):
         inputs = self.input()
+        # GA's pre-collection has the yaml doc within the L1 directory
+        yamls_dir = self.level1
         package(self.level1, inputs['wagl'].path, inputs['fmask'].path,
-                self.yamls_dir, self.pkgdir, self.url_root, self.granule,
+                yamls_dir, self.pkgdir, self.url_root, self.granule,
                 self.acq_parser_hint)
 
         if self.cleanup:

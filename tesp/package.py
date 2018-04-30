@@ -449,9 +449,12 @@ def package(l1_path, wagl_fname, fmask_fname, yamls_path, outdir,
     container = acquisitions(l1_path, acq_parser_hint)
 
     # TODO define a consistent file structure where yaml metadata exists
-    yaml_fname = pjoin(yamls_path,
-                       basename(dirname(l1_path)),
-                       '{}.yaml'.format(container.label))
+    # yaml_fname = pjoin(yamls_path,
+    #                    basename(dirname(l1_path)),
+    #                    '{}.yaml'.format(container.label))
+
+    # GA's pre-collection has the yaml doc within the L1 directory
+    yaml_fname = pjoin(yamls_path, 'ga-metadata.yaml')
 
     # quick workaround if no source yaml
     if exists(yaml_fname):
@@ -461,7 +464,9 @@ def package(l1_path, wagl_fname, fmask_fname, yamls_path, outdir,
                 doc.get('tile_id', doc.get('label')): doc
                 for doc in yaml.load_all(src)
             }
-            l1_tags = l1_documents[granule]
+            # l1_tags = l1_documents[granule]
+            # GA's pre-collection yaml doc doesn't define a granule/tile_id
+            l1_tags = l1_documents[None]
     else:
         raise IOError('yaml file not found: {}'.format(yaml_fname))
 
