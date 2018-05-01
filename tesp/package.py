@@ -412,7 +412,7 @@ def create_checksum(outdir):
 
 
 def package(l1_path, wagl_fname, fmask_fname, yamls_path, outdir,
-            url_root, granule=None, acq_parser_hint=None):
+            granule=None, acq_parser_hint=None):
     """
     Package an L2 product.
 
@@ -435,10 +435,6 @@ def package(l1_path, wagl_fname, fmask_fname, yamls_path, outdir,
     :param outdir:
         A string containing the full file pathname to the directory
         that will contain the packaged Level-2 datasets.
-
-    :param url_root:
-        A string containing the url root path of a http address such as
-        an Amazon S3 or Google Cloud Storage bucket.
 
     :param acq_parser_hint:
         A string that hints at which acquisition parser should be used.
@@ -507,17 +503,6 @@ def package(l1_path, wagl_fname, fmask_fname, yamls_path, outdir,
         tags = merge_metadata(l1_tags, wagl_tags, granule, img_paths)
 
         with open(pjoin(out_path, 'ARD-METADATA.yaml'), 'w') as src:
-            yaml.dump(tags, src, default_flow_style=False, indent=4)
-
-        # update to url/http paths
-        url_paths = img_paths.copy()
-        for key in url_paths:
-            url_paths[key]['path'] = ppjoin(url_root, url_paths[key]['path'])
-
-        # create http paths for s3 yaml doc
-        tags['image']['bands'] = url_paths
-
-        with open(pjoin(out_path, 'ARD-METADATA-S3.yaml'), 'w') as src:
             yaml.dump(tags, src, default_flow_style=False, indent=4)
 
         # finally the checksum
