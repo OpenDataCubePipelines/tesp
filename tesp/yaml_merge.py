@@ -23,11 +23,11 @@ def merge_metadata(level1_tags, wagl_tags, granule, image_paths):
     into a single ARD metadata yaml.
     """
     # TODO have properly defined product types for the ARD product
-    # ptype = {'LANDSAT_5': 'L5ARD',
-    #          'LANDSAT_7': 'L7ARD',
-    #          'LANDSAT_8': 'L8ARD',
-    #          'SENTINEL_2A': 'S2MSIARD',
-    #          'SENTINEL_2B': 'S2MSIARD'}
+    ptype = {'LANDSAT_5': 'L5ARD',
+             'LANDSAT_7': 'L7ARD',
+             'LANDSAT_8': 'L8ARD',
+             'SENTINEL_2A': 'S2MSIARD',
+             'SENTINEL_2B': 'S2MSIARD'}
 
     source_tags = {level1_tags['product_type']: copy.deepcopy(level1_tags)}
 
@@ -39,11 +39,10 @@ def merge_metadata(level1_tags, wagl_tags, granule, image_paths):
         'system_information': wagl_tags['system_information'],
         'id': str(uuid.uuid4()),
         'processing_level': 'Level-2',
-        'product_type': 'ard',
-        #'product_type': ptype[wagl_tags['source_datasets']['platform_id']],
+        'product_type': ptype[wagl_tags['source_datasets']['platform_id']],
         'platform': {'code': wagl_tags['source_datasets']['platform_id']},
         'instrument': {'name': wagl_tags['source_datasets']['sensor_id']},
-        'format': {'name': 'GeoTiff'},
+        'format': {'name': 'GeoTIFF'},
         'tile_id': granule,
         'extent': level1_tags['extent'],
         'grid_spatial': level1_tags['grid_spatial'],

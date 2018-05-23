@@ -109,8 +109,6 @@ def _submit_multiple(scattered, env, batch_logdir, batch_outdir, pkgdir,
 @click.option("--test", default=False, is_flag=True,
               help=("Test job execution (Don't submit the job to the "
                     "PBS queue)."))
-
-
 # pylint: disable=too-many-arguments
 def main(level1_list, workdir, logdir, pkgdir, env, workers, nodes, memory,
          jobfs, project, queue, walltime, email, test):

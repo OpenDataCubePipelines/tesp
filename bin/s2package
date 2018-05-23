@@ -1,26 +1,36 @@
 #!/usr/bin/env python
 
-import argparse
+"""
+Test Packaging entrypoint
+"""
+
+import click
+
 from tesp.package import package
+from wagl.acquisition import acquisitions
 
 
-if __name__ == '__main__':
-    description = "Prepare or package a wagl output."
-    parser = argparse.ArgumentParser(description=description)
+@click.command()
+@click.option("--level1-pathname", type=click.Path(exists=True, readable=True),
+              help="The level1 pathname.", required=True)
+@click.option("--wagl-filename", type=click.Path(exists=True, readable=True),
+              help="The filename of the wagl output.", required=True)
+@click.option("--fmask-pathname", type=click.Path(exists=True, readable=True),
+              help=("The pathname to the directory containing the fmask "
+                    "results for the level1 dataset."), required=True)
+@click.option("--prepare-yamls", type=click.Path(exists=True, readable=True),
+              help="The pathname to the level1 prepare yamls.", required=True)
+@click.option("--outdir", type=click.Path(),
+              help="The output directory.", required=True)
+def package_output(level1_pathname, wagl_filename, fmask_pathname,
+                   prepare_yamls, outdir):
+    """Prepare or package a wagl output file"""
+    container = acquisitions(level1_pathname, None)
 
-    parser.add_argument("--level1-pathname", required=True,
-                        help="The level1 pathname.")
-    parser.add_argument("--wagl-filename", required=True,
-                        help="The filename of the wagl output.")
-    parser.add_argument("--fmask-pathname", required=True,
-                        help=("The pathname to the directory containing the "
-                              "fmask results for the level1 dataset."))
-    parser.add_argument("--prepare-yamls", required=True,
-                        help="The pathname to the level1 prepare yamls.")
-    parser.add_argument("--outdir", required=True,
-                        help="The output directory.")
+    for granule in container.granules:
+        package(level1_pathname, wagl_filename, fmask_pathname,
+                prepare_yamls, outdir, granule)
 
-    args = parser.parse_args()
 
-    package(args.level1_pathname, args.wagl_filename, args.fmask_pathname,
-            args.prepare_yamls, args.outdir)
+if __name__ == "__main__":
+    package_output()
