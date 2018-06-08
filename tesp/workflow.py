@@ -24,6 +24,7 @@ from tesp.package import package, PATTERN2, ARD
 from tesp.constants import ProductPackage
 
 from eugl.fmask import fmask
+from eugl.gqa import GQATask
 
 
 ERROR_LOGGER = wrap_logger(logging.getLogger('errors'),
@@ -108,13 +109,6 @@ class Fmask(luigi.WrapperTask):
             yield RunFmask(self.level1, granule, self.workdir)
 
 
-# TODO: GQA implementation
-# class Gqa(luigi.Task):
-
-#     level1 = luigi.Parameter()
-#     outdir = luigi.Parameter()
-
-
 class Package(luigi.Task):
 
     """
@@ -137,9 +131,8 @@ class Package(luigi.Task):
 
         tasks = {'wagl': DataStandardisation(self.level1, self.workdir,
                                              self.granule),
-                 'fmask': RunFmask(self.level1, self.granule, self.workdir)}
-        # TODO: GQA implementation
-        # 'gqa': Gqa()}
+                 'fmask': RunFmask(self.level1, self.granule, self.workdir),
+                 'gqa': GQATask(self.level1, self.granule, self.workdir)}
 
         return tasks
 
