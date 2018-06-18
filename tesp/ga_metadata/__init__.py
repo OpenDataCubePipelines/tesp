@@ -22,4 +22,7 @@ def extract_level1_metadata(acq, acquisition_path):
         mtl_file = find_in(acquisition_path, 'MTL')
         return landsat_prepare(Path(mtl_file))
 
-    raise NotImplementedError('No level1 yaml generation defined for target acquisition')
+    raise NotImplementedError(
+        'No level-1 YAML generation defined for target acquisition '
+        'and no yaml_dir defined for level-1 metadata'
+    )
