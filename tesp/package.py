@@ -441,14 +441,14 @@ def get_level1_tags(container, granule=None, yamls_path=None, l1_path=None):
         acq = container.get_acquisitions()[0]
         docs = extract_level1_metadata(acq, l1_path)
         if granule:
-            l1_tags = [doc for doc in docs 
+            l1_tags = [doc for doc in docs
                             if doc.get('tile_id', doc.get('label')) == granule][0]
         else:
             l1_tags = docs
     return l1_tags
 
 
-def package(l1_path, wagl_fname, fmask_fname, yamls_path, outdir,
+def package(l1_path, wagl_fname, fmask_fname, gqa_fname, yamls_path, outdir,
             granule, products=ProductPackage.all(), acq_parser_hint=None):
     """
     Package an L2 product.
@@ -464,6 +464,9 @@ def package(l1_path, wagl_fname, fmask_fname, yamls_path, outdir,
     :param fmask_fname:
         A string containing the full file pathname to the fmask
         dataset.
+
+    :param gqa_fname:
+        A string containing the full file pathname to the GQA yaml.
 
     :param yamls_path:
         A string containing the full file pathname to the yaml
@@ -527,9 +530,14 @@ def package(l1_path, wagl_fname, fmask_fname, yamls_path, outdir,
         create_readme(out_path)
 
         # merge all the yaml documents
-        # TODO include gqa yaml, and fmask yaml (if we go ahead and create one)
+        # TODO include fmask yaml (if we go ahead and create one)
+        # TODO record gverify version
+        # TODO put eugl, fmask, tesp in the software_versions section
         # relative paths yaml doc
-        tags = merge_metadata(l1_tags, wagl_tags, granule, img_paths)
+        with open(gqa_fname) as fl:
+            gqa_tags = yaml.load(fl)
+
+        tags = merge_metadata(l1_tags, wagl_tags, gqa_tags, granule, img_paths)
 
         with open(pjoin(out_path, 'ARD-METADATA.yaml'), 'w') as src:
             yaml.dump(tags, src, default_flow_style=False, indent=4)

@@ -17,7 +17,7 @@ import yaml
 os.environ["CPL_ZIP_ENCODING"] = "UTF-8"
 
 
-def merge_metadata(level1_tags, wagl_tags, granule, image_paths):
+def merge_metadata(level1_tags, wagl_tags, gqa_tags, granule, image_paths):
     """
     Combine the metadata from input sources and output
     into a single ARD metadata yaml.
@@ -42,6 +42,7 @@ def merge_metadata(level1_tags, wagl_tags, granule, image_paths):
         'product_type': ptype[wagl_tags['source_datasets']['platform_id']],
         'platform': {'code': wagl_tags['source_datasets']['platform_id']},
         'instrument': {'name': wagl_tags['source_datasets']['sensor_id']},
+        'gqa': gqa_tags,
         'format': {'name': 'GeoTIFF'},
         'tile_id': granule,
         'extent': level1_tags['extent'],
