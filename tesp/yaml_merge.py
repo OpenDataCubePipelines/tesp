@@ -29,8 +29,8 @@ def provider_reference_info(granule, wagl_tags):
         * SENTINEL2
     :param granule:
         A string referring to the name of the capture
-    
-    :return: 
+
+    :return:
         Dictionary; contains satellite reference if identified
     """
     provider_info = {}
@@ -39,13 +39,13 @@ def provider_reference_info(granule, wagl_tags):
         matches = re.match(r'L\w\d(?P<reference_code>\d{6}).*', granule)
     elif 'SENTINEL_2' in wagl_tags['source_datasets']['platform_id']:
         matches = re.match(r'.*_T(?P<reference_code>\d{1,2}[A-Z]{3})_.*', granule)
-    
+
     if matches:
         provider_info.update(**matches.groupdict())
     return provider_info
 
 
-def merge_metadata(level1_tags, wagl_tags, granule, image_paths):
+def merge_metadata(level1_tags, wagl_tags, gqa_tags, granule, image_paths):
     """
     Combine the metadata from input sources and output
     into a single ARD metadata yaml.
@@ -71,6 +71,7 @@ def merge_metadata(level1_tags, wagl_tags, granule, image_paths):
         'product_type': ptype[wagl_tags['source_datasets']['platform_id']],
         'platform': {'code': wagl_tags['source_datasets']['platform_id']},
         'instrument': {'name': wagl_tags['source_datasets']['sensor_id']},
+        'gqa': gqa_tags,
         'format': {'name': 'GeoTIFF'},
         'tile_id': granule,
         'extent': level1_tags['extent'],
