@@ -23,12 +23,10 @@ setup(name='tesp',
           'eodatasets',
           'checksumdir',
           'eugl',
-          'boto',
-          'boto3',
       ],
       dependency_links=[
           'git+https://github.com/GeoscienceAustralia/eo-datasets@develop#egg=eodatasets-0.1dev',
-          'git+https://github.com/OpenDataCubePipelines/eugl.git#egg=eugl-0.0.1'
+          'git+https://github.com/OpenDataCubePipelines/eugl.git#egg=eugl-0.0.2'
       ],
       scripts=['bin/s2package', 'bin/ard_pbs', 'bin/search_s2'],
       include_package_data=True)
