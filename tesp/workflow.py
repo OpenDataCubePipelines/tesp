@@ -126,7 +126,7 @@ class Package(luigi.Task):
     workdir = luigi.Parameter()
     granule = luigi.Parameter(default=None)
     pkgdir = luigi.Parameter()
-    yamls_dir = luigi.Parameter()
+    yamls_dir = luigi.Parameter(default=None)
     cleanup = luigi.BoolParameter()
     acq_parser_hint = luigi.OptionalParameter(default='')
     products = luigi.ListParameter(default=ProductPackage.default())
