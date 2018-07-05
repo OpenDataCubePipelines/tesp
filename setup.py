@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(name='tesp',
       version='0.0.4',
       description=('A temporary solution to get packaging underway. '
                    'Code will eventually be ported eo-datasets.'),
-      packages=['tesp'],
+      packages=find_packages(),
       install_requires=[
           'click',
           'click_datetime',
