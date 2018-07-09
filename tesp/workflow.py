@@ -159,7 +159,7 @@ class Package(luigi.Task):
             shutil.rmtree(self.workdir)
 
     def _validate_cfg(self):
-        assert ProductPackage.validate(self.products)
+        assert ProductPackage.validate_products(self.products)
 
 
 class ARDP(luigi.WrapperTask):
