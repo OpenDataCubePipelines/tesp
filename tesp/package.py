@@ -140,7 +140,18 @@ def unpack_products(product_list, container, granule, h5group, outdir):
 
             # alias name for ODC metadata doc
             alias = _clean(ALIAS_FMT[product].format(dataset.attrs['alias']))
-            rel_paths[alias] = {'path': rel_path, 'layer': 1}
+
+            # Band Metadata
+            rel_paths[alias] = {
+                'path': rel_path,
+                'layer': 1,
+                'gdal_geotransform': acq.gridded_geo_box().to_gdal(),
+                'dimensions': {
+                    'x': acq.samples,
+                    'y': acq.lines
+                }
+            }
+
 
     # retrieve metadata
     scalar_paths = find(h5group, 'SCALAR')
