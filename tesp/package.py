@@ -145,13 +145,12 @@ def unpack_products(product_list, container, granule, h5group, outdir):
             rel_paths[alias] = {
                 'path': rel_path,
                 'layer': 1,
-                'transform': acq.gridded_geo_box().transform.to_gdal(),
-                'shape': {
-                    'x': acq.samples,
-                    'y': acq.lines
+                'info': {
+                    'width': acq.samples,
+                    'height': acq.lines,
+                    'geotransform': list(acq.gridded_geo_box().transform.to_gdal()
                 }
             }
-
 
     # retrieve metadata
     scalar_paths = find(h5group, 'SCALAR')
