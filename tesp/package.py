@@ -145,8 +145,8 @@ def unpack_products(product_list, container, granule, h5group, outdir):
             rel_paths[alias] = {
                 'path': rel_path,
                 'layer': 1,
-                'gdal_geotransform': acq.gridded_geo_box().transform.to_gdal(),
-                'dimensions': {
+                'transform': acq.gridded_geo_box().transform.to_gdal(),
+                'shape': {
                     'x': acq.samples,
                     'y': acq.lines
                 }
