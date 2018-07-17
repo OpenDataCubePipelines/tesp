@@ -116,7 +116,7 @@ def get_img_dataset_info(dataset, path, layer=1):
         'layer': layer,
         'info': {
             'width': geobox.x_size(),
-            'height': geobox.y_size()
+            'height': geobox.y_size(),
             'geotransform': list(geobox.transform.to_gdal())
         }
     }
