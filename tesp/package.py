@@ -531,7 +531,6 @@ def package(l1_path, wagl_fname, fmask_fname, gqa_fname, yamls_path, outdir,
 
         # merge all the yaml documents
         # TODO include fmask yaml (if we go ahead and create one)
-        # TODO record gverify version
         # TODO put eugl, fmask, tesp in the software_versions section
         # relative paths yaml doc
         with open(gqa_fname) as fl:

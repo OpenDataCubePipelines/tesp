@@ -14,6 +14,12 @@ import uuid
 import copy
 import click
 import yaml
+import fmask
+from eugl.version import get_version as eugl_version
+from eugl.version import REPO_URL as eugl_repo_url
+from tesp.version import get_version as tesp_version
+from tesp.version import REPO_URL as tesp_repo_url
+
 os.environ["CPL_ZIP_ENCODING"] = "UTF-8"
 
 
@@ -30,12 +36,23 @@ def merge_metadata(level1_tags, wagl_tags, gqa_tags, granule, image_paths):
              'SENTINEL_2B': 'S2MSIARD'}
 
     source_tags = {level1_tags['product_type']: copy.deepcopy(level1_tags)}
+    gverify_version = gqa_tags.pop('gverify_version')
+    fmask_repo_url = 'https://bitbucket.org/chchrsc/python-fmask'
+    software_versions = wagl_tags['software_versions']
+    software_versions['gverify'] = {'version': gverify_version}
+    software_versions['fmask'] = {'repo_url': fmask_repo_url,
+                                  'version': fmask.__version__}
+    software_versions['eugl'] = {'repo_url': eugl_repo_url,
+                                 'version': eugl_version}
+    software_versions['tesp'] = {'repo_url': tesp_repo_url,
+                                 'version': tesp_version}
+
 
     # TODO: extend yaml document to include fmask and gqa yamls
     # Merge tags from each input and create a UUID
     merged_yaml = {
         'algorithm_information': wagl_tags['algorithm_information'],
-        'software_versions': wagl_tags['software_versions'],
+        'software_versions': software_versions,
         'system_information': wagl_tags['system_information'],
         'id': str(uuid.uuid4()),
         'processing_level': 'Level-2',
