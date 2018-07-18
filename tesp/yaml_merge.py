@@ -71,9 +71,9 @@ def merge_metadata(level1_tags, wagl_tags, gqa_tags, granule, image_paths):
     software_versions['fmask'] = {'repo_url': fmask_repo_url,
                                   'version': fmask.__version__}
     software_versions['eugl'] = {'repo_url': eugl_repo_url,
-                                 'version': eugl_version}
+                                 'version': eugl_version()}
     software_versions['tesp'] = {'repo_url': tesp_repo_url,
-                                 'version': tesp_version}
+                                 'version': tesp_version()}
 
     # TODO: extend yaml document to include fmask and gqa yamls
     # Merge tags from each input and create a UUID
