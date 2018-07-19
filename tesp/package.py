@@ -107,6 +107,22 @@ def _write_cogtif(dataset, out_fname):
     write_img(data, out_fname, cogtif=True, levels=LEVELS, nodata=nodata,
               geobox=geobox, resampling=Resampling.nearest, options=options)
 
+def get_img_dataset_info(dataset, path, layer=1):
+    """
+    Returns metadata for raster datasets
+    """
+    geobox = GriddedGeoBox.from_dataset(dataset)
+    return {
+        'path': path,
+        'layer': layer,
+        'info': {
+            'width': geobox.x_size(),
+            'height': geobox.y_size(),
+            'geotransform': list(geobox.transform.to_gdal())
+        }
+    }
+
+
 
 def unpack_products(product_list, container, granule, h5group, outdir):
     """
@@ -141,7 +157,9 @@ def unpack_products(product_list, container, granule, h5group, outdir):
 
             # alias name for ODC metadata doc
             alias = _clean(ALIAS_FMT[product].format(dataset.attrs['alias']))
-            rel_paths[alias] = {'path': rel_path, 'layer': 1}
+
+            # Band Metadata
+            rel_paths[alias] = get_img_dataset_info(dataset, rel_path)
 
     # retrieve metadata
     scalar_paths = find(h5group, 'SCALAR')
@@ -168,7 +186,7 @@ def unpack_supplementary(container, granule, h5group, outdir):
             out_fname = pjoin(outdir, rel_path)
             dset = h5_group[dname]
             alias = _clean(dset.attrs['alias'])
-            paths[alias] = {'path': rel_path, 'layer': 1}
+            paths[alias] = get_img_dataset_info(dset, rel_path)
             _write_cogtif(dset, out_fname)
 
         return paths
@@ -258,7 +276,6 @@ def create_contiguity(product_list, container, granule, outdir):
                 os.makedirs(dirname(out_fname))
 
             alias = ALIAS_FMT[product].format('contiguity')
-            rel_paths[alias] = {'path': rel_path, 'layer': 1}
 
             # temp vrt
             tmp_fname = pjoin(tmpdir, '{}.vrt'.format(product))
@@ -275,6 +292,8 @@ def create_contiguity(product_list, container, granule, outdir):
 
             # create contiguity
             contiguity(tmp_fname, out_fname)
+            with rasterio.open(out_fname) as ds:
+                rel_paths[alias] = get_img_dataset_info(ds, rel_path)
 
     return rel_paths
 
@@ -439,9 +458,9 @@ def get_level1_tags(container, granule=None, yamls_path=None, l1_path=None):
             }
             l1_tags = l1_documents[granule]
     else:
-        acq = container.get_acquisitions()[0]
+        acq = container.get_all_acquisitions()[0]
         docs = extract_level1_metadata(acq, l1_path)
-        if granule:
+        if isinstance(docs, list):
             l1_tags = [doc for doc in docs 
                             if doc.get('tile_id', doc.get('label')) == granule][0]
         else:
@@ -519,8 +538,11 @@ def package(l1_path, wagl_fname, fmask_fname, yamls_path, outdir,
 
         # fmask cogtif conversion
         rel_path = pjoin(QA, '{}_FMASK.TIF'.format(grn_id))
-        img_paths['fmask'] = {'path': rel_path, 'layer': 1}
-        fmask_cogtif(fmask_fname, pjoin(out_path, rel_path))
+        fmask_location = pjoin(out_path, rel_path)
+        fmask_cogtif(fmask_fname, fmask_location)
+
+        with rasterio.open(fmask_location) as ds:
+            img_paths['fmask'] = get_img_dataset_info(ds, rel_path)
 
         # map, quicklook/thumbnail, readme, checksum
         create_html_map(out_path)
