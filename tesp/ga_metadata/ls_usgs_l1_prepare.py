@@ -7,10 +7,10 @@ import uuid
 import logging
 import yaml
 import re
+import tarfile
 from urllib.request import urlopen
 from urllib.parse import urlparse, urljoin
 from datetime import datetime
-from os.path import join as pjoin
 import hashlib
 
 import click
@@ -18,6 +18,9 @@ from click_datetime import Datetime
 from osgeo import osr
 import os
 from pathlib import Path
+
+from wagl.acquisition import find_in
+
 
 LANDSAT_8_BANDS = [
     ('1', 'coastal_aerosol'),
@@ -32,6 +35,9 @@ LANDSAT_8_BANDS = [
     ('10', 'lwir1'),
     ('11', 'lwir2'),
     ('QUALITY', 'quality')]
+
+TIRS_ONLY = LANDSAT_8_BANDS[9:12]
+OLI_ONLY = [*LANDSAT_8_BANDS[0:9], LANDSAT_8_BANDS[11]]
 
 LANDSAT_BANDS = [
     ('1', 'blue'),
@@ -60,6 +66,9 @@ def _parse_group(lines):
     tree = {}
 
     for line in lines:
+        # If line is bytes-like convert to str
+        if isinstance(line, bytes):
+            line = line.decode('utf-8')
         match = MTL_PAIRS_RE.findall(line)
         if match:
             key, value = match[0]
@@ -91,16 +100,20 @@ def get_coords(geo_ref_points, spatial_ref):
     return {key: transform(p) for key, p in geo_ref_points.items()}
 
 
-def satellite_ref(sat, file_name):
+def satellite_ref(sat, instrument, file_name):
     """
     To load the band_names for referencing either LANDSAT8 or LANDSAT7 or LANDSAT5 bands
     Landsat7 and Landsat5 have same band names
     """
 
-    name = (Path(file_name)).stem
-    name_len = name.split('_')
+    name_len = file_name.split('_')
     if sat == 'LANDSAT_8':
-        sat_img = LANDSAT_8_BANDS
+        if instrument == 'TIRS':
+            sat_img = TIRS_ONLY
+        elif instrument == 'OLI':
+            sat_img = OLI_ONLY
+        else:
+            sat_img = LANDSAT_8_BANDS
     elif len(name_len) > 7:
         sat_img = LANDSAT_BANDS
     else:
@@ -108,21 +121,35 @@ def satellite_ref(sat, file_name):
     return sat_img
 
 
-def get_mtl_content(path):
+def get_mtl_content(acquisition_path):
     """
     Path is pointing to the folder , where the USGS Landsat scene list in MTL format is downloaded
     from Earth Explorer or GloVis
     """
 
-    with open(path, 'r') as fp:
-        mtl_tree = _parse_group(fp)['L1_METADATA_FILE']
+    if '.tar' in str(acquisition_path):
+        with tarfile.open(str(acquisition_path), 'r') as tp:
+            try:
+                internal_file = next(filter(lambda memb: 'MTL' in memb.name, tp.getmembers()))
+                filename = Path(internal_file.name).stem
+                with tp.extractfile(internal_file) as fp:
+                    mtl_tree = _parse_group(tp.extractfile(internal_file))['L1_METADATA_FILE']
+            except StopIteration:
+                raise RuntimeError(
+                    "MTL file not found in {}".format(str(acquisition_path))
+                )
+    else:
+        path = find_in(acquisition_path, 'MTL')
+        filename = Path(path).stem
+        with path.open('r') as fp:
+            mtl_tree = _parse_group(fp)['L1_METADATA_FILE']
 
-    return mtl_tree, path
+    return mtl_tree, filename
 
 
 def prepare_dataset(path):
 
-    info, fileinfo = get_mtl_content(path)
+    info, filename = get_mtl_content(path)
 
     if info != "Empty File":
         info_pm = info['PRODUCT_METADATA']
@@ -140,15 +167,16 @@ def prepare_dataset(path):
 
         geo_ref_points = get_geo_ref_points(info_pm)
         satellite = info_pm['SPACECRAFT_ID']
+        instrument = info_pm['SENSOR_ID']
 
-        images = satellite_ref(satellite, fileinfo)
+        images = satellite_ref(satellite, instrument, filename)
         return {
-            'id': str(uuid.uuid5(uuid.NAMESPACE_URL, path)),
+            'id': str(uuid.uuid5(uuid.NAMESPACE_URL, path.as_posix())),
             'processing_level': level,
             'product_type': 'LS_USGS_L1C1',
             'label': info['METADATA_FILE_INFO']['LANDSAT_SCENE_ID'],
             'platform': {'code': satellite},
-            'instrument': {'name': info_pm['SENSOR_ID']},
+            'instrument': {'name': instrument},
             'extent': {
                 'from_dt': sensing_time,
                 'to_dt': sensing_time,
@@ -173,6 +201,7 @@ def prepare_dataset(path):
             'other_metadata': info,
             'lineage': {'source_datasets': {}},
         }
+    return {}
 
 
 def absolutify_paths(doc, path):
@@ -191,7 +220,7 @@ def absolutify_paths(doc, path):
                     For example: yourscript.py --output [Yaml- which writes datasets into this file for indexing]
                     [Path for dataset as : /home/some_space_available_folder/]""")
 @click.option('--output', help="Write output into this directory",
-               type=click.Path(exists=False, writable=True, dir_okay=True))
+              type=click.Path(exists=False, writable=True, dir_okay=True))
 @click.argument('datasets',
                 type=click.Path(exists=True, readable=True, writable=False),
                 nargs=-1)
@@ -209,16 +238,20 @@ def main(output, datasets, checksum, date):
         (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = os.stat(ds)
         create_date = datetime.utcfromtimestamp(ctime)
         if create_date <= date:
-            logging.info("Dataset creation time ", create_date,
-                         " is older than start date ", date, "...SKIPPING")
+            logging.info(
+                "Dataset creation time %s is older than start date %s ...SKIPPING",
+                create_date, date
+            )
         else:
             ds_path = Path(ds)
-            if ds_path.suffix in ('MTL.txt'):
+            if ds_path.suffix in 'MTL.txt':
                 mtl_path = str(ds_path)
-                ds_path = os.path.dirname(str(ds_path))
 
-                logging.info("Processing %s", ds_path)
-                output_yaml = pjoin(output, '{}.yaml'.format(os.path.basename(ds_path)))
+                logging.info("Processing %s", ds_path.parent.as_posix())
+                output_yaml = os.path.join(
+                    output,
+                    '{}.yaml'.format(ds_path.parent.name)
+                )
                 logging.info("Output %s", output_yaml)
                 if os.path.exists(output_yaml):
                     logging.info("Output already exists %s", output_yaml)
@@ -235,9 +268,10 @@ def main(output, datasets, checksum, date):
                         else:
                             logging.info("Dataset preparation already done...SKIPPING")
                             continue
-                docs = absolutify_paths(prepare_dataset(mtl_path), ds_path)
-                with open(output_yaml, 'w') as stream:
-                    yaml.dump(docs, stream)
+                docs = absolutify_paths(prepare_dataset(mtl_path), ds_path.parent)
+                if docs:
+                    with open(output_yaml, 'w') as stream:
+                        yaml.dump(docs, stream)
 
 
 if __name__ == "__main__":

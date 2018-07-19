@@ -457,7 +457,7 @@ def get_level1_tags(container, granule=None, yamls_path=None, l1_path=None):
             }
             l1_tags = l1_documents[granule]
     else:
-        acq = container.get_acquisitions()[0]
+        acq = container.get_all_acquisitions()[0]
         docs = extract_level1_metadata(acq, l1_path)
         if isinstance(docs, list):
             l1_tags = [doc for doc in docs 

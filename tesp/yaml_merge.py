@@ -8,13 +8,41 @@ example usage:
         --source /g/data/v10/AGDCv2/indexed_datasets/cophub/s2/s2_l1c_yamls/
 """  # nopep8
 from __future__ import absolute_import
+
 import logging
 import os
 import uuid
 import copy
+import re
+
 import click
 import yaml
+
 os.environ["CPL_ZIP_ENCODING"] = "UTF-8"
+
+
+def provider_reference_info(granule, wagl_tags):
+    """
+    Extracts provider reference metadata
+    Supported platforms are:
+        * LANDSAT
+        * SENTINEL2
+    :param granule:
+        A string referring to the name of the capture
+    
+    :return: 
+        Dictionary; contains satellite reference if identified
+    """
+    provider_info = {}
+    matches = None
+    if 'LANDSAT' in wagl_tags['source_datasets']['platform_id']:
+        matches = re.match(r'L\w\d(?P<reference_code>\d{6}).*', granule)
+    elif 'SENTINEL_2' in wagl_tags['source_datasets']['platform_id']:
+        matches = re.match(r'.*_T(?P<reference_code>\d{1,2}[A-Z]{3})_.*', granule)
+    
+    if matches:
+        provider_info.update(**matches.groupdict())
+    return provider_info
 
 
 def merge_metadata(level1_tags, wagl_tags, granule, image_paths):
@@ -30,6 +58,7 @@ def merge_metadata(level1_tags, wagl_tags, granule, image_paths):
              'SENTINEL_2B': 'S2MSIARD'}
 
     source_tags = {level1_tags['product_type']: copy.deepcopy(level1_tags)}
+    provider_info = provider_reference_info(granule, wagl_tags)
 
     # TODO: extend yaml document to include fmask and gqa yamls
     # Merge tags from each input and create a UUID
@@ -46,11 +75,14 @@ def merge_metadata(level1_tags, wagl_tags, granule, image_paths):
         'tile_id': granule,
         'extent': level1_tags['extent'],
         'grid_spatial': level1_tags['grid_spatial'],
-        'image': {
-            'bands': image_paths},
+        'image': {'bands': image_paths},
         'lineage': {
             'ancillary': wagl_tags['ancillary'],
-            'source_datasets': source_tags},
-        }
+            'source_datasets': source_tags
+        },
+    }
+
+    if provider_info:
+        merged_yaml['provider'] = provider_info
 
     return merged_yaml
