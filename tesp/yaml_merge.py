@@ -58,7 +58,7 @@ def merge_metadata(level1_tags, wagl_tags, granule, image_paths):
              'SENTINEL_2B': 'S2MSIARD'}
 
     source_tags = {level1_tags['product_type']: copy.deepcopy(level1_tags)}
-    provider_info = provider_refernce_info(granule, wagl_tags)
+    provider_info = provider_reference_info(granule, wagl_tags)
 
     # TODO: extend yaml document to include fmask and gqa yamls
     # Merge tags from each input and create a UUID
