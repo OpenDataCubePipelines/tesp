@@ -8,12 +8,16 @@ example usage:
         --source /g/data/v10/AGDCv2/indexed_datasets/cophub/s2/s2_l1c_yamls/
 """  # nopep8
 from __future__ import absolute_import
+
 import logging
 import os
 import uuid
 import copy
+import re
+
 import click
 import yaml
+
 os.environ["CPL_ZIP_ENCODING"] = "UTF-8"
 
 
