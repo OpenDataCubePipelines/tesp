@@ -12,6 +12,7 @@ from pkg_resources import resource_stream
 import numpy
 import h5py
 from rasterio.enums import Resampling
+import rasterio
 
 import yaml
 from yaml.representer import Representer
