@@ -18,8 +18,6 @@ import re
 import click
 import yaml
 import fmask
-from eugl.version import get_version as eugl_version
-from eugl.version import REPO_URL as eugl_repo_url
 from tesp.version import get_version as tesp_version
 from tesp.version import REPO_URL as tesp_repo_url
 
@@ -66,12 +64,14 @@ def merge_metadata(level1_tags, wagl_tags, gqa_tags, granule, image_paths):
     provider_info = provider_reference_info(granule, wagl_tags)
     gverify_version = gqa_tags.pop('gverify_version')
     fmask_repo_url = 'https://bitbucket.org/chchrsc/python-fmask'
+    eugl_repo_url = gqa_tags.pop('software_repository')
+    eugl_version = gqa_tags.pop('software_version')
     software_versions = wagl_tags['software_versions']
     software_versions['gverify'] = {'version': gverify_version}
     software_versions['fmask'] = {'repo_url': fmask_repo_url,
                                   'version': fmask.__version__}
     software_versions['eugl'] = {'repo_url': eugl_repo_url,
-                                 'version': eugl_version()}
+                                 'version': eugl_version}
     software_versions['tesp'] = {'repo_url': tesp_repo_url,
                                  'version': tesp_version()}
 
