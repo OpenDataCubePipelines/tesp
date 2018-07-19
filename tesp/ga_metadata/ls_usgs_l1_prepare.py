@@ -127,7 +127,7 @@ def get_mtl_content(acquisition_path):
     from Earth Explorer or GloVis
     """
 
-    if '.tar' in str(acquisition_path):
+    if tarfile.is_tarfile(acquisition_path):
         with tarfile.open(str(acquisition_path), 'r') as tp:
             try:
                 internal_file = next(filter(lambda memb: 'MTL' in memb.name, tp.getmembers()))
