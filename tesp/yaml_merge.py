@@ -37,7 +37,7 @@ def provider_reference_info(granule, wagl_tags):
     matches = None
     if 'LANDSAT' in wagl_tags['source_datasets']['platform_id']:
         matches = re.match(r'L\w\d(?P<reference_code>\d{6}).*', granule)
-    elif 'SENTINEL2' in wagl_tags['source_datasets']['platform_id']:
+    elif 'SENTINEL_2' in wagl_tags['source_datasets']['platform_id']:
         matches = re.match(r'.*_T(?P<reference_code>\d{1,2}[A-Z]{3})_.*', granule)
     
     if matches:
