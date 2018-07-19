@@ -123,7 +123,6 @@ def get_img_dataset_info(dataset, path, layer=1):
     }
 
 
-
 def unpack_products(product_list, container, granule, h5group, outdir):
     """
     Unpack and package the NBAR and NBART products.
