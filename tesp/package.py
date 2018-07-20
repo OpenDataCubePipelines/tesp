@@ -459,7 +459,7 @@ def get_level1_tags(container, granule=None, yamls_path=None, l1_path=None):
     else:
         acq = container.get_all_acquisitions()[0]
         docs = extract_level1_metadata(acq, l1_path)
-        if granule is not None and isinstance(docs, list):
+        if isinstance(docs, list):
             l1_tags = [doc for doc in docs
                        if doc.get('tile_id', doc.get('label')) == granule][0]
         else:
