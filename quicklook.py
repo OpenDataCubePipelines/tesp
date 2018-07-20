@@ -45,7 +45,7 @@ def make_quicklook(datasets, src_min, src_max, null, output):
 @click.argument('datasets', help="<red.tif> <green.tif> <red.tif>",
                 type=click.Path(exists=True, readable=True, writable=False),
                 nargs=-1)
-@click.argument('scale', help="<src min> <src max> <dst min> <dst max>", nargs=4, type-float)
+@click.argument('scale', help="<src min> <src max> <dst min> <dst max>", nargs=4, type=float)
 def main(output, datasets):
     """
     For input colour bands generate full resolution quicklook
