@@ -127,7 +127,7 @@ def get_mtl_content(acquisition_path):
     from Earth Explorer or GloVis
     """
 
-    if tarfile.is_tarfile(acquisition_path):
+    if os.path.isfile(str(acquisition_path)) and tarfile.is_tarfile(str(acquisition_path)):
         with tarfile.open(str(acquisition_path), 'r') as tp:
             try:
                 internal_file = next(filter(lambda memb: 'MTL' in memb.name, tp.getmembers()))
@@ -139,7 +139,7 @@ def get_mtl_content(acquisition_path):
                     "MTL file not found in {}".format(str(acquisition_path))
                 )
     else:
-        path = find_in(acquisition_path, 'MTL')
+        path = find_in(str(acquisition_path), 'MTL')
         filename = Path(path).stem
         with path.open('r') as fp:
             mtl_tree = _parse_group(fp)['L1_METADATA_FILE']

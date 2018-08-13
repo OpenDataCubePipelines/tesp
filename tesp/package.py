@@ -53,7 +53,7 @@ LEVELS = [2, 4, 8, 16, 32]
 PATTERN1 = re.compile(
     r'(?P<prefix>(?:.*_)?)(?P<band_name>B[0-9][A0-9]|B[0-9]*|B[0-9a-zA-z]*)'
     r'(?P<extension>\.TIF)')
-PATTERN2 = re.compile('(L1[GTPC]{1,2})')
+PATTERN2 = re.compile('(L1[GTPCS]{1,2})')
 ARD = 'ARD'
 QA = 'QA'
 SUPPS = 'SUPPLEMENTARY'
