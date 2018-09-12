@@ -132,7 +132,7 @@ class Package(luigi.Task):
         tasks = {'wagl': DataStandardisation(self.level1, self.workdir,
                                              self.granule),
                  'fmask': RunFmask(self.level1, self.granule, self.workdir),
-                 'gqa': GQATask(self.level1, self.granule, self.workdir)}
+                 'gqa': GQATask(self.level1, self.acq_parser_hint, self.granule, self.workdir)}
 
         return tasks
 
@@ -166,27 +166,21 @@ class ARDP(luigi.WrapperTask):
     workdir = luigi.Parameter()
     pkgdir = luigi.Parameter()
     acq_parser_hint = luigi.OptionalParameter(default='')
-    s2_aoi = luigi.Parameter()
 
     def requires(self):
         with open(self.level1_list) as src:
             level1_list = [level1.strip() for level1 in src.readlines()]
 
-        with open(self.s2_aoi) as csv:
-            tile_ids = ['T' + tile.strip() for tile in csv]
-
         for level1 in level1_list:
             work_root = pjoin(self.workdir, '{}.ARD'.format(basename(level1)))
             container = acquisitions(level1, self.acq_parser_hint)
             for granule in container.granules:
-                tile_id = granule.split('_')[-2]
 
-                if tile_id in tile_ids:
-                    work_dir = container.get_root(work_root, granule=granule)
-                    acq = container.get_acquisitions(None, granule, False)[0]
-                    ymd = acq.acquisition_datetime.strftime('%Y-%m-%d')
-                    pkgdir = pjoin(self.pkgdir, ymd)
-                    yield Package(level1, work_dir, granule, pkgdir)
+                work_dir = container.get_root(work_root, granule=granule)
+                acq = container.get_acquisitions(None, granule, False)[0]
+                ymd = acq.acquisition_datetime.strftime('%Y-%m-%d')
+                pkgdir = pjoin(self.pkgdir, ymd)
+                yield Package(level1, work_dir, granule, pkgdir)
 
 
 if __name__ == '__main__':

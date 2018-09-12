@@ -62,16 +62,18 @@ def merge_metadata(level1_tags, wagl_tags, gqa_tags, granule, image_paths):
 
     source_tags = {level1_tags['product_type']: copy.deepcopy(level1_tags)}
     provider_info = provider_reference_info(granule, wagl_tags)
-    gverify_version = gqa_tags.pop('gverify_version')
+
+    # TODO: resolve common software version for fmask and gqa
     fmask_repo_url = 'https://bitbucket.org/chchrsc/python-fmask'
-    eugl_repo_url = gqa_tags.pop('software_repository')
-    eugl_version = gqa_tags.pop('software_version')
     software_versions = wagl_tags['software_versions']
-    software_versions['gverify'] = {'version': gverify_version}
+
+    # Add software versions from gqa yaml
+    gqa_versions = gqa_tags.pop('software_versions')
+    for key, value in gqa_versions.items():
+        software_versions[key] = value
+
     software_versions['fmask'] = {'repo_url': fmask_repo_url,
                                   'version': fmask.__version__}
-    software_versions['eugl'] = {'repo_url': eugl_repo_url,
-                                 'version': eugl_version}
     software_versions['tesp'] = {'repo_url': tesp_repo_url,
                                  'version': tesp_version()}
 

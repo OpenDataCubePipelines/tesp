@@ -266,6 +266,13 @@ def create_contiguity(product_list, container, granule, outdir):
             if not fnames:
                 continue
 
+            # 2018-09-11 Please forgive me; quick hack to remove troublesome quicklook
+            # Issue arises on re-running from previous checkpoint
+            for _idx, name in enumerate(fnames):
+                if 'QUICKLOOK' in name:
+                    fnames.pop(_idx)
+                    break
+
             # output filename
             base_fname = '{}_{}_CONTIGUITY.TIF'.format(grn_id, product)
             rel_path = pjoin(QA, base_fname)
