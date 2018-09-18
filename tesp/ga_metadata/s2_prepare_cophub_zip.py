@@ -225,8 +225,8 @@ def prepare_dataset(path):
                 xmlzipfiles = [s for s in z.namelist() if pattern in s]
             mtd_xml = z.read(xmlzipfiles[0])
             root = ElementTree.XML(mtd_xml)
-            img_data_path = str(path) + '!'
-            img_data_path = 'zip:' + img_data_path + str(z.namelist()[0])
+            img_data_path = str(path) + '!/'
+            img_data_path = 'zip://' + img_data_path + str(z.namelist()[0])
             # for earlier versions of zip archive - use GRANULES
             if single_granule_archive is False:
                 img_data_path = img_data_path + str(Path('GRANULE').joinpath(granule_id, 'IMG_DATA'))
