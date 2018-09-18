@@ -317,7 +317,7 @@ def prepare_dataset(path):
         'grid_spatial': {
             'projection': {
                 'geo_ref_points': geo_ref_points,
-                'spatial_reference': spatial_ref.ExportToWkt(),
+                'spatial_reference': cs_code,
                 'valid_data': {
                     'coordinates': _to_lists(
                         shapely.geometry.mapping(
