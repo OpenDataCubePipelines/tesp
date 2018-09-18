@@ -1,0 +1,84 @@
+#!/usr/bin/env python
+
+import io
+import sys
+import logging
+from datetime import datetime
+from os.path import join
+from subprocess import Popen, PIPE
+
+import click
+from click_datetime import Datetime
+
+from wagl.acquisition import acquisitions
+from tesp.workflow import Package
+
+
+DEFAULT_S2_AOI = '/g/data/v10/eoancillarydata/S2_extent/S2_aoi.csv'
+DEFAULT_S2_L1C = '/g/data/fj7/Copernicus/Sentinel-2/MSI/L1C'
+DEFAULT_PKGDIR = '/g/data/if87/datacube/002/S2_MSI_ARD/packaged'
+
+
+def start_of_year():
+    return datetime(datetime.now().year, 1, 1)
+
+
+@click.command()
+@click.option('--level1-root', default=DEFAULT_S2_L1C, type=str,
+              help="Folder containing Sentinel-2 level-1 datasets")
+@click.option('--s2-aoi', default=DEFAULT_S2_AOI, type=str,
+              help="List of MGRD tiles of interest")
+@click.option('--start-date', type=Datetime(format='%Y-%m-%d'), default=start_of_year(),
+              help="Start of date range to process")
+@click.option('--end-date', type=Datetime(format='%Y-%m-%d'), default=datetime.now(),
+              help="End of date range to process")
+@click.option('--pkgdir', default=DEFAULT_PKGDIR, type=str,
+              help="Folder to output")
+@click.option('--output-list', type=str, help="Output list of level1 datasets")
+def main(level1_root, s2_aoi, start_date, end_date, pkgdir, output_list):
+    logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.INFO)
+
+    with open(s2_aoi) as csv:
+        tile_ids = {'T' + tile.strip() for tile in csv}
+
+    def date(date_time):
+        return date_time.strftime('%Y-%m-%d')
+
+    cmd = ['find', level1_root,
+           '-newermt', date(start_date), '!', '-newermt', date(end_date),
+           '-name', '*.zip']
+
+    logging.info("calling %s", ' '.join(cmd))
+
+    def worker(out):
+        for line in io.TextIOWrapper(Popen(cmd, stdout=PIPE).stdout, encoding='utf-8'):
+            level1 = line.strip()
+
+            container = acquisitions(level1)
+
+            for granule in container.granules:
+                # does it contain any granules that need to be processed?
+                acq = container.get_acquisitions(None, granule, False)[0]
+                ymd = acq.acquisition_datetime.strftime('%Y-%m-%d')
+                tile_id = granule.split('_')[-2]
+                package = Package(level1, '', granule, join(pkgdir, ymd))
+
+                if tile_id not in tile_ids:
+                    logging.info('granule %s with MGRS tile ID %s outside AOI', granule, tile_id)
+                elif package.output().exists():
+                    logging.info('granule %s already processed', granule)
+                else:
+                    # yes it does
+                    logging.info('level1 dataset %s needs to be procesed', level1)
+                    print(level1, file=out)
+                    break
+
+    if output_list is None:
+        worker(sys.stdout)
+    else:
+        with open(output_list, 'w') as out:
+            worker(out)
+
+
+if __name__ == '__main__':
+    main()
