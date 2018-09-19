@@ -34,5 +34,8 @@ setup(name='tesp',
           'git+https://github.com/OpenDataCubePipelines/eugl.git#egg=eugl-0.0.2',
           'git+https://github.com/spotify/luigi.git@f9a99dce22e2887406c6d156d5d669660547d257#egg=luigi-2.7.7'
       ],
-      scripts=['bin/s2package', 'bin/ard_pbs', 'bin/search_s2'],
+      scripts=['bin/s2package',
+               'bin/ard_pbs',
+               'bin/search_s2',
+               'bin/s2_incremental'],
       include_package_data=True)
