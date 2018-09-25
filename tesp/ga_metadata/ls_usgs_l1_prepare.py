@@ -3,13 +3,12 @@ Ingest data from the command-line.
 """
 from __future__ import absolute_import
 
+import glob
 import uuid
 import logging
 import yaml
 import re
 import tarfile
-from urllib.request import urlopen
-from urllib.parse import urlparse, urljoin
 from datetime import datetime
 import hashlib
 
@@ -19,7 +18,12 @@ from osgeo import osr
 import os
 from pathlib import Path
 
-from wagl.acquisition import find_in
+try:
+    from urllib.request import urlopen
+    from urllib.parse import urlparse, urljoin
+except ImportError:
+    from urlparse import urlparse, urljoin
+    from urllib2 import urlopen
 
 
 LANDSAT_8_BANDS = [
@@ -48,7 +52,6 @@ LANDSAT_BANDS = [
     ('7', 'swir2'),
     ('QUALITY', 'quality')]
 
-
 MTL_PAIRS_RE = re.compile(r'(\w+)\s=\s(.*)')
 
 
@@ -60,6 +63,16 @@ def _parse_value(s):
         except ValueError:
             pass
     return s
+
+
+def find_in(path, s, suffix='txt'):
+    """Search through `path` and its children for the first occurance of a
+    file with `s` in its name. Returns the path of the file or `None`. """
+    for root, _, files in os.walk(path):
+        for f in files:
+            if s in f and f.endswith(suffix):
+                return os.path.join(root, f)
+    return None
 
 
 def _parse_group(lines):
@@ -148,7 +161,6 @@ def get_mtl_content(acquisition_path):
 
 
 def prepare_dataset(path):
-
     info, filename = get_mtl_content(path)
 
     if info != "Empty File":
@@ -174,6 +186,7 @@ def prepare_dataset(path):
             'id': str(uuid.uuid5(uuid.NAMESPACE_URL, path.as_posix())),
             'processing_level': level,
             'product_type': 'LS_USGS_L1C1',
+            # 'creation_dt': ct_time,
             'label': info['METADATA_FILE_INFO']['LANDSAT_SCENE_ID'],
             'platform': {'code': satellite},
             'instrument': {'name': instrument},
@@ -204,11 +217,35 @@ def prepare_dataset(path):
     return {}
 
 
-def absolutify_paths(doc, path):
-
-    for band in doc['image']['bands'].values():
-        band['path'] = os.path.join(path, band['path'])
+def absolutify_paths(doc, ds_path):
+    if Path(ds_path).suffix != '.gz':
+        for band in doc['image']['bands'].values():
+            band['path'] = os.path.join(str(Path(ds_path)), band['path'])
+    else:
+        for band in doc['image']['bands'].values():
+            band['path'] = 'tar:{}!{}'.format(ds_path, band['path'])
     return doc
+
+
+def find_gz_mtl(ds_path, output_folder):
+    """
+    Find the MTL metadata file for the archived dataset and extract the xml
+    file and store it temporally in output folder
+
+    :param Path ds_path: the dataset path
+    :param Path output_folder: the output folder
+
+    :returns: xml with full path
+
+    """
+    mtl_pattern = re.compile(r"_MTL\.txt$")
+    with tarfile.open(str(ds_path), 'r') as tar_gz:
+        members = [m for m in tar_gz.getmembers() if mtl_pattern.search(m.name)]
+        if not members:
+            return None
+        tar_gz.extractall(output_folder, members)
+
+    return output_folder / members[0].name
 
 
 @click.command(help="""\b
@@ -244,8 +281,14 @@ def main(output, datasets, checksum, date):
             )
         else:
             ds_path = Path(ds)
-            if ds_path.suffix in 'MTL.txt':
-                mtl_path = str(ds_path)
+            if ds_path.suffix in ('.gz', '.txt'):
+                if ds_path.suffix != '.txt':
+                    mtl_path = find_gz_mtl(ds_path, output)
+                    if not mtl_path:
+                        raise RuntimeError('No MTL file within %s' % ds_path)
+                else:
+                    mtl_path = str(ds_path)
+                    ds_path = ds_path.parent
 
                 logging.info("Processing %s", ds_path.parent.as_posix())
                 output_yaml = os.path.join(
@@ -272,6 +315,15 @@ def main(output, datasets, checksum, date):
                 if docs:
                     with open(output_yaml, 'w') as stream:
                         yaml.dump(docs, stream)
+
+    # delete intermediate MTL files for archive datasets in output folder
+    mtl_list = glob.glob('{}/*MTL.txt'.format(output))
+    if len(mtl_list) > 0:
+        for f in mtl_list:
+            try:
+                os.remove(f)
+            except OSError:
+                pass
 
 
 if __name__ == "__main__":
