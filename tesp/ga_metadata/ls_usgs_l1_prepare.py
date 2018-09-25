@@ -6,6 +6,8 @@ from __future__ import absolute_import
 import glob
 import uuid
 import logging
+from typing import List, Optional, Union, Iterable, Dict, Tuple
+
 import yaml
 import re
 import tarfile
@@ -25,7 +27,6 @@ except ImportError:
     from urlparse import urlparse, urljoin
     from urllib2 import urlopen
 
-
 LANDSAT_8_BANDS = [
     ('1', 'coastal_aerosol'),
     ('2', 'blue'),
@@ -38,7 +39,8 @@ LANDSAT_8_BANDS = [
     ('9', 'cirrus'),
     ('10', 'lwir1'),
     ('11', 'lwir2'),
-    ('QUALITY', 'quality')]
+    ('QUALITY', 'quality'),
+]
 
 TIRS_ONLY = LANDSAT_8_BANDS[9:12]
 OLI_ONLY = [*LANDSAT_8_BANDS[0:9], LANDSAT_8_BANDS[11]]
@@ -50,12 +52,22 @@ LANDSAT_BANDS = [
     ('4', 'nir'),
     ('5', 'swir1'),
     ('7', 'swir2'),
-    ('QUALITY', 'quality')]
+    ('QUALITY', 'quality'),
+]
 
 MTL_PAIRS_RE = re.compile(r'(\w+)\s=\s(.*)')
 
 
 def _parse_value(s):
+    # type: (str) -> Union[int, float, str]
+    """
+    >>> _parse_value("asdf")
+    "asdf"
+    >>> _parse_value("123")
+    123
+    >>> _parse_value("3.14")
+    3.14
+    """
     s = s.strip('"')
     for parser in [int, float]:
         try:
@@ -66,16 +78,29 @@ def _parse_value(s):
 
 
 def find_in(path, s, suffix='txt'):
-    """Search through `path` and its children for the first occurance of a
-    file with `s` in its name. Returns the path of the file or `None`. """
-    for root, _, files in os.walk(path):
+    # type: (Path, str, str) -> Optional[Path]
+    """Recursively find any file with a certain string in its name
+
+    Search through `path` and its children for the first occurance of a
+    file with `s` in its name. Returns the path of the file or `None`.
+    """
+
+    def matches(p: Path):
+        return s in p.name and p.name.endswith(suffix)
+
+    if path.is_file():
+        return path if matches(path) else None
+
+    for root, _, files in os.walk(str(path)):
         for f in files:
-            if s in f and f.endswith(suffix):
-                return os.path.join(root, f)
+            p = Path(root) / f
+            if matches(p):
+                return p
     return None
 
 
 def _parse_group(lines):
+    # type: (Iterable[Union[str, bytes]]) -> dict
     tree = {}
 
     for line in lines:
@@ -95,6 +120,7 @@ def _parse_group(lines):
 
 
 def get_geo_ref_points(info):
+    # type: (Dict) -> Dict
     return {
         'ul': {'x': info['CORNER_UL_PROJECTION_X_PRODUCT'], 'y': info['CORNER_UL_PROJECTION_Y_PRODUCT']},
         'ur': {'x': info['CORNER_UR_PROJECTION_X_PRODUCT'], 'y': info['CORNER_UR_PROJECTION_Y_PRODUCT']},
@@ -104,6 +130,7 @@ def get_geo_ref_points(info):
 
 
 def get_coords(geo_ref_points, spatial_ref):
+    # type: (Dict, osr.SpatialReference) -> Dict
     t = osr.CoordinateTransformation(spatial_ref, spatial_ref.CloneGeogCS())
 
     def transform(p):
@@ -113,7 +140,8 @@ def get_coords(geo_ref_points, spatial_ref):
     return {key: transform(p) for key, p in geo_ref_points.items()}
 
 
-def satellite_ref(sat, instrument, file_name):
+def get_satellite_band_names(sat, instrument, file_name):
+    # type: (str, str, str) -> List[Tuple[str, str]]
     """
     To load the band_names for referencing either LANDSAT8 or LANDSAT7 or LANDSAT5 bands
     Landsat7 and Landsat5 have same band names
@@ -135,24 +163,27 @@ def satellite_ref(sat, instrument, file_name):
 
 
 def get_mtl_content(acquisition_path):
+    # type: (Path) -> Tuple[Dict, str]
     """
     Path is pointing to the folder , where the USGS Landsat scene list in MTL format is downloaded
     from Earth Explorer or GloVis
     """
-
-    if os.path.isfile(str(acquisition_path)) and tarfile.is_tarfile(str(acquisition_path)):
+    if acquisition_path.is_file() and tarfile.is_tarfile(str(acquisition_path)):
         with tarfile.open(str(acquisition_path), 'r') as tp:
             try:
                 internal_file = next(filter(lambda memb: 'MTL' in memb.name, tp.getmembers()))
                 filename = Path(internal_file.name).stem
                 with tp.extractfile(internal_file) as fp:
-                    mtl_tree = _parse_group(tp.extractfile(internal_file))['L1_METADATA_FILE']
+                    mtl_tree = _parse_group(fp)['L1_METADATA_FILE']
             except StopIteration:
                 raise RuntimeError(
                     "MTL file not found in {}".format(str(acquisition_path))
                 )
     else:
-        path = find_in(str(acquisition_path), 'MTL')
+        path = find_in(acquisition_path, 'MTL')
+        if not path:
+            raise RuntimeError("No MTL file")
+
         filename = Path(path).stem
         with path.open('r') as fp:
             mtl_tree = _parse_group(fp)['L1_METADATA_FILE']
@@ -161,66 +192,69 @@ def get_mtl_content(acquisition_path):
 
 
 def prepare_dataset(path):
+    # type: (Path) -> Optional[Dict]
     info, filename = get_mtl_content(path)
 
-    if info != "Empty File":
-        info_pm = info['PRODUCT_METADATA']
-        level = info_pm['DATA_TYPE']
+    if not info:
+        return None
 
-        data_format = info_pm['OUTPUT_FORMAT']
-        if data_format.upper() == 'GEOTIFF':
-            data_format = 'GeoTIFF'
+    info_pm = info['PRODUCT_METADATA']
+    level = info_pm['DATA_TYPE']
 
-        sensing_time = info_pm['DATE_ACQUIRED'] + ' ' + info_pm['SCENE_CENTER_TIME']
+    data_format = info_pm['OUTPUT_FORMAT']
+    if data_format.upper() == 'GEOTIFF':
+        data_format = 'GeoTIFF'
 
-        cs_code = 32600 + info['PROJECTION_PARAMETERS']['UTM_ZONE']
-        spatial_ref = osr.SpatialReference()
-        spatial_ref.ImportFromEPSG(cs_code)
+    sensing_time = info_pm['DATE_ACQUIRED'] + ' ' + info_pm['SCENE_CENTER_TIME']
 
-        geo_ref_points = get_geo_ref_points(info_pm)
-        satellite = info_pm['SPACECRAFT_ID']
-        instrument = info_pm['SENSOR_ID']
+    cs_code = 32600 + info['PROJECTION_PARAMETERS']['UTM_ZONE']
+    spatial_ref = osr.SpatialReference()
+    spatial_ref.ImportFromEPSG(cs_code)
 
-        images = satellite_ref(satellite, instrument, filename)
-        return {
-            'id': str(uuid.uuid5(uuid.NAMESPACE_URL, path.as_posix())),
-            'processing_level': level,
-            'product_type': 'LS_USGS_L1C1',
-            # 'creation_dt': ct_time,
-            'label': info['METADATA_FILE_INFO']['LANDSAT_SCENE_ID'],
-            'platform': {'code': satellite},
-            'instrument': {'name': instrument},
-            'extent': {
-                'from_dt': sensing_time,
-                'to_dt': sensing_time,
-                'center_dt': sensing_time,
-                'coord': get_coords(geo_ref_points, spatial_ref),
-            },
-            'format': {'name': data_format},
-            'grid_spatial': {
-                'projection': {
-                    'geo_ref_points': geo_ref_points,
-                    'spatial_reference': 'EPSG:%s' % cs_code,
-                }
-            },
-            'image': {
-                'bands': {
-                    image[1]: {
-                        'path': info_pm['FILE_NAME_BAND_' + image[0]],
-                        'layer': 1,
-                    } for image in images
-                }
-            },
-            'other_metadata': info,
-            'lineage': {'source_datasets': {}},
-        }
-    return {}
+    geo_ref_points = get_geo_ref_points(info_pm)
+    satellite = info_pm['SPACECRAFT_ID']
+    instrument = info_pm['SENSOR_ID']
+
+    images = get_satellite_band_names(satellite, instrument, filename)
+    return {
+        'id': str(uuid.uuid5(uuid.NAMESPACE_URL, path.as_posix())),
+        'processing_level': level,
+        'product_type': 'LS_USGS_L1C1',
+        # 'creation_dt': ct_time,
+        'label': info['METADATA_FILE_INFO']['LANDSAT_SCENE_ID'],
+        'platform': {'code': satellite},
+        'instrument': {'name': instrument},
+        'extent': {
+            'from_dt': sensing_time,
+            'to_dt': sensing_time,
+            'center_dt': sensing_time,
+            'coord': get_coords(geo_ref_points, spatial_ref),
+        },
+        'format': {'name': data_format},
+        'grid_spatial': {
+            'projection': {
+                'geo_ref_points': geo_ref_points,
+                'spatial_reference': 'EPSG:%s' % cs_code,
+            }
+        },
+        'image': {
+            'bands': {
+                image[1]: {
+                    'path': info_pm['FILE_NAME_BAND_' + image[0]],
+                    'layer': 1,
+                } for image in images
+            }
+        },
+        'other_metadata': info,
+        'lineage': {'source_datasets': {}},
+    }
 
 
 def absolutify_paths(doc, ds_path):
-    if Path(ds_path).suffix != '.gz':
+    # type: (Dict, Path) -> Dict
+    if ds_path.suffix != '.gz':
         for band in doc['image']['bands'].values():
-            band['path'] = os.path.join(str(Path(ds_path)), band['path'])
+            band['path'] = str(ds_path.absolute() / band['path'])
     else:
         for band in doc['image']['bands'].values():
             band['path'] = 'tar:{}!{}'.format(ds_path, band['path'])
@@ -228,6 +262,7 @@ def absolutify_paths(doc, ds_path):
 
 
 def find_gz_mtl(ds_path, output_folder):
+    # type: (Path, Path) -> Optional[Path]
     """
     Find the MTL metadata file for the archived dataset and extract the xml
     file and store it temporally in output folder
@@ -264,14 +299,19 @@ def find_gz_mtl(ds_path, output_folder):
 @click.option('--date', type=Datetime(format='%d/%m/%Y'),
               default=datetime.now(),
               help="Enter file creation start date for data preparation")
-@click.option('--checksum/--no-checksum',
+@click.option('--checksum/--no-checksum', 'check_checksum',
               help="Checksum the input dataset to confirm match",
               default=False)
-def main(output, datasets, checksum, date):
+def main(output, datasets, check_checksum, date):
+    # type: (str, List[str], str, datetime) -> None
+
+    output = Path(output)
+
     logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s',
                         level=logging.INFO)
 
     for ds in datasets:
+        ds_path = Path(ds)
         (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = os.stat(ds)
         create_date = datetime.utcfromtimestamp(ctime)
         if create_date <= date:
@@ -279,51 +319,48 @@ def main(output, datasets, checksum, date):
                 "Dataset creation time %s is older than start date %s ...SKIPPING",
                 create_date, date
             )
-        else:
-            ds_path = Path(ds)
-            if ds_path.suffix in ('.gz', '.txt'):
-                if ds_path.suffix != '.txt':
-                    mtl_path = find_gz_mtl(ds_path, output)
-                    if not mtl_path:
-                        raise RuntimeError('No MTL file within %s' % ds_path)
-                else:
-                    mtl_path = str(ds_path)
-                    ds_path = ds_path.parent
+            continue
 
-                logging.info("Processing %s", ds_path.parent.as_posix())
-                output_yaml = os.path.join(
-                    output,
-                    '{}.yaml'.format(ds_path.parent.name)
-                )
-                logging.info("Output %s", output_yaml)
-                if os.path.exists(output_yaml):
-                    logging.info("Output already exists %s", output_yaml)
-                    with open(output_yaml) as f:
-                        if checksum:
-                            logging.info("Running checksum comparison")
-                            datamap = yaml.load_all(f)
-                            for data in datamap:
-                                yaml_sha1 = data['checksum_sha1']
-                                checksum_sha1 = hashlib.sha1(open(ds, 'rb').read()).hexdigest()
-                            if checksum_sha1 == yaml_sha1:
-                                logging.info("Dataset preparation already done...SKIPPING")
-                                continue
-                        else:
+        if ds_path.suffix in ('.gz', '.txt'):
+            if ds_path.suffix == '.txt':
+                mtl_path = ds_path
+                ds_path = ds_path.parent
+            else:
+                mtl_path = find_gz_mtl(ds_path, output)
+                if not mtl_path:
+                    raise RuntimeError('No MTL file within %s' % ds_path)
+
+            logging.info("Processing %s", ds_path.parent.as_posix())
+            output_yaml = output / '{}.yaml'.format(ds_path.parent.name)
+
+            logging.info("Output %s", output_yaml)
+            if output_yaml.exists():
+                if not check_checksum:
+                    logging.info("Dataset preparation already done...SKIPPING")
+                    continue
+
+                logging.info("Output already exists %s", output_yaml)
+                with output_yaml.open() as yaml_f:
+                    logging.info("Running checksum comparison")
+                    for doc in yaml.load_all(yaml_f):
+                        yaml_sha1 = doc['checksum_sha1']
+                        checksum_sha1 = hashlib.sha1(open(ds, 'rb').read()).hexdigest()
+                        if checksum_sha1 == yaml_sha1:
                             logging.info("Dataset preparation already done...SKIPPING")
                             continue
-                docs = absolutify_paths(prepare_dataset(mtl_path), ds_path.parent)
-                if docs:
-                    with open(output_yaml, 'w') as stream:
-                        yaml.dump(docs, stream)
+
+            docs = absolutify_paths(prepare_dataset(mtl_path), ds_path.parent)
+            if docs:
+                with open(output_yaml, 'w') as stream:
+                    yaml.safe_dump(docs, stream)
 
     # delete intermediate MTL files for archive datasets in output folder
-    mtl_list = glob.glob('{}/*MTL.txt'.format(output))
-    if len(mtl_list) > 0:
-        for f in mtl_list:
-            try:
-                os.remove(f)
-            except OSError:
-                pass
+    output_mtls = list(output.rglob('*MTL.txt'))
+    for mtl_path in output_mtls:
+        try:
+            mtl_path.unlink()
+        except OSError:
+            pass
 
 
 if __name__ == "__main__":
