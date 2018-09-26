@@ -47,3 +47,5 @@ def test_prepare_l1_tarball(tmpdir):
             doc['image']['bands']['blue']['path'] ==
             f'tar:{L1GT_TARBALL_PATH.absolute()}!LE07_L1GT_104078_20131209_20161119_01_T2_B1.TIF'
     )
+    supplied_bands = set(doc['image']['bands'].keys())
+    assert {'red', 'green', 'blue', 'swir2', 'nir', 'quality', 'swir1'} == supplied_bands
