@@ -2,6 +2,7 @@ from pathlib import Path
 
 import yaml
 from click.testing import CliRunner
+from pytest import approx
 
 from tesp.prepare import ls_usgs_l1_prepare
 
@@ -33,18 +34,15 @@ def test_prepare_l1_tarball(tmpdir):
     assert doc['processing_level'] == 'L1GT'
     assert doc['label'] == 'LE71040782013343ASA00'
 
-    # Voodoo float equality. Perhaps make this almost_equal?
-    assert doc['extent'] == {
-        'center_dt': '2013-12-09 01:10:46.6908469Z',
-        'coord': {
-            'll': {'lat': -26.954354903739272, 'lon': 129.22769548746237},
-            'lr': {'lat': -26.928774471741676, 'lon': 131.69588786021484},
-            'ul': {'lat': -25.03371801797915, 'lon': 129.22402339672468},
-            'ur': {'lat': -25.01021635833341, 'lon': 131.65247288941694}
-        },
-        'from_dt': '2013-12-09 01:10:46.6908469Z',
-        'to_dt': '2013-12-09 01:10:46.6908469Z'
-    }
+    assert doc['extent']['center_dt'] == '2013-12-09 01:10:46.6908469Z'
+    assert doc['extent']['from_dt'] == '2013-12-09 01:10:46.6908469Z'
+    assert doc['extent']['to_dt'] == '2013-12-09 01:10:46.6908469Z'
+
+    assert doc['extent']['coord']['ll'] == approx({'lat': -26.954354903739272, 'lon': 129.22769548746237})
+    assert doc['extent']['coord']['lr'] == approx({'lat': -26.928774471741676, 'lon': 131.69588786021484})
+    assert doc['extent']['coord']['ul'] == approx({'lat': -25.03371801797915, 'lon': 129.22402339672468})
+    assert doc['extent']['coord']['ur'] == approx({'lat': -25.01021635833341, 'lon': 131.65247288941694})
+
     assert (
             doc['image']['bands']['blue']['path'] ==
             f'tar:{L1GT_TARBALL_PATH.absolute()}!LE07_L1GT_104078_20131209_20161119_01_T2_B1.TIF'
