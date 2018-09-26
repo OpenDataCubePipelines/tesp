@@ -11,11 +11,10 @@ example usage:
 from __future__ import absolute_import
 
 import hashlib
+import json
 import logging
 import os
-import json
 import uuid
-import zipfile
 from pathlib import Path
 from xml.etree import ElementTree
 
@@ -26,10 +25,9 @@ import shapely.affinity
 import shapely.geometry
 import shapely.ops
 import yaml
+from checksumdir import dirhash
 from osgeo import osr
 from rasterio.errors import RasterioIOError
-
-from checksumdir import dirhash
 
 os.environ["CPL_ZIP_ENCODING"] = "UTF-8"
 SRC_BUCKET = 'sentinel-s2-l1c'
@@ -163,7 +161,6 @@ def get_tile_info(path):
     return tile_path
 
 
-
 def prepare_dataset(path):
     """
     Returns yaml content based on content found at input file path
@@ -234,7 +231,6 @@ def prepare_dataset(path):
         .attrib.get('globalStatus')
     )
 
-    single_granule_archive = True
     _imgs_in_directory = [p.name for p in path.glob('B??.jp2')]
     _img_ids = [
         'B01.jp2', 'B02.jp2', 'B03.jp2', 'B04.jp2', 'B05.jp2', 'B06.jp2', 'B07.jp2',
@@ -243,7 +239,6 @@ def prepare_dataset(path):
 
     # Use the filename without extension
     images = [img_name for img_name in _img_ids if img_name in _imgs_in_directory]
-    granule_id = root.find('./*/TILE_ID').text
 
     documents = []
 
@@ -293,6 +288,7 @@ def prepare_dataset(path):
         'id': str(persisted_uuid),
         'processing_level': 'Level-1C',
         'product_type': 'level1',
+        'creation_dt': root.findall('./*/Processing_Info/UTC_DATE_TIME')[0].text,
         'datatake_id': datatake_id,
         'datatake_type': datatake_type,
         'datatake_sensing_start': datatake_sensing_start,
@@ -346,7 +342,6 @@ def prepare_dataset(path):
             'solar_irradiance': solar_irradiance,
             'bands': img_dict
         },
-
         'lineage': {'source_datasets': {}},
     })
     return documents

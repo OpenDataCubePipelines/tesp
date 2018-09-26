@@ -21,12 +21,10 @@ from osgeo import osr
 from tesp.prepare import serialise
 
 try:
-    from urllib.request import urlopen
-    from urllib.parse import urlparse, urljoin
-    from typing import List, Optional, Union, Iterable, Dict, Tuple
+    # flake8 doesn't recognise type hints as usage
+    from typing import List, Optional, Union, Iterable, Dict, Tuple  # noqa: F401
 except ImportError:
-    from urlparse import urlparse, urljoin
-    from urllib2 import urlopen
+    pass
 
 LANDSAT_8_BANDS = [
     ('1', 'coastal_aerosol'),

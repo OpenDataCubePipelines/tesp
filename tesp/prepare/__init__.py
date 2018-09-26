@@ -10,6 +10,8 @@ def extract_level1_metadata(acq, acquisition_path):
     Factory method for selecting a level1 metadata script
 
     """
+    # Optional (not installed yet on Travis)
+    # pytest: disable=import-error
     from wagl.acquisition.sentinel import _Sentinel2SinergiseAcquisition, Sentinel2Acquisition
     from wagl.acquisition.landsat import LandsatAcquisition
 

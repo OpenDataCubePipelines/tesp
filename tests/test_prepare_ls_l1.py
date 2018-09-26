@@ -1,6 +1,5 @@
 from pathlib import Path
 
-import pytest
 import yaml
 from click.testing import CliRunner
 

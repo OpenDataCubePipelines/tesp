@@ -182,12 +182,13 @@ def prepare_dataset(path):
     degraded_anc_data_percentage = root.findall('./*/Technical_Quality_Assessment/DEGRADED_ANC_DATA_PERCENTAGE')[0].text
     degraded_msi_data_percentage = root.findall('./*/Technical_Quality_Assessment/DEGRADED_MSI_DATA_PERCENTAGE')[0].text
     try:
-        sensor_quality_flag = root.findall('./*/Quality_Control_Checks/Quality_Inspections/SENSOR_QUALITY_FLAG')[0].text
-        general_quality_flag = root.findall('./*/Quality_Control_Checks/Quality_Inspections/GENERAL_QUALITY_FLAG')[0].text
-        geometric_quality_flag = root.findall('./*/Quality_Control_Checks/Quality_Inspections/GEOMETRIC_QUALITY_FLAG')[0].text
-        format_quality_flag = root.findall('./*/Quality_Control_Checks/Quality_Inspections/FORMAT_CORRECTNESS_FLAG')[0].text
-        radiometric_quality_flag = root.findall('./*/Quality_Control_Checks/Quality_Inspections/RADIOMETRIC_QUALITY_FLAG')[0].text
-    except:
+        qa_inspections_offset = './*/Quality_Control_Checks/Quality_Inspections'
+        sensor_quality_flag = root.findall(qa_inspections_offset + '/SENSOR_QUALITY_FLAG')[0].text
+        general_quality_flag = root.findall(qa_inspections_offset + '/GENERAL_QUALITY_FLAG')[0].text
+        geometric_quality_flag = root.findall(qa_inspections_offset + '/GEOMETRIC_QUALITY_FLAG')[0].text
+        format_quality_flag = root.findall(qa_inspections_offset + '/FORMAT_CORRECTNESS_FLAG')[0].text
+        radiometric_quality_flag = root.findall(qa_inspections_offset + '/RADIOMETRIC_QUALITY_FLAG')[0].text
+    except IndexError:
         sensor_quality_flag = ""
         general_quality_flag = ""
         geometric_quality_flag = ""
@@ -385,7 +386,7 @@ def main(output, datasets, checksum, date):
         (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = os.stat(dataset)
         create_date = datetime.utcfromtimestamp(ctime)
         if create_date <= date:
-            logging.info("Dataset creation time "+str(create_date)+" is older than start date "+str(date)+"...SKIPPING")
+            logging.info("Dataset creation time %s is older than start date %s...SKIPPING", create_date, date)
         else:
             path = Path(dataset)
             if path.is_dir():
