@@ -29,7 +29,7 @@ from tesp.contrast import quicklook
 from tesp.html_geojson import html_map
 from tesp.yaml_merge import merge_metadata
 from tesp.constants import ProductPackage
-from tesp.ga_metadata import extract_level1_metadata
+from tesp.prepare import extract_level1_metadata
 
 from eugl.fmask import fmask_cogtif
 from eugl.contiguity import contiguity

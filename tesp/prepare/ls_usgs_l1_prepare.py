@@ -18,7 +18,7 @@ import click
 from click_datetime import Datetime
 from osgeo import osr
 
-from tesp.ga_metadata import serialise
+from tesp.prepare import serialise
 
 try:
     from urllib.request import urlopen
