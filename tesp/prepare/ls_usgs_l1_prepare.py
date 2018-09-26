@@ -63,7 +63,7 @@ def _parse_value(s):
     # type: (str) -> Union[int, float, str]
     """
     >>> _parse_value("asdf")
-    "asdf"
+    'asdf'
     >>> _parse_value("123")
     123
     >>> _parse_value("3.14")
@@ -379,9 +379,9 @@ def _dataset_name(ds_path):
     # type: (Path) -> str
     """
     >>> _dataset_name(Path("example/LE07_L1GT_104078_20131209_20161119_01_T1.tar.gz"))
-    "LE07_L1GT_104078_20131209_20161119_01_T1"
+    'LE07_L1GT_104078_20131209_20161119_01_T1'
     >>> _dataset_name(Path("example/LE07_L1GT_104078_20131209_20161119_01_T2/SOME_TEST_MTL.txt"))
-    "LE07_L1GT_104078_20131209_20161119_01_T2"
+    'LE07_L1GT_104078_20131209_20161119_01_T2'
     """
     if '.tar' in ds_path.suffixes:
         return ds_path.name.split('.')[0]
