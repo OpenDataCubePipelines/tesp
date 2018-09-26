@@ -1,0 +1,29 @@
+language: python
+git:
+  depth: 9999
+python:
+- '3.6'
+sudo: false
+cache:
+  directories:
+  - $HOME/.cache/pip
+addons:
+  apt:
+    packages:
+    - libhdf5-serial-dev
+    - libnetcdf-dev
+    - libproj-dev
+    - libgdal1-dev
+    - libudunits2-dev
+    - libblas-dev
+    - liblapack-dev
+    - gfortran
+install:
+- export CPLUS_INCLUDE_PATH="/usr/include/gdal"
+- export C_INCLUDE_PATH="/usr/include/gdal"
+- travis_retry pip install --upgrade pip
+- travis_retry pip install pytest pytest-cov flake8 coveralls gdal==1.10.0 rasterio shapely pyyaml click click_datetime checksumdir
+- pip freeze
+script:
+- ./check-code.sh
+
