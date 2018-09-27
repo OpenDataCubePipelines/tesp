@@ -218,15 +218,8 @@ def prepare_dataset(path):
     images = get_satellite_band_names(satellite, instrument, mtl_filename)
     return {
         'id': str(uuid.uuid5(uuid.NAMESPACE_URL, path.as_posix())),
-        'processing_level': level,
         'product_type': 'level1',
-        # 'creation_dt': ct_time,
-        'label': mtl_doc['metadata_file_info']['landsat_scene_id'],
-        'platform': {'code': satellite},
-        'instrument': {'name': instrument},
         'extent': {
-            'from_dt': sensing_time,
-            'to_dt': sensing_time,
             'center_dt': sensing_time,
             'coord': get_coords(geo_ref_points, spatial_ref),
         },
@@ -359,8 +352,6 @@ def main(output, datasets, check_checksum, date):
                 continue
 
         doc = prepare_dataset(mtl_path)
-        if not doc:
-            raise ValueError("No doc?")
         doc = absolutify_paths(doc, ds_path)
         serialise.dump_yaml(output_yaml, doc)
 
