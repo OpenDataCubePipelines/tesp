@@ -14,6 +14,7 @@ setup(name='tesp',
       install_requires=[
           'click',
           'click_datetime',
+          'ciso8601',
           'folium',
           'geopandas',
           'h5py',

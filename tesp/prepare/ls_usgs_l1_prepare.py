@@ -9,13 +9,11 @@ import os
 import re
 import tarfile
 import uuid
-
-import yaml
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 
 import click
-from click_datetime import Datetime
+import yaml
 from osgeo import osr
 
 from tesp.prepare import serialise
@@ -129,8 +127,11 @@ def get_geo_ref_points(info):
     }
 
 
-def get_coords(geo_ref_points, spatial_ref):
-    # type: (Dict, osr.SpatialReference) -> Dict
+def get_coords(geo_ref_points, epsg_code):
+    # type: (Dict, int) -> Dict
+
+    spatial_ref = osr.SpatialReference()
+    spatial_ref.ImportFromEPSG(epsg_code)
     t = osr.CoordinateTransformation(spatial_ref, spatial_ref.CloneGeogCS())
 
     def transform(p):
@@ -198,48 +199,49 @@ def prepare_dataset(path):
     if not mtl_doc:
         return None
 
-    info_pm = mtl_doc['product_metadata']
-    level = info_pm['data_type']
-
-    data_format = info_pm['output_format']
+    data_format = mtl_doc['product_metadata']['output_format']
     if data_format.upper() == 'GEOTIFF':
         data_format = 'GeoTIFF'
 
-    sensing_time = info_pm['date_acquired'] + ' ' + info_pm['scene_center_time']
+    epsg_code = 32600 + mtl_doc['projection_parameters']['utm_zone']
 
-    cs_code = 32600 + mtl_doc['projection_parameters']['utm_zone']
-    spatial_ref = osr.SpatialReference()
-    spatial_ref.ImportFromEPSG(cs_code)
+    geo_ref_points = get_geo_ref_points(mtl_doc['product_metadata'])
 
-    geo_ref_points = get_geo_ref_points(info_pm)
-    satellite = info_pm['spacecraft_id']
-    instrument = info_pm['sensor_id']
+    band_mappings = get_satellite_band_names(
+        mtl_doc['product_metadata']['spacecraft_id'],
+        mtl_doc['product_metadata']['sensor_id'],
+        mtl_filename
+    )
 
-    images = get_satellite_band_names(satellite, instrument, mtl_filename)
     return {
         'id': str(uuid.uuid5(uuid.NAMESPACE_URL, path.as_posix())),
         'product_type': 'level1',
         'extent': {
-            'center_dt': sensing_time,
-            'coord': get_coords(geo_ref_points, spatial_ref),
+            'center_dt': '{} {}'.format(
+                mtl_doc['product_metadata']['date_acquired'],
+                mtl_doc['product_metadata']['scene_center_time']
+            ),
+            'coord': get_coords(geo_ref_points, epsg_code),
         },
         'format': {'name': data_format},
         'grid_spatial': {
             'projection': {
                 'geo_ref_points': geo_ref_points,
-                'spatial_reference': 'EPSG:%s' % cs_code,
+                'spatial_reference': 'EPSG:%s' % epsg_code,
             }
         },
         'image': {
             'bands': {
-                image[1]: {
-                    'path': info_pm['file_name_band_' + image[0].lower()],
+                band_name: {
+                    'path': mtl_doc['product_metadata']['file_name_band_' + band_fname.lower()],
                     'layer': 1,
-                } for image in images
+                } for band_fname, band_name in band_mappings
             }
         },
         'mtl': mtl_doc,
-        'lineage': {'source_datasets': {}},
+        'lineage': {
+            'source_datasets': {}
+        },
     }
 
 
@@ -314,14 +316,24 @@ def yaml_checkums_correctly(output_yaml, data_path):
 @click.argument('datasets',
                 type=click.Path(exists=True, readable=True, writable=False),
                 nargs=-1)
-@click.option('--date', type=Datetime(format='%d/%m/%Y'),
-              default=datetime.now() - timedelta(days=1),
-              help="Only prepare files newer than this date (default: 1 day ago)")
-@click.option('--checksum/--no-checksum', 'check_checksum',
-              help="Checksum the input dataset to confirm match",
-              default=False)
-def main(output, datasets, check_checksum, date):
-    # type: (str, List[str], str, datetime) -> None
+@click.option(
+    '--newer-than',
+    type=serialise.ClickDatetime(),
+    default=None,
+    help="Only prepare files newer than this date"
+)
+@click.option(
+    '--checksum/--no-checksum', 'check_checksum',
+    help="Checksum the input dataset to confirm match",
+    default=False
+)
+@click.option(
+    '--absolute-paths/--relative-paths', 'force_absolute_paths',
+    help="Embed absolute paths in the metadata document (not recommended)",
+    default=False
+)
+def main(output, datasets, check_checksum, force_absolute_paths, newer_than):
+    # type: (str, List[str], bool, bool, datetime) -> None
 
     output = Path(output)
 
@@ -332,10 +344,10 @@ def main(output, datasets, check_checksum, date):
         ds_path = Path(ds)
         (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = os.stat(ds)
         create_date = datetime.utcfromtimestamp(ctime)
-        if create_date <= date:
+        if newer_than and (create_date <= newer_than):
             logging.info(
                 "Creation time {} older than start date {:%Y-%m-%d %H:%M} ...SKIPPING {}".format(
-                    date-create_date, date, ds_path.name
+                    newer_than - create_date, newer_than, ds_path.name
                 )
             )
             continue
@@ -357,10 +369,10 @@ def main(output, datasets, check_checksum, date):
         if output_yaml.exists():
             logging.info("Output already exists %s", output_yaml)
             if check_checksum and yaml_checkums_correctly(output_yaml, ds_path):
-                logging.info("Dataset preparation already done...SKIPPING")
+                logging.info("Dataset preparation already done...SKIPPING %s", ds_path.name)
                 continue
 
-        prepare_and_write(ds_path, mtl_path, output_yaml)
+        prepare_and_write(ds_path, mtl_path, output_yaml, use_absolute_paths=force_absolute_paths)
 
     # delete intermediate MTL files for archive datasets in output folder
     output_mtls = list(output.rglob('*MTL.txt'))

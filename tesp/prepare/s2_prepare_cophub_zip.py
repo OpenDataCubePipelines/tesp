@@ -27,11 +27,10 @@ import shapely.affinity
 import shapely.geometry
 import shapely.ops
 import yaml
-from click_datetime import Datetime
 from osgeo import osr
 from rasterio.errors import RasterioIOError
 
-# from dateutil import parser
+from tesp.prepare import serialise
 
 os.environ["CPL_ZIP_ENCODING"] = "UTF-8"
 
@@ -376,7 +375,7 @@ def archive_yaml(yaml_path, output):
 @click.argument('datasets',
                 type=click.Path(exists=True, readable=True, writable=False),
                 nargs=-1)
-@click.option('--date', type=Datetime(format='%d/%m/%Y'), default=datetime.now(),
+@click.option('--newer-than', type=serialise.ClickDatetime(), default=datetime.now(),
               help="Enter file creation start date for data preparation")
 @click.option('--checksum/--no-checksum', help="Checksum the input dataset to confirm match", default=False)
 def main(output, datasets, checksum, date):
