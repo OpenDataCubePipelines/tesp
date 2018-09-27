@@ -127,8 +127,11 @@ def get_geo_ref_points(info):
     }
 
 
-def get_coords(geo_ref_points, spatial_ref):
-    # type: (Dict, osr.SpatialReference) -> Dict
+def get_coords(geo_ref_points, epsg_code):
+    # type: (Dict, int) -> Dict
+
+    spatial_ref = osr.SpatialReference()
+    spatial_ref.ImportFromEPSG(epsg_code)
     t = osr.CoordinateTransformation(spatial_ref, spatial_ref.CloneGeogCS())
 
     def transform(p):
@@ -196,48 +199,49 @@ def prepare_dataset(path):
     if not mtl_doc:
         return None
 
-    info_pm = mtl_doc['product_metadata']
-    level = info_pm['data_type']
-
-    data_format = info_pm['output_format']
+    data_format = mtl_doc['product_metadata']['output_format']
     if data_format.upper() == 'GEOTIFF':
         data_format = 'GeoTIFF'
 
-    sensing_time = info_pm['date_acquired'] + ' ' + info_pm['scene_center_time']
+    epsg_code = 32600 + mtl_doc['projection_parameters']['utm_zone']
 
-    cs_code = 32600 + mtl_doc['projection_parameters']['utm_zone']
-    spatial_ref = osr.SpatialReference()
-    spatial_ref.ImportFromEPSG(cs_code)
+    geo_ref_points = get_geo_ref_points(mtl_doc['product_metadata'])
 
-    geo_ref_points = get_geo_ref_points(info_pm)
-    satellite = info_pm['spacecraft_id']
-    instrument = info_pm['sensor_id']
+    band_mappings = get_satellite_band_names(
+        mtl_doc['product_metadata']['spacecraft_id'],
+        mtl_doc['product_metadata']['sensor_id'],
+        mtl_filename
+    )
 
-    images = get_satellite_band_names(satellite, instrument, mtl_filename)
     return {
         'id': str(uuid.uuid5(uuid.NAMESPACE_URL, path.as_posix())),
         'product_type': 'level1',
         'extent': {
-            'center_dt': sensing_time,
-            'coord': get_coords(geo_ref_points, spatial_ref),
+            'center_dt': '{} {}'.format(
+                mtl_doc['product_metadata']['date_acquired'],
+                mtl_doc['product_metadata']['scene_center_time']
+            ),
+            'coord': get_coords(geo_ref_points, epsg_code),
         },
         'format': {'name': data_format},
         'grid_spatial': {
             'projection': {
                 'geo_ref_points': geo_ref_points,
-                'spatial_reference': 'EPSG:%s' % cs_code,
+                'spatial_reference': 'EPSG:%s' % epsg_code,
             }
         },
         'image': {
             'bands': {
-                image[1]: {
-                    'path': info_pm['file_name_band_' + image[0].lower()],
+                band_name: {
+                    'path': mtl_doc['product_metadata']['file_name_band_' + band_fname.lower()],
                     'layer': 1,
-                } for image in images
+                } for band_fname, band_name in band_mappings
             }
         },
         'mtl': mtl_doc,
-        'lineage': {'source_datasets': {}},
+        'lineage': {
+            'source_datasets': {}
+        },
     }
 
 
