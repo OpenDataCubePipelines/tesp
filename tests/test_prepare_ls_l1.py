@@ -1,8 +1,9 @@
+from datetime import datetime, timedelta
 from functools import partial
 from pathlib import Path
 
 import yaml
-from click.testing import CliRunner
+from click.testing import CliRunner, Result
 from deepdiff import DeepDiff
 
 from tesp.prepare import ls_usgs_l1_prepare
@@ -11,21 +12,31 @@ diff = partial(DeepDiff, significant_digits=6)
 L1GT_TARBALL_PATH: Path = Path(__file__).parent / 'data' / 'LE07_L1GT_104078_20131209_20161119_01_T2.tar.gz'
 
 
+def run_prepare_cli(*args, expect_success=True) -> Result:
+    """Run the prepare script as a command-line command"""
+    __tracebackhide__ = True
+
+    res: Result = CliRunner().invoke(
+        ls_usgs_l1_prepare.main,
+        args,
+        catch_exceptions=False
+    )
+    if expect_success:
+        assert res.exit_code == 0, res.output
+
+    return res
+
+
 def test_prepare_l1_tarball(tmpdir):
     assert L1GT_TARBALL_PATH.exists(), "Test data missing(?)"
 
     output_path = Path(tmpdir)
 
-    res = CliRunner().invoke(
-        ls_usgs_l1_prepare.main,
-        (
-            '--output', str(output_path),
-            '--date', '3/12/2017',
-            str(L1GT_TARBALL_PATH)
-        ),
-        catch_exceptions=False
+    run_prepare_cli(
+        '--absolute-paths',
+        '--output', str(output_path),
+        str(L1GT_TARBALL_PATH),
     )
-    assert res.exit_code == 0, res.output
 
     expected_metadata_path = output_path / 'LE07_L1GT_104078_20131209_20161119_01_T2.yaml'
     assert expected_metadata_path.exists()
@@ -358,3 +369,27 @@ def test_prepare_l1_tarball(tmpdir):
         },
         exclude_paths={"root['id']"}
     ) == {}
+
+
+def test_skip_old_datasets(tmpdir):
+    """Prepare should skip datasets older than the given date"""
+
+    output_path = Path(tmpdir)
+    expected_metadata_path = output_path / 'LE07_L1GT_104078_20131209_20161119_01_T2.yaml'
+
+    run_prepare_cli(
+        '--output', str(output_path),
+        # Can't be newer than right now.
+        '--newer-than', datetime.now().isoformat(),
+        str(L1GT_TARBALL_PATH),
+    )
+    assert not expected_metadata_path.exists(), "Dataset should have been skipped due to age"
+
+    # It should work with an old date.
+    run_prepare_cli(
+        '--output', str(output_path),
+        # Some old date, from before the test data was created.
+        '--newer-than', "2014-05-04",
+        str(L1GT_TARBALL_PATH),
+    )
+    assert expected_metadata_path.exists(), "Dataset should have been packaged when using an ancient date cutoff"
