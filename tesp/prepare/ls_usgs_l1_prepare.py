@@ -243,19 +243,26 @@ def prepare_dataset(path):
     }
 
 
-def absolutify_paths(doc, ds_path):
-    # type: (Dict, Path) -> Dict
+def resolve_doc_offset(dataset_path, offset):
+    # type: (Path, str) -> str
+    """
+    Expand a filename (offset) relative to the dataset.
 
-    ds_path = ds_path.absolute()
-    if '.tar' in ds_path.suffixes:
-        for band in doc['image']['bands'].values():
-            band['path'] = 'tar:{}!{}'.format(ds_path, band['path'])
-    elif ds_path.suffix == '.txt':
-        for band in doc['image']['bands'].values():
-            band['path'] = str(ds_path.parent.absolute() / band['path'])
+    >>> resolve_doc_offset(Path('/tmp/great_test_dataset/LS7_TESTO_MTL.txt'), 'band/my_great_band.jpg')
+    '/tmp/great_test_dataset/band/my_great_band.jpg'
+    >>> resolve_doc_offset(Path('/tmp/great_test_dataset.tar.gz'), 'band/my_great_band.jpg')
+    'tar:/tmp/great_test_dataset.tar.gz!band/my_great_band.jpg'
+    >>> resolve_doc_offset(Path('/tmp/uh_oh'), 'band/my_great_band.jpg')
+    Traceback (most recent call last):
+    ...
+    NotImplementedError: Unexpected dataset path structure /tmp/uh_oh
+    """
+    if '.tar' in dataset_path.suffixes:
+        return 'tar:{}!{}'.format(dataset_path, offset)
+    elif dataset_path.suffix == '.txt':
+        return str(dataset_path.parent.absolute() / offset)
     else:
-        raise NotImplementedError("Unexpected dataset path structure {}".format(ds_path))
-    return doc
+        raise NotImplementedError("Unexpected dataset path structure {}".format(dataset_path))
 
 
 def find_gz_mtl(ds_path, output_folder):
@@ -351,9 +358,7 @@ def main(output, datasets, check_checksum, date):
                 logging.info("Dataset preparation already done...SKIPPING")
                 continue
 
-        doc = prepare_dataset(mtl_path)
-        doc = absolutify_paths(doc, ds_path)
-        serialise.dump_yaml(output_yaml, doc)
+        prepare_and_write(ds_path, mtl_path, output_yaml)
 
     # delete intermediate MTL files for archive datasets in output folder
     output_mtls = list(output.rglob('*MTL.txt'))
@@ -362,6 +367,20 @@ def main(output, datasets, check_checksum, date):
             mtl_path.unlink()
         except OSError:
             pass
+
+
+def prepare_and_write(ds_path,
+                      mtl_path,
+                      output_yaml_path,
+                      use_absolute_paths=False):
+    # type: (Path, Path, Path, bool) -> None
+    doc = prepare_dataset(mtl_path)
+
+    if use_absolute_paths:
+        for band in doc['image']['bands'].values():
+            band['path'] = resolve_doc_offset(ds_path, band['path'])
+
+    serialise.dump_yaml(output_yaml_path, doc)
 
 
 def _dataset_name(ds_path):
