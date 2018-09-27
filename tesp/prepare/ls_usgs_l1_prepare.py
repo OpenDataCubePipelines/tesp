@@ -309,7 +309,8 @@ def yaml_checkums_correctly(output_yaml, data_path):
                     For example: yourscript.py --output [Yaml- which writes datasets into this file for indexing]
                     [Path for dataset as : /home/some_space_available_folder/]""")
 @click.option('--output', help="Write output into this directory",
-              type=click.Path(exists=False, writable=True, dir_okay=True))
+              required=True,
+              type=click.Path(exists=True, writable=True, dir_okay=True, file_okay=False))
 @click.argument('datasets',
                 type=click.Path(exists=True, readable=True, writable=False),
                 nargs=-1)
