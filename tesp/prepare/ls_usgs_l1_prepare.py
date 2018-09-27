@@ -219,7 +219,7 @@ def prepare_dataset(path):
     return {
         'id': str(uuid.uuid5(uuid.NAMESPACE_URL, path.as_posix())),
         'processing_level': level,
-        'product_type': 'LS_USGS_L1C1',
+        'product_type': 'level1',
         # 'creation_dt': ct_time,
         'label': mtl_doc['metadata_file_info']['landsat_scene_id'],
         'platform': {'code': satellite},
@@ -245,7 +245,7 @@ def prepare_dataset(path):
                 } for image in images
             }
         },
-        'other_metadata': mtl_doc,
+        'mtl': mtl_doc,
         'lineage': {'source_datasets': {}},
     }
 
