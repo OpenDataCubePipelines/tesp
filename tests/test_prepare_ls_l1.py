@@ -32,7 +32,7 @@ def test_prepare_l1_tarball(tmpdir):
 
     # print(expected_metadata_path.read_text())
     doc = yaml.safe_load(expected_metadata_path.open())
-
+    print(repr(doc))
     assert doc['id'] is not None
     assert doc['processing_level'] == 'L1GT'
     assert doc['label'] == 'LE71040782013343ASA00'

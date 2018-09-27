@@ -99,7 +99,7 @@ def find_in(path, s, suffix='txt'):
     return None
 
 
-def _parse_group(lines):
+def _parse_group(lines, key_transform=lambda s: s.lower()):
     # type: (Iterable[Union[str, bytes]]) -> dict
     tree = {}
 
@@ -111,21 +111,21 @@ def _parse_group(lines):
         if match:
             key, value = match[0]
             if key == 'GROUP':
-                tree[value] = _parse_group(lines)
+                tree[key_transform(value)] = _parse_group(lines)
             elif key == 'END_GROUP':
                 break
             else:
-                tree[key] = _parse_value(value)
+                tree[key_transform(key)] = _parse_value(value)
     return tree
 
 
 def get_geo_ref_points(info):
     # type: (Dict) -> Dict
     return {
-        'ul': {'x': info['CORNER_UL_PROJECTION_X_PRODUCT'], 'y': info['CORNER_UL_PROJECTION_Y_PRODUCT']},
-        'ur': {'x': info['CORNER_UR_PROJECTION_X_PRODUCT'], 'y': info['CORNER_UR_PROJECTION_Y_PRODUCT']},
-        'll': {'x': info['CORNER_LL_PROJECTION_X_PRODUCT'], 'y': info['CORNER_LL_PROJECTION_Y_PRODUCT']},
-        'lr': {'x': info['CORNER_LR_PROJECTION_X_PRODUCT'], 'y': info['CORNER_LR_PROJECTION_Y_PRODUCT']},
+        'ul': {'x': info['corner_ul_projection_x_product'], 'y': info['corner_ul_projection_y_product']},
+        'ur': {'x': info['corner_ur_projection_x_product'], 'y': info['corner_ur_projection_y_product']},
+        'll': {'x': info['corner_ll_projection_x_product'], 'y': info['corner_ll_projection_y_product']},
+        'lr': {'x': info['corner_lr_projection_x_product'], 'y': info['corner_lr_projection_y_product']},
     }
 
 
@@ -174,7 +174,7 @@ def get_mtl_content(acquisition_path):
                 internal_file = next(filter(lambda memb: 'MTL' in memb.name, tp.getmembers()))
                 filename = Path(internal_file.name).stem
                 with tp.extractfile(internal_file) as fp:
-                    mtl_tree = _parse_group(fp)['L1_METADATA_FILE']
+                    mtl_tree = _parse_group(fp)['l1_metadata_file']
             except StopIteration:
                 raise RuntimeError(
                     "MTL file not found in {}".format(str(acquisition_path))
@@ -186,7 +186,7 @@ def get_mtl_content(acquisition_path):
 
         filename = Path(path).stem
         with path.open('r') as fp:
-            mtl_tree = _parse_group(fp)['L1_METADATA_FILE']
+            mtl_tree = _parse_group(fp)['l1_metadata_file']
 
     return mtl_tree, filename
 
@@ -198,22 +198,22 @@ def prepare_dataset(path):
     if not mtl_doc:
         return None
 
-    info_pm = mtl_doc['PRODUCT_METADATA']
-    level = info_pm['DATA_TYPE']
+    info_pm = mtl_doc['product_metadata']
+    level = info_pm['data_type']
 
-    data_format = info_pm['OUTPUT_FORMAT']
+    data_format = info_pm['output_format']
     if data_format.upper() == 'GEOTIFF':
         data_format = 'GeoTIFF'
 
-    sensing_time = info_pm['DATE_ACQUIRED'] + ' ' + info_pm['SCENE_CENTER_TIME']
+    sensing_time = info_pm['date_acquired'] + ' ' + info_pm['scene_center_time']
 
-    cs_code = 32600 + mtl_doc['PROJECTION_PARAMETERS']['UTM_ZONE']
+    cs_code = 32600 + mtl_doc['projection_parameters']['utm_zone']
     spatial_ref = osr.SpatialReference()
     spatial_ref.ImportFromEPSG(cs_code)
 
     geo_ref_points = get_geo_ref_points(info_pm)
-    satellite = info_pm['SPACECRAFT_ID']
-    instrument = info_pm['SENSOR_ID']
+    satellite = info_pm['spacecraft_id']
+    instrument = info_pm['sensor_id']
 
     images = get_satellite_band_names(satellite, instrument, mtl_filename)
     return {
@@ -221,7 +221,7 @@ def prepare_dataset(path):
         'processing_level': level,
         'product_type': 'LS_USGS_L1C1',
         # 'creation_dt': ct_time,
-        'label': mtl_doc['METADATA_FILE_INFO']['LANDSAT_SCENE_ID'],
+        'label': mtl_doc['metadata_file_info']['landsat_scene_id'],
         'platform': {'code': satellite},
         'instrument': {'name': instrument},
         'extent': {
@@ -240,7 +240,7 @@ def prepare_dataset(path):
         'image': {
             'bands': {
                 image[1]: {
-                    'path': info_pm['FILE_NAME_BAND_' + image[0]],
+                    'path': info_pm['file_name_band_' + image[0].lower()],
                     'layer': 1,
                 } for image in images
             }
