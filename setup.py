@@ -34,6 +34,8 @@ setup(name='tesp',
           test=[
               'pytest',
               'deepdiff',
+              'flake8',
+              'pep8-naming',
           ],
       ),
       dependency_links=[
