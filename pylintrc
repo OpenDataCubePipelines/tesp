@@ -26,8 +26,6 @@ disable=no-self-use,
 #      if dataset.uris is not None and not dataset.uris:
 
 
-enable=python3
-
 [BASIC]
 
 # List of builtins function names that should not be used, separated by a comma
