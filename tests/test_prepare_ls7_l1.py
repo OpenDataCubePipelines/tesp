@@ -1,8 +1,6 @@
 from datetime import datetime
 from pathlib import Path
 
-import yaml
-
 from .common import run_prepare_cli, check_prepare_outputs
 
 L71GT_TARBALL_PATH: Path = Path(__file__).parent / 'data' / 'LE07_L1GT_104078_20131209_20161119_01_T2.tar.gz'
