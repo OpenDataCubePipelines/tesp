@@ -33,6 +33,7 @@ setup(name='tesp',
       extras_require=dict(
           test=[
               'pytest',
+              'pytest-flake8',
               'deepdiff',
               'flake8',
               'pep8-naming',
