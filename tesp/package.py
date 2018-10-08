@@ -107,6 +107,7 @@ def _write_cogtif(dataset, out_fname):
     write_img(data, out_fname, cogtif=True, levels=LEVELS, nodata=nodata,
               geobox=geobox, resampling=Resampling.nearest, options=options)
 
+
 def get_img_dataset_info(dataset, path, layer=1):
     """
     Returns metadata for raster datasets
@@ -517,7 +518,6 @@ def package(l1_path, wagl_fname, fmask_fname, gqa_fname, yamls_path, outdir,
     """
     container = acquisitions(l1_path, acq_parser_hint)
     l1_tags = get_level1_tags(container, granule, yamls_path, l1_path)
-
 
     with h5py.File(wagl_fname, 'r') as fid:
         grn_id = re.sub(PATTERN2, ARD, granule)

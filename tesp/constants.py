@@ -17,7 +17,6 @@ class ProductPackage(object):
 
     _all_products = set([e.value for e in ArdProducts])
 
-
     @classmethod
     def validate_products(cls, product_list):
         return set(product_list).issubset(cls._all_products)

@@ -59,7 +59,7 @@ class ClickDatetime(click.ParamType):
                 (
                     'Invalid date string {!r}. Expected any ISO date/time format '
                     '(eg. "2017-04-03" or "2014-05-14 12:34")'.format(value)
-                 ),
+                ),
                 param,
                 ctx
             )
