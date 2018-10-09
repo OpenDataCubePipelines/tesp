@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 
 import io
-import sys
 import logging
+import math
+import tempfile
 from datetime import datetime
 from os.path import join
-from subprocess import Popen, PIPE
+from subprocess import Popen, PIPE, check_call
 
 import click
 from click_datetime import Datetime
@@ -17,25 +18,44 @@ from tesp.workflow import Package
 DEFAULT_S2_AOI = '/g/data/v10/eoancillarydata/S2_extent/S2_aoi.csv'
 DEFAULT_S2_L1C = '/g/data/fj7/Copernicus/Sentinel-2/MSI/L1C'
 DEFAULT_PKGDIR = '/g/data/if87/datacube/002/S2_MSI_ARD/packaged'
-
-
-def start_of_year():
-    return datetime(datetime.now().year, 1, 1)
+DEFAULT_WORKDIR = '/g/data/if87/datacube/002/S2_MSI_ARD/workdir'
+DEFAULT_LOGDIR = '/g/data/if87/datacube/002/S2_MSI_ARD/log_dir'
 
 
 @click.command()
 @click.option('--level1-root', default=DEFAULT_S2_L1C, type=str,
-              help="Folder containing Sentinel-2 level-1 datasets")
+              help="Folder containing Sentinel-2 level-1 datasets.")
 @click.option('--s2-aoi', default=DEFAULT_S2_AOI, type=str,
-              help="List of MGRD tiles of interest")
-@click.option('--start-date', type=Datetime(format='%Y-%m-%d'), default=start_of_year(),
-              help="Start of date range to process")
-@click.option('--end-date', type=Datetime(format='%Y-%m-%d'), default=datetime.now(),
-              help="End of date range to process")
-@click.option('--pkgdir', default=DEFAULT_PKGDIR, type=str,
-              help="Folder to output")
-@click.option('--output-list', type=str, help="Output list of level1 datasets")
-def main(level1_root, s2_aoi, start_date, end_date, pkgdir, output_list):
+              help="List of MGRD tiles of interest.")
+@click.option('--start-date', type=Datetime(format='%Y-%m-%d'),
+              help="Start of date range to process.")
+@click.option('--end-date', type=Datetime(format='%Y-%m-%d'),
+              help="End of date range to process.")
+@click.option('--pkgdir', default=DEFAULT_PKGDIR, type=click.Path(file_okay=False, writable=True),
+              help="The base output packaged directory.")
+@click.option("--workdir", default=DEFAULT_WORKDIR, type=click.Path(file_okay=False, writable=True),
+              help="The base output working directory.")
+@click.option("--logdir", default=DEFAULT_LOGDIR, type=click.Path(file_okay=False, writable=True),
+              help="The base logging and scripts output directory.")
+@click.option("--env", type=click.Path(exists=True, readable=True),
+              help="Environment script to source.")
+@click.option("--workers", type=click.IntRange(1, 32), default=28,
+              help="The number of workers to request per node.")
+@click.option("--memory", default=256,
+              help="The memory in GB to request per node.")
+@click.option("--jobfs", default=60,
+              help="The jobfs memory in GB to request per node.")
+@click.option("--project", required=True, help="Project code to run under.")
+@click.option("--queue", default='normalbw',
+              help="Queue to submit the job into, e.g. normalbw, expressbw.")
+@click.option("--walltime", default="48:00:00",
+              help="Job walltime in `hh:mm:ss` format.")
+@click.option("--email", default="your.name@something.com",
+              help="Notification email address.")
+@click.option("--test", default=False, is_flag=True,
+              help="Test job execution (Don't submit the job to the PBS queue).")
+def main(level1_root, s2_aoi, start_date, end_date, pkgdir, workdir, logdir, env,
+         workers, memory, jobfs, project, queue, walltime, email, test):
     logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.INFO)
 
     with open(s2_aoi) as csv:
@@ -44,17 +64,41 @@ def main(level1_root, s2_aoi, start_date, end_date, pkgdir, output_list):
     def date(date_time):
         return date_time.strftime('%Y-%m-%d')
 
-    cmd = ['find', level1_root,
-           '-newermt', date(start_date), '!', '-newermt', date(end_date),
-           '-name', '*.zip']
+    if start_date is None and end_date is None:
+        def date_filter(line):
+            return True
+    else:
+        if start_date is None:
+            start_date = datetime(datetime.now().year, 1, 1)
+        elif end_date is None:
+            end_date = datetime.now()
+
+        def date_filter(level1):
+            timestamp = level1.strip().split('_')[-1].split('.')[0].split('T')[0]
+            processing_date = datetime(int(timestamp[:4]), int(timestamp[4:6]), int(timestamp[6:]))
+
+            return processing_date >= start_date and processing_date <= end_date
+
+    cmd = ['find', level1_root, '-name', '*.zip']
 
     logging.info("calling %s", ' '.join(cmd))
+    in_stream = io.TextIOWrapper(Popen(cmd, stdout=PIPE).stdout, encoding='utf-8')
 
-    def worker(out):
-        for line in io.TextIOWrapper(Popen(cmd, stdout=PIPE).stdout, encoding='utf-8'):
+    def worker(in_stream, out_stream):
+        count = 0
+
+        for line in in_stream:
             level1 = line.strip()
 
-            container = acquisitions(level1)
+            if not date_filter(level1):
+                logging.info('skipping %s because of date filter', level1)
+                continue
+
+            try:
+                container = acquisitions(level1)
+            except Exception as e:
+                logging.warning('encountered unexpected error for %s: %s', level1, e)
+                continue
 
             for granule in container.granules:
                 # does it contain any granules that need to be processed?
@@ -69,15 +113,43 @@ def main(level1_root, s2_aoi, start_date, end_date, pkgdir, output_list):
                     logging.info('granule %s already processed', granule)
                 else:
                     # yes it does
-                    logging.info('level1 dataset %s needs to be procesed', level1)
-                    print(level1, file=out)
+                    logging.info('level1 dataset %s needs to be processed', level1)
+                    print(level1, file=out_stream)
+                    # a more realistic count increment would be len(container.granules)
+                    count += 1
                     break
 
-    if output_list is None:
-        worker(sys.stdout)
-    else:
-        with open(output_list, 'w') as out:
-            worker(out)
+        return count
+
+    def nodes_needed():
+        hours_per_granule = 1.5
+        hours, minutes, _ = [int(x) for x in walltime.split(':')]
+        if minutes > 0:
+            hours += 1
+        return int(math.ceil(float(hours_per_granule * granule_count) / (hours * workers)))
+
+    with tempfile.NamedTemporaryFile(mode="w+") as out_stream:
+        granule_count = worker(in_stream, out_stream)
+        out_stream.flush()
+
+        if granule_count == 0:
+            logging.info("no granules to process.")
+            return
+
+        # shuffle lines to make it more evenly distributed?
+
+        num_nodes = nodes_needed()
+        assert num_nodes > 0, "cannot ask for {} nodes".format(num_nodes)
+        assert num_nodes <= 200, "number of nodes to request {} is too high".format(num_nodes)
+
+        next_cmd = ['ard_pbs', '--level1-list', out_stream.name, '--workdir', workdir,
+                    '--logdir', logdir, '--pkgdir', pkgdir, '--env', env,
+                    '--workers', str(workers), '--nodes', str(num_nodes), '--memory', str(memory),
+                    '--jobfs', str(jobfs), '--project', project, '--queue', queue, '--walltime', walltime,
+                    '--email', email] + (['--test'] if test else [])
+
+        logging.info("calling %s", ' '.join(next_cmd))
+        check_call(next_cmd)
 
 
 if __name__ == '__main__':
