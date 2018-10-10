@@ -18,9 +18,47 @@ from eodatasets.prepare.s2_prepare_cophub_zip import _process_datasets
 
 DEFAULT_S2_AOI = '/g/data/v10/eoancillarydata/S2_extent/S2_aoi.csv'
 DEFAULT_S2_L1C = '/g/data/fj7/Copernicus/Sentinel-2/MSI/L1C'
-DEFAULT_PKGDIR = '/g/data/if87/datacube/002/S2_MSI_ARD/packaged'
 DEFAULT_WORKDIR = '/g/data/if87/datacube/002/S2_MSI_ARD/workdir'
 DEFAULT_LOGDIR = '/g/data/if87/datacube/002/S2_MSI_ARD/log_dir'
+DEFAULT_PKGDIR = '/g/data/if87/datacube/002/S2_MSI_ARD/packaged'
+
+_NOW = datetime.now()
+
+
+def _s2_date_filter(level1, start_date, end_date):
+    """ Check if the processing DATE lies between start_date and end_date 
+
+    >>> _s2_date_filter('S2A...R087_T57KXS_20180613T010330.zip', 
+            datetime(2018, 06, 12), datetime(2018, 06, 14))
+    True
+
+    >>> _s2_date_filter('S2A...R087_T57KXS_20180613T010330.zip', 
+            datetime(2018, 06, 10), datetime(2018, 06, 12))
+    False
+
+    """
+    processing_date = datetime.strptime(
+        level1.strip().rsplit('_', 1)[-1],
+        '%Y%m%dT%H%M%S.zip'
+    ).date()
+
+    return (
+        processing_date >= start_date.date() and 
+        processing_date <= end_date.date()
+    )
+
+
+def _calc_nodes_req(granule_count, walltime, workers, hours_per_granule=1.5):
+    """ Provides estimation of the number of nodes required to process granule count
+
+    >>> _calc_nodes_req(400, '20:59', 28)
+    2
+    >>> _calc_nodes_req(800, '20:00', 28)
+    3
+    """
+
+    hours, _, _ = [int(x) for x in walltime.split(':')]
+    return int(math.ceil(float(hours_per_granule * granule_count) / (hours * workers)))
 
 
 @click.group()
@@ -28,7 +66,7 @@ def cli():
     pass
 
 
-@cli.command()
+@cli.command('process-level2')
 @click.option('--level1-root', default=DEFAULT_S2_L1C, type=str,
               help="Folder containing Sentinel-2 level-1 datasets.")
 @click.option('--s2-aoi', default=DEFAULT_S2_AOI, type=str,
@@ -60,10 +98,11 @@ def cli():
               help="Notification email address.")
 @click.option("--test", default=False, is_flag=True,
               help="Test job execution (Don't submit the job to the PBS queue).")
-def main(level1_root, s2_aoi, start_date, end_date, pkgdir, workdir, logdir, env,
+def process_level2(level1_root, s2_aoi, start_date, end_date, pkgdir, workdir, logdir, env,
          workers, memory, jobfs, project, queue, walltime, email, test):
     logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.INFO)
 
+    # Read area of interest list
     with open(s2_aoi) as csv:
         tile_ids = {'T' + tile.strip() for tile in csv}
 
@@ -74,23 +113,16 @@ def main(level1_root, s2_aoi, start_date, end_date, pkgdir, workdir, logdir, env
         def date_filter(line):
             return True
     else:
-        if start_date is None:
-            start_date = datetime(datetime.now().year, 1, 1)
-        elif end_date is None:
-            end_date = datetime.now()
-
-        def date_filter(level1):
-            timestamp = level1.strip().split('_')[-1].split('.')[0].split('T')[0]
-            processing_date = datetime(int(timestamp[:4]), int(timestamp[4:6]), int(timestamp[6:]))
-
-            return processing_date >= start_date and processing_date <= end_date
-
-    cmd = ['find', level1_root, '-name', '*.zip']
+        date_filter = functools.partial(
+            _s2_date_filter,
+            start_date=datetime(_NOW.year, 1, 1),
+            end_date=_NOW
+        )
 
     logging.info("calling %s", ' '.join(cmd))
     in_stream = io.TextIOWrapper(Popen(cmd, stdout=PIPE).stdout, encoding='utf-8')
 
-    def worker(in_stream, out_stream):
+    def filter_granule_worker(in_stream, out_stream):
         count = 0
 
         for line in in_stream:
@@ -125,24 +157,17 @@ def main(level1_root, s2_aoi, start_date, end_date, pkgdir, workdir, logdir, env
                     count += 1
                     break
 
-        return count
-
-    def nodes_needed():
-        hours_per_granule = 1.5
-        hours, _, _ = [int(x) for x in walltime.split(':')]
-        return int(math.ceil(float(hours_per_granule * granule_count) / (hours * workers)))
+        return outstream, count
 
     with tempfile.NamedTemporaryFile(mode="w+") as out_stream:
-        granule_count = worker(in_stream, out_stream)
+        _, granule_count = filter_granule_worker(in_stream, out_stream)
         out_stream.flush()
 
         if granule_count == 0:
             logging.info("no granules to process.")
             return
 
-        # shuffle lines to make it more evenly distributed?
-
-        num_nodes = nodes_needed()
+        num_nodes = _calc_nodes_req(granule_count, walltime, workers)
         assert num_nodes > 0, "cannot ask for {} nodes".format(num_nodes)
         assert num_nodes <= 200, "number of nodes to request {} is too high".format(num_nodes)
 
@@ -156,7 +181,7 @@ def main(level1_root, s2_aoi, start_date, end_date, pkgdir, workdir, logdir, env
         check_call(next_cmd)
 
 
-@click.command()
+@click.command('generate-level1')
 @click.option('--output', 'output_dir',
               type=click.Path(exists=True, writable=True)
               help='directory to write yamls to')
@@ -174,7 +199,7 @@ def generate_level1(output_dir:Path, start_date:datetime, end_date:datetime, che
     in_stream = io.TextIOWrapper(Popen(cmd, stdout=PIPE).stdout, encoding='utf-8')
     for level1_archive in in_stream:
         level1_archive = level1_archive.strip()
-        if date_filter(level1_archive, start_date, end_date):
+        if _s2_date_filter(level1_archive, start_date, end_date):
             _process_datasets(output_dir, (level1_archive, ), checksum, start_date)
 
 
