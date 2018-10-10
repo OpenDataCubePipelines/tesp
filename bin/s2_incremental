@@ -13,6 +13,7 @@ from click_datetime import Datetime
 
 from wagl.acquisition import acquisitions
 from tesp.workflow import Package
+from eodatasets.prepare.s2_prepare_cophub_zip import _process_datasets
 
 
 DEFAULT_S2_AOI = '/g/data/v10/eoancillarydata/S2_extent/S2_aoi.csv'
@@ -22,7 +23,12 @@ DEFAULT_WORKDIR = '/g/data/if87/datacube/002/S2_MSI_ARD/workdir'
 DEFAULT_LOGDIR = '/g/data/if87/datacube/002/S2_MSI_ARD/log_dir'
 
 
-@click.command()
+@click.group()
+def cli():
+    pass
+
+
+@cli.command()
 @click.option('--level1-root', default=DEFAULT_S2_L1C, type=str,
               help="Folder containing Sentinel-2 level-1 datasets.")
 @click.option('--s2-aoi', default=DEFAULT_S2_AOI, type=str,
@@ -150,5 +156,27 @@ def main(level1_root, s2_aoi, start_date, end_date, pkgdir, workdir, logdir, env
         check_call(next_cmd)
 
 
+@click.command()
+@click.option('--output', 'output_dir',
+              type=click.Path(exists=True, writable=True)
+              help='directory to write yamls to')
+@click.option('--start-date', type=Datetime('%Y-%m-%d'),
+              default=(_NOW.year, 1, 1),
+              help='Start of date range for level 1 generation')
+@click.option('--end-date', type=Datetime('%Y-%m-%d'),
+              default=_NOW,
+              help='End of date range for level 1 generation')
+@click.option('--checksum/--no-checksum', default=False)
+def generate_level1(output_dir:Path, start_date:datetime, end_date:datetime, checksum:bool):
+    # run a find command to generate a list of level1 documents
+    cmd = ['find', level1_root, '-name', '*.zip']
+    logging.info("calling %s", ' '.join(cmd))
+    in_stream = io.TextIOWrapper(Popen(cmd, stdout=PIPE).stdout, encoding='utf-8')
+    for level1_archive in in_stream:
+        level1_archive = level1_archive.strip()
+        if date_filter(level1_archive, start_date, end_date):
+            _process_datasets(output_dir, (level1_archive, ), checksum, start_date)
+
+
 if __name__ == '__main__':
-    main()
+    cli()
