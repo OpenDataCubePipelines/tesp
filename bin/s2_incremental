@@ -123,9 +123,7 @@ def main(level1_root, s2_aoi, start_date, end_date, pkgdir, workdir, logdir, env
 
     def nodes_needed():
         hours_per_granule = 1.5
-        hours, minutes, _ = [int(x) for x in walltime.split(':')]
-        if minutes > 0:
-            hours += 1
+        hours, _, _ = [int(x) for x in walltime.split(':')]
         return int(math.ceil(float(hours_per_granule * granule_count) / (hours * workers)))
 
     with tempfile.NamedTemporaryFile(mode="w+") as out_stream:
