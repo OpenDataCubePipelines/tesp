@@ -7,6 +7,7 @@ import tempfile
 from datetime import datetime
 from os.path import join
 from subprocess import Popen, PIPE, check_call
+from pathlib import Path
 
 import click
 from click_datetime import Datetime
@@ -39,7 +40,7 @@ def _s2_date_filter(level1, start_date, end_date):
     """
     processing_date = datetime.strptime(
         level1.strip().rsplit('_', 1)[-1],
-        '%Y%m%dT%H%M%S.zip'
+        '%Y%m%dT%H%M%S%f.zip'
     ).date()
 
     return (
@@ -181,9 +182,12 @@ def process_level2(level1_root, s2_aoi, start_date, end_date, pkgdir, workdir, l
         check_call(next_cmd)
 
 
-@click.command('generate-level1')
+@cli.command('generate-level1')
+@click.option('--level1-dir',
+              type=click.Path(exists=True, readable=True),
+              help='directory to write yamls to')
 @click.option('--output', 'output_dir',
-              type=click.Path(exists=True, writable=True)
+              type=click.Path(exists=True, writable=True),
               help='directory to write yamls to')
 @click.option('--start-date', type=Datetime('%Y-%m-%d'),
               default=(_NOW.year, 1, 1),
@@ -192,15 +196,15 @@ def process_level2(level1_root, s2_aoi, start_date, end_date, pkgdir, workdir, l
               default=_NOW,
               help='End of date range for level 1 generation')
 @click.option('--checksum/--no-checksum', default=False)
-def generate_level1(output_dir:Path, start_date:datetime, end_date:datetime, checksum:bool):
+def generate_level1(level1_dir:Path, output_dir:Path, start_date:datetime, end_date:datetime, checksum:bool):
     # run a find command to generate a list of level1 documents
-    cmd = ['find', level1_root, '-name', '*.zip']
+    cmd = ['find', level1_dir, '-name', '*.zip']
     logging.info("calling %s", ' '.join(cmd))
     in_stream = io.TextIOWrapper(Popen(cmd, stdout=PIPE).stdout, encoding='utf-8')
     for level1_archive in in_stream:
         level1_archive = level1_archive.strip()
         if _s2_date_filter(level1_archive, start_date, end_date):
-            _process_datasets(output_dir, (level1_archive, ), checksum, start_date)
+            _process_datasets(output_dir, (Path(level1_archive), ), checksum, start_date)
 
 
 if __name__ == '__main__':
