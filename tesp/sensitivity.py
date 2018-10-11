@@ -18,12 +18,14 @@ from tesp.workflow import RunFmask
 def aerosol_summary(l2_path, fmask_path, granule, aerosol):
 
     with rasterio.open(fmask_path) as mask_file:
-        mask = mask_file.read(1)
+        fmask = mask_file.read(1)
+
+    valid_pixels = fmask == 1
 
     def mask_invalid(img):
         return numpy.where(img != -999, img, numpy.nan)
 
-    yield ['product', 'date', 'granule', 'band', 'aerosol', 'mean', 'std']
+    yield ['product', 'date', 'granule', 'band', 'aerosol', 'mean', 'std', 'valid_pixels']
 
     with h5py.File(l2_path) as h5:
 
@@ -47,11 +49,10 @@ def aerosol_summary(l2_path, fmask_path, granule, aerosol):
             try:
                 ds = band_dataset(product, band)
                 band_name = ds.attrs['alias']
-                data = mask_invalid(ds[:])
-                # data = numpy.where(mask == 1, data, numpy.nan)
+                data = numpy.where(valid_pixels, mask_invalid(ds[:]), numpy.nan)
 
                 yield [product, date, granule, band_name,
-                       aerosol, numpy.nanmean(data), numpy.nanstd(data)]
+                       aerosol, numpy.nanmean(data), numpy.nanstd(data), numpy.sum(valid_pixels)]
             except KeyError:
                 pass
 
@@ -78,7 +79,8 @@ class Aerosol(luigi.Task):
 
     def requires(self):
         tasks = {
-            'wagl': DataStandardisation(self.level1, self.workdir, self.granule, aerosol=self.aerosol),
+            'wagl': DataStandardisation(self.level1, self.workdir, self.granule,
+                                        aerosol={'user': self.aerosol}),
             'fmask': RunFmask(self.level1, self.granule, self.workdir)
         }
 
