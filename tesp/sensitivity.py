@@ -11,6 +11,7 @@ import rasterio
 
 from wagl.acquisition import acquisitions
 from wagl.singlefile_workflow import DataStandardisation
+from wagl.constants import ArdProducts, GroupName, DatasetName
 from tesp.package import PATTERN2, ARD
 from tesp.workflow import RunFmask
 
@@ -35,15 +36,16 @@ def aerosol_summary(l2_path, fmask_path, granule, aerosol):
         def band_dataset(product, band):
             for res_group in ['RES-GROUP-2', 'RES-GROUP-1', 'RES-GROUP-0']:
                 try:
-                    return get(res_group, 'STANDARDISED-PRODUCTS/REFLECTANCE', product, band)
+                    return get(res_group, GroupName.STANDARD_GROUP.value,
+                               DatasetName.REFLECTANCE_FMT.value.format(product=product, band_name=band))
                 except KeyError:
                     pass
 
             raise KeyError(f'could not find {product} {band} in {granule}')
 
-        assert abs(aerosol - get('ANCILLARY/AEROSOL')[...]) < 0.00001
+        assert abs(aerosol - get(GroupName.ANCILLARY_GROUP.value, DatasetName.AEROSOL.value)[...]) < 0.00001
 
-        date = get('ATMOSPHERIC-INPUTS').attrs['acquisition-datetime'][:len('2000-01-01')]
+        date = get(GroupName.ATMOSPHERIC_INPUTS_GRP.value).attrs['acquisition-datetime'][:len('2000-01-01')]
 
         def process_band(product, band):
             try:
@@ -56,7 +58,7 @@ def aerosol_summary(l2_path, fmask_path, granule, aerosol):
             except KeyError:
                 pass
 
-        for product in ['NBAR', 'NBART', 'LAMBERTIAN']:
+        for product in [p.value for p in ArdProducts]:
             for band in [f'BAND-{b}' for b in range(1, 8)]:
                 yield from process_band(product, band)
 
