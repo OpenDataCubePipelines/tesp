@@ -1,13 +1,15 @@
 #!/usr/bin/env python
 
 from setuptools import setup, find_packages
+import versioneer
 
 # There is a bug in the 2.7.6 release of luigi in the luigi.contrib.s3 module
 # Using an unreleased version until it is packaged and released
 
 
 setup(name='tesp',
-      version='0.0.5',
+      version=versioneer.get_version(),
+      cmdclass=versioneer.get_cmdclass(),
       description=('A temporary solution to get packaging underway. '
                    'Code will eventually be ported eo-datasets.'),
       packages=find_packages(),
@@ -47,5 +49,5 @@ setup(name='tesp',
       scripts=['bin/s2package',
                'bin/ard_pbs',
                'bin/search_s2',
-               'bin/s2_incremental'],
+               'bin/s2-nci-processing'],
       include_package_data=True)

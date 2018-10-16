@@ -4,9 +4,9 @@
 PBS submission scripts.
 """
 
-from __future__ import print_function
-
 import os
+import re
+import json
 from os.path import join as pjoin, dirname, exists
 import subprocess
 import uuid
@@ -46,6 +46,8 @@ def _submit_multiple(scattered, env, batch_logdir, batch_outdir, pkgdir,
                      workers, pbs_resources, test):
     """Submit multiple PBS formatted jobs."""
 
+    nci_job_ids = []
+
     # setup and submit each block of scenes for processing
     for block in scattered:
         jobid = uuid.uuid4().hex[0:6]
@@ -74,12 +76,20 @@ def _submit_multiple(scattered, env, batch_logdir, batch_outdir, pkgdir,
             src.write(pbs)
 
         if test:
-            print("Mocking... Submitting Job: {} ...Mocking".format(jobid))
-            print("qsub {}".format(out_fname))
-        else:
-            os.chdir(dirname(out_fname))
-            print("Submitting Job: {}".format(jobid))
-            subprocess.call(['qsub', out_fname])
+            click.echo("Mocking... Submitting Job: {} ...Mocking".format(jobid))
+            click.echo("qsub {}".format(out_fname))
+            continue
+
+        os.chdir(dirname(out_fname))
+        click.echo("Submitting Job: {}".format(jobid))
+        raw_output = subprocess.check_output(['qsub', out_fname])
+        if hasattr('decode', output):
+            matches = re.match('^(?P<nci_job_id>\d{7,}.r-man2)$', raw_output.decode('utf-8'))
+            if matches:
+                nci_job_ids.append(matches.groupdict()['nci_job_id'])
+
+    # return a list of the nci job ids
+    return nci_job_ids
 
 
 @click.command()
@@ -132,13 +142,21 @@ def main(level1_list, workdir, logdir, pkgdir, env, workers, nodes, memory,
                                          email=email)
 
     if test:
-        print("Mocking... Submitting Batch: {} ...Mocking".format(batchid))
+        click.echo("Mocking... Submitting Batch: {} ...Mocking".format(batchid))
     else:
-        print("Submitting Batch: {}".format(batchid))
+        click.echo("Submitting Batch: {}".format(batchid))
 
-    print("Executing Batch: {}".format(batchid))
-    _submit_multiple(scattered, env, batch_logdir, batch_outdir,
-                     pkgdir, workers, pbs_resources, test)
+    click.echo("Executing Batch: {}".format(batchid))
+    nci_job_ids = _submit_multiple(scattered, env, batch_logdir, batch_outdir,
+                                   pkgdir, workers, pbs_resources, test)
+
+    job_details = {
+        'ardpbs_batch_id': batchid,
+        'nci_job_ids': nci_job_ids
+    }
+
+    # Enable the job details to be picked up by the calling process
+    click.echo(json.dumps(job_details))
 
 
 if __name__ == '__main__':
