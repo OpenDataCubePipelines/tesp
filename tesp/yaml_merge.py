@@ -14,7 +14,7 @@ import os
 import uuid
 import copy
 import re
-
+import numpy as np
 import click
 import yaml
 import fmask
@@ -62,18 +62,6 @@ def merge_metadata(level1_tags, wagl_tags, gqa_tags, granule, image_paths):
 
     source_tags = {level1_tags['product_type']: copy.deepcopy(level1_tags)}
     provider_info = provider_reference_info(granule, wagl_tags)
-    gverify_version = gqa_tags.pop('gverify_version')
-    fmask_repo_url = 'https://bitbucket.org/chchrsc/python-fmask'
-    eugl_repo_url = gqa_tags.pop('software_repository')
-    eugl_version = gqa_tags.pop('software_version')
-    software_versions = wagl_tags['software_versions']
-    software_versions['gverify'] = {'version': gverify_version}
-    software_versions['fmask'] = {'repo_url': fmask_repo_url,
-                                  'version': fmask.__version__}
-    software_versions['eugl'] = {'repo_url': eugl_repo_url,
-                                 'version': eugl_version}
-    software_versions['tesp'] = {'repo_url': tesp_repo_url,
-                                 'version': tesp_version()}
 
     # TODO: resolve common software version for fmask and gqa
     fmask_repo_url = 'https://bitbucket.org/chchrsc/python-fmask'
@@ -89,6 +77,15 @@ def merge_metadata(level1_tags, wagl_tags, gqa_tags, granule, image_paths):
     software_versions['tesp'] = {'repo_url': tesp_repo_url,
                                  'version': tesp_version()}
 
+    center_dt = np.datetime64(level1_tags['extent'].pop('center_dt'))
+    from_dt = center_dt + np.timedelta64(int(float(wagl_tags.pop('timedelta_min')) * 1000000), 'us')
+    to_dt = center_dt + np.timedelta64(int(float(wagl_tags.pop('timedelta_max')) * 1000000), 'us')
+
+    level1_tags_extent = {'center_dt': '{}Z'.format(center_dt),
+                          'coord': level1_tags['extent'].pop('coord'),
+                          'from_dt': '{}Z'.format(from_dt),
+                          'to_dt': '{}Z'.format(to_dt)}
+
     # TODO: extend yaml document to include fmask and gqa yamls
     # Merge tags from each input and create a UUID
     merged_yaml = {
@@ -103,7 +100,7 @@ def merge_metadata(level1_tags, wagl_tags, gqa_tags, granule, image_paths):
         'gqa': gqa_tags,
         'format': {'name': 'GeoTIFF'},
         'tile_id': granule,
-        'extent': level1_tags['extent'],
+        'extent': level1_tags_extent,
         'grid_spatial': level1_tags['grid_spatial'],
         'image': {'bands': image_paths},
         'lineage': {

@@ -216,6 +216,9 @@ def unpack_supplementary(container, granule, h5group, outdir):
     for key in paths:
         rel_paths[key] = paths[key]
 
+    # timedelta data
+    timedelta_data = grp[DatasetName.TIME.value]
+
     # incident angles
     grp = h5group[ppjoin(res_grp, GroupName.INCIDENT_GROUP.value)]
     dnames = [DatasetName.INCIDENT.value,
@@ -248,7 +251,7 @@ def unpack_supplementary(container, granule, h5group, outdir):
 
     # TODO do we also include slope and aspect?
 
-    return rel_paths
+    return rel_paths, timedelta_data
 
 
 def create_contiguity(product_list, container, granule, outdir):
@@ -261,6 +264,7 @@ def create_contiguity(product_list, container, granule, outdir):
     acqs, _ = container.get_mode_resolution(granule)
     grn_id = re.sub(PATTERN2, ARD, granule)
 
+    nbar_contiguity = None
     # relative paths of each dataset for ODC metadata doc
     rel_paths = {}
 
@@ -305,11 +309,15 @@ def create_contiguity(product_list, container, granule, outdir):
             run_command(cmd, tmpdir)
 
             # create contiguity
-            contiguity(tmp_fname, out_fname)
+            contiguity_mask = contiguity(tmp_fname, out_fname)
+
+            if base_fname.endswith('NBAR_CONTIGUITY.TIF'):
+                nbar_contiguity = contiguity_mask
+
             with rasterio.open(out_fname) as ds:
                 rel_paths[alias] = get_img_dataset_info(ds, rel_path)
 
-    return rel_paths
+    return rel_paths, nbar_contiguity
 
 
 def create_html_map(outdir):
@@ -454,6 +462,7 @@ def create_checksum(outdir):
 
 
 def get_level1_tags(container, granule=None, yamls_path=None, l1_path=None):
+
     if yamls_path:
         # TODO define a consistent file structure where yaml metadata exists
         yaml_fname = pjoin(yamls_path,
@@ -465,9 +474,11 @@ def get_level1_tags(container, granule=None, yamls_path=None, l1_path=None):
             raise IOError('yaml file not found: {}'.format(yaml_fname))
 
         with open(yaml_fname, 'r') as src:
+
             # TODO harmonise field names for different sensors
+
             l1_documents = {
-                doc.get('tile_id', doc.get('label')): doc
+                granule: doc
                 for doc in yaml.load_all(src)
             }
             l1_tags = l1_documents[granule]
@@ -538,15 +549,20 @@ def package(l1_path, wagl_fname, fmask_fname, gqa_fname, yamls_path, outdir,
                                                fid[granule], out_path)
 
         # unpack supplementary datasets produced by wagl
-        supp_paths = unpack_supplementary(container, granule, fid[granule],
-                                          out_path)
+        supp_paths, timedelta_data = unpack_supplementary(container, granule, fid[granule],
+                                                          out_path)
 
         # add in supplementary paths
         for key in supp_paths:
             img_paths[key] = supp_paths[key]
 
         # file based globbing, so can't have any other tifs on disk
-        qa_paths = create_contiguity(products, container, granule, out_path)
+        qa_paths, contiguity_ones_mask = create_contiguity(products, container, granule, out_path)
+
+        # masking the timedelta_data with contiguity mask to get max and min timedelta within the NBAR product footprint
+        valid_timedelta_data = numpy.ma.masked_where(contiguity_ones_mask == 0, timedelta_data)
+        wagl_tags['timedelta_min'] = numpy.ma.min(valid_timedelta_data)
+        wagl_tags['timedelta_max'] = numpy.ma.max(valid_timedelta_data)
 
         # add in qa paths
         for key in qa_paths:
@@ -569,10 +585,14 @@ def package(l1_path, wagl_fname, fmask_fname, gqa_fname, yamls_path, outdir,
         # TODO include fmask yaml (if we go ahead and create one)
         # TODO put eugl, fmask, tesp in the software_versions section
         # relative paths yaml doc
-        with open(gqa_fname) as fl:
-            gqa_tags = yaml.load(fl)
+        if gqa_fname:
+            with open(gqa_fname) as fl:
+                gqa_tags = yaml.load(fl)
+                tags = merge_metadata(l1_tags, wagl_tags, gqa_tags, granule, img_paths)
 
-        tags = merge_metadata(l1_tags, wagl_tags, gqa_tags, granule, img_paths)
+        else:
+            gqa_tags = None
+            tags = merge_metadata(l1_tags, wagl_tags, gqa_tags, granule, img_paths)
 
         with open(pjoin(out_path, 'ARD-METADATA.yaml'), 'w') as src:
             yaml.dump(tags, src, default_flow_style=False, indent=4)

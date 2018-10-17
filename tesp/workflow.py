@@ -144,8 +144,13 @@ class Package(luigi.Task):
 
     def run(self):
         inputs = self.input()
+        if self.gqa_task:
+            gqa_path = inputs['gqa'].path
+        else:
+            gqa_path = None
+
         package(self.level1, inputs['wagl'].path, inputs['fmask'].path,
-                inputs['gqa'].path, self.yamls_dir, self.pkgdir, self.granule,
+                gqa_path, self.yamls_dir, self.pkgdir, self.granule,
                 self.products, self.acq_parser_hint)
 
         if self.cleanup:
