@@ -7,6 +7,7 @@ PBS submission scripts.
 import os
 import re
 import json
+import logging
 from os.path import join as pjoin, dirname, exists
 import subprocess
 import uuid
@@ -22,7 +23,7 @@ PBS_RESOURCES = ("""#!/bin/bash
 #PBS -l walltime={walltime},mem={memory}GB,ncpus={ncpus},jobfs={jobfs}GB,other=pernodejobfs
 #PBS -l wd
 #PBS -me
-#PBS -M {email}
+{email}
 """)
 
 NODE_TEMPLATE = ("""{pbs_resources}
@@ -82,8 +83,14 @@ def _submit_multiple(scattered, env, batch_logdir, batch_outdir, pkgdir,
 
         os.chdir(dirname(out_fname))
         click.echo("Submitting Job: {}".format(jobid))
-        raw_output = subprocess.check_output(['qsub', out_fname])
-        if hasattr('decode', output):
+        try:
+            raw_output = subprocess.check_output(['qsub', out_fname])
+        except subprocess.CalledProcessError as exc:
+            logging.error('qsub failed with exit code %s', str(exc.returncode))
+            logging.error(exc.output)
+            raise
+
+        if hasattr(raw_output, 'decode'):
             matches = re.match('^(?P<nci_job_id>\d{7,}.r-man2)$', raw_output.decode('utf-8'))
             if matches:
                 nci_job_ids.append(matches.groupdict()['nci_job_id'])
@@ -115,7 +122,7 @@ def _submit_multiple(scattered, env, batch_logdir, batch_outdir, pkgdir,
               help="Queue to submit the job into, eg normal, express.")
 @click.option("--walltime", default="48:00:00",
               help="Job walltime in `hh:mm:ss` format.")
-@click.option("--email", default="your.name@something.com",
+@click.option("--email", default="",
               help="Notification email address.")
 @click.option("--test", default=False, is_flag=True,
               help=("Test job execution (Don't submit the job to the "
@@ -136,10 +143,11 @@ def main(level1_list, workdir, logdir, pkgdir, env, workers, nodes, memory,
     batch_logdir = pjoin(logdir, FMT1.format(batchid=batchid))
     batch_outdir = pjoin(workdir, FMT1.format(batchid=batchid))
 
+    # optionally set pbs email string
     pbs_resources = PBS_RESOURCES.format(project=project, queue=queue,
                                          walltime=walltime, memory=memory,
                                          ncpus=workers, jobfs=jobfs,
-                                         email=email)
+                                         email=('#PBS -M ' + email) if email else "")
 
     if test:
         click.echo("Mocking... Submitting Batch: {} ...Mocking".format(batchid))
