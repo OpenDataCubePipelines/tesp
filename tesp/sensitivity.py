@@ -67,7 +67,7 @@ class Aerosol(luigi.Task):
     """ Sensitivity analysis for aerosol. """
     level1 = luigi.Parameter()
     workdir = luigi.Parameter()
-    granule = luigi.Parameter(default=None)
+    granule = luigi.OptionalParameter(default='')
     pkgdir = luigi.Parameter()
     aerosol = luigi.FloatParameter(default=0.05)
     cleanup = luigi.BoolParameter()
