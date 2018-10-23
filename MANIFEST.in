@@ -1,1 +1,3 @@
+include versioneer.py
+include tesp/_version.py
 include tesp/_README.md

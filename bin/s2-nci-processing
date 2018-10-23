@@ -98,14 +98,15 @@ def _calc_nodes_req(granule_count, walltime, workers, hours_per_granule=1.5):
     return int(math.ceil(float(hours_per_granule * granule_count) / (hours * workers)))
 
 
-def _level1_dataset_path_iter(root_directory: Path, *find_options):
+def _level1_dataset_path_iter(root_directory: Path, *find_options, subprocess_depth=1):
     """ Yields the path to level1 archives for sentinel2
 
-    First looks for archives at the root_directory, then checks each directory
-    nested in the root directory individually.
-    The layout of datasets at NCI is broken in year groups;
-    breaking up the results in this manner allows consistent upper bounds
-    on the memory used by each subprocess call
+    Function splits up filesystem recursion by first identifying files up to the
+    subprocess_depth (in a subprocess) then separately runs find against all
+    directories found at that depth.
+
+    This is done in order to reduce the upper bound on memory consumed by
+    the redirection of stdout.
     """
     def _run_find(level1_dir: Path, *find_options):
         find_options = find_options or []
@@ -116,10 +117,32 @@ def _level1_dataset_path_iter(root_directory: Path, *find_options):
         for level1_path in in_stream:
             yield Path(level1_path.strip())
 
-    # Handle base directory archives
-    yield from _run_find(root_directory, '-maxdepth', '1', *find_options)
-    root_dirs = [d for d in root_directory.iterdir() if d.is_dir()]
-    for d in root_dirs:
+
+    def _get_dirs_at_depth(root, depth=1):
+        """ Returns a list of directories at a set depth from root"""
+
+        def get_dirs_recurse(root, depth, max_depth=1):
+            results = []
+            for _path in root.iterdir():
+                if _path.is_dir():
+                    if depth == max_depth:
+                        results.append(_path)
+                    else:
+                        try:
+                            results.extend(get_dirs_recurse(_path, depth + 1, max_depth))
+                        except OSError as e:
+                            logging.error(e)
+            return results
+
+        # Depth starts at one as it lists the files at the root
+        return get_dirs_recurse(Path(root), 1, depth)
+
+
+    # Handle base case
+    yield from _run_find(root_directory, '-maxdepth', str(subprocess_depth), *find_options)
+    # Handle seperate subprocess calls
+    search_dirs = _get_dirs_at_depth(root, subprocess_depth)
+    for d in search_dirs:
         yield from _run_find(root_directory / d, *find_options)
 
 

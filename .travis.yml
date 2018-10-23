@@ -6,7 +6,7 @@ python:
 sudo: false
 cache:
   directories:
-  - $HOME/.cache/pip
+  - "$HOME/.cache/pip"
 addons:
   apt:
     packages:
@@ -22,9 +22,21 @@ install:
 - export CPLUS_INCLUDE_PATH="/usr/include/gdal"
 - export C_INCLUDE_PATH="/usr/include/gdal"
 - travis_retry pip install --upgrade pip
-- travis_retry pip install --upgrade pytest pytest-cov pytest-flake8 deepdiff flake8 pep8-naming 
+- travis_retry pip install --upgrade pytest pytest-cov pytest-flake8 deepdiff flake8 pep8-naming
 - travis_retry pip install gdal==1.10.0 rasterio shapely pyyaml click ciso8601 checksumdir
 - pip freeze
 script:
 - pytest
-
+before_deploy:
+- python setup.py sdist
+deploy:
+  provider: releases
+  file_glob: true
+  file: dist/*
+  skip_cleanup: true
+  on:
+    tags: true
+    condition: "$TRAVIS_TAG =~ ^tesp-[0-9]+\\.[0-9]+\\.[0-9]+$"
+    repo: OpenDataCubePipelines/tesp
+  api-key:
+    secure: INmRD/8IKzNDEWIdQpBZeZNCYBk5dX6LV1sdMtfJC4xfC8l5G8jU8icp7JMeitJ3nVAJmsEvN5DX1YiUBAzQwUYgDnpSapVT531jZA9el+K/LCJdfj3JSO+hN8Z+6W/eQzlm6zfX6NScRU7YdPqkQelaylwdnDj9MnOqZjCUXB9YuJb3caZbbwVauK+LHPiOR+KdSZ7hUhh7uKuUKwnpA/qWLo6nVRFti64D20ODOz26kPm1QbGge/rYMqqoGOlsNAoxS6cGnFz+pqznzKMITDgjNG5XChk/akYFa+cVPMoz21Yiigarl/9MCxjTjIVnH6cl9VNGMcZUXl2wJLgZlcuNlg62LQ7Z6ryJCfcEdMXQWOCJ59MkWSKgj/5GAmXZAooAnSZitkhY3wpyj2JcDP9qg5vb2/Jk2OHa3BWRbN1eoCt0FQtv29+/ERPdx0dyvZI88trr7TS+WbdBFkt6pgnkAEWl+vKXZekx9rux9BKXgh1ENW8/LEqmA7OzvTPWeWpqVxvgrgX9YCkiywB/JSCxsX3luNniwi/kKd2pwsfrM+gOU36bTrMb7Yyv8Cqf/UrrxUG7y+HuxJf/cUPMRwq3c65FJdkClrZEWuayuPx6hNri5Q7+mfTQkGDB6B3kifK3itnJlZ/u2MFBVaNzLK8sJOR+lPW7WmKjVB2cVAo=
