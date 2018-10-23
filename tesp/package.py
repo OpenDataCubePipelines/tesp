@@ -79,18 +79,32 @@ def _clean(alias):
     return alias.lower()
 
 
-def _write_cogtif(dataset, out_fname):
+def _write_tif(dataset, out_fname, cogtif=True, platform=None):
     """
-    Easy wrapper for writing a cogtif, that takes care of datasets
+    Easy wrapper for writing a tif or cogtif, that takes care of datasets
     that are written row by row rather square(ish) blocks.
+    All the overview level's block size is set to 512 x 512 for USGS dataset
     """
     if dataset.chunks[1] == dataset.shape[1]:
-        blockxsize = 512
-        blockysize = 512
         data = dataset[:]
     else:
-        blockysize, blockxsize = dataset.chunks
         data = dataset
+
+    # setting the overview block size depending on the specific sensor.
+    # Current, only USGS dataset are tiled at 512 x 512 for standardizing
+    # Level 2 ARD products. Sentinel-2 tile size are inherited from the
+    # L1C products and its overview's blocksize are default value of GDAL's
+    # overview block size of 128 x 128
+
+    #TODO Standardizing the Sentinel-2's overview tile size with external inputs
+
+    if platform == "LANDSAT":
+        blockxsize = 512
+        blockysize = 512
+        config_options = {'GDAL_TIFF_OVR_BLOCKSIZE': blockxsize}
+    else:
+        blockysize, blockxsize = dataset.chunks
+        config_options = None
 
     options = {'blockxsize': blockxsize,
                'blockysize': blockysize,
@@ -104,8 +118,8 @@ def _write_cogtif(dataset, out_fname):
     if not exists(dirname(out_fname)):
         os.makedirs(dirname(out_fname))
 
-    write_img(data, out_fname, cogtif=True, levels=LEVELS, nodata=nodata,
-              geobox=geobox, resampling=Resampling.nearest, options=options)
+    write_img(data, out_fname, cogtif=cogtif, levels=LEVELS, nodata=nodata,
+              geobox=geobox, resampling=Resampling.average, options=options, config_options=config_options)
 
 
 def get_img_dataset_info(dataset, path, layer=1):
@@ -124,7 +138,23 @@ def get_img_dataset_info(dataset, path, layer=1):
     }
 
 
-def unpack_products(product_list, container, granule, h5group, outdir):
+def get_platform(container, granule):
+    """
+    retuns the satellite platform
+    """
+    acq = container.get_acquisitions(None, granule, False)[0]
+    if 'SENTINEL' in acq.platform_id:
+        platform = "SENTINEL"
+    elif 'LANDSAT' in acq.platform_id:
+        platform = "LANDSAT"
+    else:
+        msg = "Sensor not supported"
+        raise Exception(msg)
+
+    return platform
+
+
+def unpack_products(product_list, container, granule, h5group, outdir, platform):
     """
     Unpack and package the NBAR and NBART products.
     """
@@ -153,7 +183,7 @@ def unpack_products(product_list, container, granule, h5group, outdir):
             rel_path = pjoin(product, re.sub(PATTERN2, ARD, fname))
             out_fname = pjoin(outdir, rel_path)
 
-            _write_cogtif(dataset, out_fname)
+            _write_tif(dataset, out_fname, cogtif=True, platform=platform)
 
             # alias name for ODC metadata doc
             alias = _clean(ALIAS_FMT[product].format(dataset.attrs['alias']))
@@ -175,15 +205,15 @@ def unpack_products(product_list, container, granule, h5group, outdir):
     return tags(), rel_paths
 
 
-def unpack_supplementary(container, granule, h5group, outdir):
+def unpack_supplementary(container, granule, h5group, outdir, platform):
     """
     Unpack the angles + other supplementary datasets produced by wagl.
     Currently only the mode resolution group gets extracted.
     """
-    def _write(dataset_names, h5_group, granule_id, basedir):
+    def _write(dataset_names, h5_group, granule_id, basedir, cogtif=False, platform_name=None):
         """
         An internal util for serialising the supplementary
-        H5Datasets to cogtif.
+        H5Datasets to tif.
         """
         fmt = '{}_{}.TIF'
         paths = {}
@@ -194,7 +224,7 @@ def unpack_supplementary(container, granule, h5group, outdir):
             dset = h5_group[dname]
             alias = _clean(dset.attrs['alias'])
             paths[alias] = get_img_dataset_info(dset, rel_path)
-            _write_cogtif(dset, out_fname)
+            _write_tif(dset, out_fname, cogtif=cogtif, platform=platform_name)
 
         return paths
 
@@ -212,7 +242,7 @@ def unpack_supplementary(container, granule, h5group, outdir):
               DatasetName.SOLAR_AZIMUTH.value,
               DatasetName.RELATIVE_AZIMUTH.value,
               DatasetName.TIME.value]
-    paths = _write(dnames, grp, grn_id, SUPPS)
+    paths = _write(dnames, grp, grn_id, SUPPS, cogtif=False, platform_name=platform)
     for key in paths:
         rel_paths[key] = paths[key]
 
@@ -223,7 +253,7 @@ def unpack_supplementary(container, granule, h5group, outdir):
     grp = h5group[ppjoin(res_grp, GroupName.INCIDENT_GROUP.value)]
     dnames = [DatasetName.INCIDENT.value,
               DatasetName.AZIMUTHAL_INCIDENT.value]
-    paths = _write(dnames, grp, grn_id, SUPPS)
+    paths = _write(dnames, grp, grn_id, SUPPS, cogtif=False, platform_name=platform)
     for key in paths:
         rel_paths[key] = paths[key]
 
@@ -231,21 +261,21 @@ def unpack_supplementary(container, granule, h5group, outdir):
     grp = h5group[ppjoin(res_grp, GroupName.EXITING_GROUP.value)]
     dnames = [DatasetName.EXITING.value,
               DatasetName.AZIMUTHAL_EXITING.value]
-    paths = _write(dnames, grp, grn_id, SUPPS)
+    paths = _write(dnames, grp, grn_id, SUPPS, cogtif=False, platform_name=platform)
     for key in paths:
         rel_paths[key] = paths[key]
 
     # relative slope
     grp = h5group[ppjoin(res_grp, GroupName.REL_SLP_GROUP.value)]
     dnames = [DatasetName.RELATIVE_SLOPE.value]
-    paths = _write(dnames, grp, grn_id, SUPPS)
+    paths = _write(dnames, grp, grn_id, SUPPS, cogtif=False, platform_name=platform)
     for key in paths:
         rel_paths[key] = paths[key]
 
     # terrain shadow
     grp = h5group[ppjoin(res_grp, GroupName.SHADOW_GROUP.value)]
     dnames = [DatasetName.COMBINED_SHADOW.value]
-    paths = _write(dnames, grp, grn_id, QA)
+    paths = _write(dnames, grp, grn_id, QA, cogtif=True, platform_name=platform)
     for key in paths:
         rel_paths[key] = paths[key]
 
@@ -254,7 +284,7 @@ def unpack_supplementary(container, granule, h5group, outdir):
     return rel_paths, timedelta_data
 
 
-def create_contiguity(product_list, container, granule, outdir):
+def create_contiguity(product_list, container, granule, outdir, platform):
     """
     Create the contiguity (all pixels valid) dataset.
     """
@@ -308,8 +338,8 @@ def create_contiguity(product_list, container, granule, outdir):
             cmd.extend(fnames)
             run_command(cmd, tmpdir)
 
-            # create contiguity
-            contiguity_mask = contiguity(tmp_fname, out_fname)
+            # contiguity mask for nbar product
+            contiguity_mask = contiguity(tmp_fname, out_fname, platform)
 
             if base_fname.endswith('NBAR_CONTIGUITY.TIF'):
                 nbar_contiguity = contiguity_mask
@@ -537,6 +567,9 @@ def package(l1_path, wagl_fname, fmask_fname, gqa_fname, yamls_path, outdir,
     container = acquisitions(l1_path, acq_parser_hint)
     l1_tags = get_level1_tags(container, granule, yamls_path, l1_path)
 
+    # get sensor platform
+    platform = get_platform(container, granule)
+
     with h5py.File(wagl_fname, 'r') as fid:
         grn_id = re.sub(PATTERN2, ARD, granule)
         out_path = pjoin(outdir, grn_id)
@@ -546,23 +579,25 @@ def package(l1_path, wagl_fname, fmask_fname, gqa_fname, yamls_path, outdir,
 
         # unpack the standardised products produced by wagl
         wagl_tags, img_paths = unpack_products(products, container, granule,
-                                               fid[granule], out_path)
+                                               fid[granule], out_path, platform)
 
         # unpack supplementary datasets produced by wagl
         supp_paths, timedelta_data = unpack_supplementary(container, granule, fid[granule],
-                                                          out_path)
+                                                          out_path, platform)
 
         # add in supplementary paths
         for key in supp_paths:
             img_paths[key] = supp_paths[key]
 
         # file based globbing, so can't have any other tifs on disk
-        qa_paths, contiguity_ones_mask = create_contiguity(products, container, granule, out_path)
+        qa_paths, contiguity_ones_mask = create_contiguity(products, container, granule, out_path, platform)
 
-        # masking the timedelta_data with contiguity mask to get max and min timedelta within the NBAR product footprint
-        valid_timedelta_data = numpy.ma.masked_where(contiguity_ones_mask == 0, timedelta_data)
-        wagl_tags['timedelta_min'] = numpy.ma.min(valid_timedelta_data)
-        wagl_tags['timedelta_max'] = numpy.ma.max(valid_timedelta_data)
+        # masking the timedelta_data with contiguity mask to get max and min timedelta within the NBAR product
+        # footprint for Landsat sensor. For Sentinel sensor, it inherits from level 1 yaml file
+        if platform == 'LANDSAT':
+            valid_timedelta_data = numpy.ma.masked_where(contiguity_ones_mask == 0, timedelta_data)
+            wagl_tags['timedelta_min'] = numpy.ma.min(valid_timedelta_data)
+            wagl_tags['timedelta_max'] = numpy.ma.max(valid_timedelta_data)
 
         # add in qa paths
         for key in qa_paths:
@@ -571,7 +606,7 @@ def package(l1_path, wagl_fname, fmask_fname, gqa_fname, yamls_path, outdir,
         # fmask cogtif conversion
         rel_path = pjoin(QA, '{}_FMASK.TIF'.format(grn_id))
         fmask_location = pjoin(out_path, rel_path)
-        fmask_cogtif(fmask_fname, fmask_location)
+        fmask_cogtif(fmask_fname, fmask_location, platform)
 
         with rasterio.open(fmask_location) as ds:
             img_paths['fmask'] = get_img_dataset_info(ds, rel_path)
@@ -585,14 +620,19 @@ def package(l1_path, wagl_fname, fmask_fname, gqa_fname, yamls_path, outdir,
         # TODO include fmask yaml (if we go ahead and create one)
         # TODO put eugl, fmask, tesp in the software_versions section
         # relative paths yaml doc
+
+        # Currently, gqa tasks isn't performed for for a standard packaging workflow
+        # (which is the case for UGGS dataset), thus, this sets the gqa_tags to None
+        # this will be redundant once gqa tasks is performed as a
+        # standard processing workflow
+
         if gqa_fname:
             with open(gqa_fname) as fl:
                 gqa_tags = yaml.load(fl)
-                tags = merge_metadata(l1_tags, wagl_tags, gqa_tags, granule, img_paths)
-
+                tags = merge_metadata(l1_tags, wagl_tags, gqa_tags, granule, img_paths, platform)
         else:
             gqa_tags = None
-            tags = merge_metadata(l1_tags, wagl_tags, gqa_tags, granule, img_paths)
+            tags = merge_metadata(l1_tags, wagl_tags, gqa_tags, granule, img_paths, platform)
 
         with open(pjoin(out_path, 'ARD-METADATA.yaml'), 'w') as src:
             yaml.dump(tags, src, default_flow_style=False, indent=4)

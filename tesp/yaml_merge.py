@@ -48,7 +48,7 @@ def provider_reference_info(granule, wagl_tags):
     return provider_info
 
 
-def merge_metadata(level1_tags, wagl_tags, gqa_tags, granule, image_paths):
+def merge_metadata(level1_tags, wagl_tags, gqa_tags, granule, image_paths, platform):
     """
     Combine the metadata from input sources and output
     into a single ARD metadata yaml.
@@ -77,14 +77,19 @@ def merge_metadata(level1_tags, wagl_tags, gqa_tags, granule, image_paths):
     software_versions['tesp'] = {'repo_url': tesp_repo_url,
                                  'version': tesp_version()}
 
-    center_dt = np.datetime64(level1_tags['extent'].pop('center_dt'))
-    from_dt = center_dt + np.timedelta64(int(float(wagl_tags.pop('timedelta_min')) * 1000000), 'us')
-    to_dt = center_dt + np.timedelta64(int(float(wagl_tags.pop('timedelta_max')) * 1000000), 'us')
+    # for Landsat, from_dt and to_dt in ARD-METADATA is populated from max and min timedelta values
+    if platform == 'LANDSAT':
 
-    level1_tags_extent = {'center_dt': '{}Z'.format(center_dt),
-                          'coord': level1_tags['extent'].pop('coord'),
-                          'from_dt': '{}Z'.format(from_dt),
-                          'to_dt': '{}Z'.format(to_dt)}
+        center_dt = np.datetime64(level1_tags['extent'].pop('center_dt'))
+        from_dt = center_dt + np.timedelta64(int(float(wagl_tags.pop('timedelta_min')) * 1000000), 'us')
+        to_dt = center_dt + np.timedelta64(int(float(wagl_tags.pop('timedelta_max')) * 1000000), 'us')
+
+        level1_tags_extent = {'center_dt': '{}Z'.format(center_dt),
+                              'coord': level1_tags['extent'].pop('coord'),
+                              'from_dt': '{}Z'.format(from_dt),
+                              'to_dt': '{}Z'.format(to_dt)}
+    else:
+        level1_tags_extent = level1_tags['extent']
 
     # TODO: extend yaml document to include fmask and gqa yamls
     # Merge tags from each input and create a UUID
