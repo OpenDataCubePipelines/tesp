@@ -300,6 +300,7 @@ def process_level2(level1_root, s2_aoi, start_date, end_date, pkgdir, workdir, l
               help='directory to write yamls to')
 @click.option('--output-dir',
               type=click.Path(exists=True, writable=True),
+              callback=lambda ctx, param, value: Path(value),
               help='directory to write yamls to')
 @click.option('--start-date', type=Datetime('%Y-%m-%d'),
               default=(_TODAY.year, 1, 1),
@@ -307,21 +308,35 @@ def process_level2(level1_root, s2_aoi, start_date, end_date, pkgdir, workdir, l
 @click.option('--end-date', type=Datetime('%Y-%m-%d'),
               default=_TODAY,
               help='End of date range for level 1 generation')
+@click.option('--copy-parent-dir-count', type=int, default=0)
 @click.option('--retries', type=int, default=3)
 @click.option('--checksum/--no-checksum', default=False)
+@click.option('--dry-run', default=False, is_flag=True)
 def generate_level1(level1_root: Path, output_dir: Path, start_date: datetime,
-                    end_date: datetime, retries: int, checksum: bool):
+                    end_date: datetime, copy_parent_dir_count: int,
+                    retries: int, checksum: bool, dry_run: bool):
     # run a find command to generate a list of level1 documents
 
     click.echo('generate-level1 called with: ' + ' '.join([
         str(level1_root), str(output_dir), str(start_date),
-        str(end_date), str(retries), str(checksum)]))
+        str(end_date), str(copy_parent_dir_count), str(retries), str(checksum)]))
     find_options = get_find_options(start_date, end_date)
 
     for level1_dataset in _level1_dataset_path_iter(Path(level1_root), *find_options):
+        # Include the parent directories of the source file; yaml files are broken up into
+        # 5 degree by 5 degree geographies like level1 datasets
+        # There is no reason for this breakup
+        yaml_output_dir = output_dir / '/'.join(level1_dataset.parts[-(1 + copy_parent_dir_count):-1])
         for i in range(retries):
             try:
-                _process_datasets(output_dir, (level1_dataset, ), checksum, start_date)
+                if dry_run:
+                    click.echo(
+                        'Processing: datasets: {}, outdir: {}, checksum: {}, start_date: {}'.format(
+                            str(level1_dataset), str(yaml_output_dir), str(checksum), str(start_date)
+                        )
+                    )
+                else:
+                    _process_datasets(yaml_output_dir, (level1_dataset, ), checksum, start_date)
                 break
             except Exception as e:
                 logging.error('Issue processing archive: %s', str(level1_dataset))

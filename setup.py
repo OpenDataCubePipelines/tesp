@@ -7,6 +7,7 @@ import versioneer
 setup(name='tesp',
       version=versioneer.get_version(),
       cmdclass=versioneer.get_cmdclass(),
+      url='https://github.com/OpenDataCubePipelines/tesp',
       description=('A temporary solution to get packaging underway. '
                    'Code will eventually be ported eo-datasets.'),
       packages=find_packages(),
@@ -49,4 +50,5 @@ setup(name='tesp',
                'bin/ard_pbs',
                'bin/search_s2',
                'bin/s2-nci-processing'],
-      include_package_data=True)
+      include_package_data=True
+)
