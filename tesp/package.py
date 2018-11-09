@@ -163,9 +163,16 @@ def unpack_products(product_list, container, granule, h5group, outdir):
 
     # retrieve metadata
     scalar_paths = find(h5group, 'SCALAR')
-    pathname = [pth for pth in scalar_paths if 'NBAR-METADATA' in pth][0]
-    tags = yaml.load(h5group[pathname][()])
-    return tags, rel_paths
+    pathnames = [pth for pth in scalar_paths if 'NBAR-METADATA' in pth]
+
+    def tags():
+        result = yaml.load(h5group[pathnames[0]][()])
+        for path in pathnames[1:]:
+            other = yaml.load(h5group[path][()])
+            result['ancillary'].update(other['ancillary'])
+        return result
+
+    return tags(), rel_paths
 
 
 def unpack_supplementary(container, granule, h5group, outdir):
