@@ -621,18 +621,10 @@ def package(l1_path, wagl_fname, fmask_fname, gqa_fname, yamls_path, outdir,
         # TODO put eugl, fmask, tesp in the software_versions section
         # relative paths yaml doc
 
-        # Currently, gqa tasks isn't performed for for a standard packaging workflow
-        # (which is the case for UGGS dataset), thus, this sets the gqa_tags to None
-        # this will be redundant once gqa tasks is performed as a
-        # standard processing workflow
+        with open(gqa_fname) as fl:
+            gqa_tags = yaml.load(fl)
 
-        if gqa_fname:
-            with open(gqa_fname) as fl:
-                gqa_tags = yaml.load(fl)
-                tags = merge_metadata(l1_tags, wagl_tags, gqa_tags, granule, img_paths, platform)
-        else:
-            gqa_tags = None
-            tags = merge_metadata(l1_tags, wagl_tags, gqa_tags, granule, img_paths, platform)
+        tags = merge_metadata(l1_tags, wagl_tags, gqa_tags, granule, img_paths, platform)
 
         with open(pjoin(out_path, 'ARD-METADATA.yaml'), 'w') as src:
             yaml.dump(tags, src, default_flow_style=False, indent=4)
