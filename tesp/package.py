@@ -33,6 +33,7 @@ from tesp.prepare import extract_level1_metadata
 
 from eugl.fmask import fmask_cogtif
 from eugl.contiguity import contiguity
+import fmask
 
 yaml.add_representer(numpy.int8, Representer.represent_int)
 yaml.add_representer(numpy.uint8, Representer.represent_int)
@@ -482,7 +483,7 @@ def get_level1_tags(container, granule=None, yamls_path=None, l1_path=None):
     return l1_tags
 
 
-def package(l1_path, wagl_fname, fmask_fname, gqa_fname, yamls_path, outdir,
+def package(l1_path, antecedents, yamls_path, outdir,
             granule, products=ProductPackage.all(), acq_parser_hint=None):
     """
     Package an L2 product.
@@ -491,16 +492,10 @@ def package(l1_path, wagl_fname, fmask_fname, gqa_fname, yamls_path, outdir,
         A string containing the full file pathname to the Level-1
         dataset.
 
-    :param wagl_fname:
-        A string containing the full file pathname to the wagl
-        output dataset.
-
-    :param fmask_fname:
-        A string containing the full file pathname to the fmask
-        dataset.
-
-    :param gqa_fname:
-        A string containing the full file pathname to the GQA yaml.
+    :param antecedents:
+        A dictionary describing antecedent task outputs
+        (currently supporting wagl, eugl-gqa, eugl-fmask)
+        to package.
 
     :param yamls_path:
         A string containing the full file pathname to the yaml
@@ -525,8 +520,9 @@ def package(l1_path, wagl_fname, fmask_fname, gqa_fname, yamls_path, outdir,
     """
     container = acquisitions(l1_path, acq_parser_hint)
     l1_tags = get_level1_tags(container, granule, yamls_path, l1_path)
+    antecedent_metadata = {}
 
-    with h5py.File(wagl_fname, 'r') as fid:
+    with h5py.File(antecedents['wagl'], 'r') as fid:
         grn_id = re.sub(PATTERN2, ARD, granule)
         out_path = pjoin(outdir, grn_id)
 
@@ -553,12 +549,21 @@ def package(l1_path, wagl_fname, fmask_fname, gqa_fname, yamls_path, outdir,
             img_paths[key] = qa_paths[key]
 
         # fmask cogtif conversion
-        rel_path = pjoin(QA, '{}_FMASK.TIF'.format(grn_id))
-        fmask_location = pjoin(out_path, rel_path)
-        fmask_cogtif(fmask_fname, fmask_location)
+        if 'fmask' in antecedents:
+            rel_path = pjoin(QA, '{}_FMASK.TIF'.format(grn_id))
+            fmask_location = pjoin(out_path, rel_path)
+            fmask_cogtif(antecedents['fmask'], fmask_location)
 
-        with rasterio.open(fmask_location) as ds:
-            img_paths['fmask'] = get_img_dataset_info(ds, rel_path)
+            # Should move the metadata definition to eugl
+            antecedent_metadata['fmask'] = {
+                'software_versions': {
+                    'repo_url': 'https://bitbucket.org/chchrsc/python-fmask',
+                    'version': fmask.__version__
+                }
+            }
+
+            with rasterio.open(fmask_location) as ds:
+                img_paths['fmask'] = get_img_dataset_info(ds, rel_path)
 
         # map, quicklook/thumbnail, readme, checksum
         create_html_map(out_path)
@@ -569,10 +574,16 @@ def package(l1_path, wagl_fname, fmask_fname, gqa_fname, yamls_path, outdir,
         # TODO include fmask yaml (if we go ahead and create one)
         # TODO put eugl, fmask, tesp in the software_versions section
         # relative paths yaml doc
-        with open(gqa_fname) as fl:
-            gqa_tags = yaml.load(fl)
+        if 'gqa' in antecedents:
+            with open(antecedents['gqa']) as fl:
+                antecedent_metadata['gqa'] = yaml.load(fl)
+        else:
+            antecedent_metadata['gqa'] = {
+                'error_message': 'GQA has not been configured for this product'
+            }
 
-        tags = merge_metadata(l1_tags, wagl_tags, gqa_tags, granule, img_paths)
+        tags = merge_metadata(l1_tags, wagl_tags, granule,
+                              img_paths, **antecedent_metadata)
 
         with open(pjoin(out_path, 'ARD-METADATA.yaml'), 'w') as src:
             yaml.dump(tags, src, default_flow_style=False, indent=4)
