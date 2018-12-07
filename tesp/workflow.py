@@ -4,6 +4,7 @@
 A temporary workflow for processing S2 data into an ARD package.
 """
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from os.path import join as pjoin, basename
 from posixpath import join as ppjoin
 import shutil
@@ -18,7 +19,7 @@ from structlog.processors import JSONRenderer
 import luigi
 from luigi.local_target import LocalFileSystem
 
-from wagl.acquisition import acquisitions
+from wagl.acquisition import preliminary_acquisitions_data
 from wagl.singlefile_workflow import DataStandardisation
 from tesp.package import package, PATTERN2, ARD
 from tesp.constants import ProductPackage
@@ -104,9 +105,8 @@ class Fmask(luigi.WrapperTask):
 
     def requires(self):
         # issues task per granule
-        container = acquisitions(self.level1, self.acq_parser_hint)
-        for granule in container.granules:
-            yield RunFmask(self.level1, granule, self.workdir)
+        for granule in preliminary_acquisitions_data(self.level1, self.acq_parser_hint):
+            yield RunFmask(self.level1, granule['id'], self.workdir)
 
 
 class Package(luigi.Task):
@@ -156,6 +156,22 @@ class Package(luigi.Task):
         assert ProductPackage.validate_products(self.products)
 
 
+def list_packages(workdir, acq_parser_hint, pkgdir):
+    def worker(level1):
+        work_root = pjoin(workdir, '{}.ARD'.format(basename(level1)))
+
+        result = []
+        for granule in preliminary_acquisitions_data(level1, acq_parser_hint):
+            work_dir = pjoin(work_root, granule['id'])
+            ymd = granule['datetime'].strftime('%Y-%m-%d')
+            outdir = pjoin(pkgdir, ymd)
+            result.append(Package(level1, work_dir, granule['id'], outdir))
+
+        return result
+
+    return worker
+
+
 class ARDP(luigi.WrapperTask):
 
     """
@@ -172,16 +188,14 @@ class ARDP(luigi.WrapperTask):
         with open(self.level1_list) as src:
             level1_list = [level1.strip() for level1 in src.readlines()]
 
-        for level1 in level1_list:
-            work_root = pjoin(self.workdir, '{}.ARD'.format(basename(level1)))
-            container = acquisitions(level1, self.acq_parser_hint)
-            for granule in container.granules:
+        worker = list_packages(self.workdir, self.acq_parser_hint, self.pkgdir)
 
-                work_dir = container.get_root(work_root, granule=granule)
-                acq = container.get_acquisitions(None, granule, False)[0]
-                ymd = acq.acquisition_datetime.strftime('%Y-%m-%d')
-                pkgdir = pjoin(self.pkgdir, ymd)
-                yield Package(level1, work_dir, granule, pkgdir)
+        executor = ThreadPoolExecutor()
+        futures = [executor.submit(worker, level1) for level1 in level1_list]
+
+        for future in as_completed(futures):
+            for package in future.result():
+                yield package
 
 
 if __name__ == '__main__':
