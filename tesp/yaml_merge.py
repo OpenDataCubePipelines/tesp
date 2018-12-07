@@ -17,7 +17,6 @@ import re
 
 import click
 import yaml
-import fmask
 from tesp.version import get_version as tesp_version
 from tesp.version import REPO_URL as tesp_repo_url
 
@@ -48,7 +47,7 @@ def provider_reference_info(granule, wagl_tags):
     return provider_info
 
 
-def merge_metadata(level1_tags, wagl_tags, gqa_tags, granule, image_paths):
+def merge_metadata(level1_tags, wagl_tags, granule, image_paths, **antecedent_tags):
     """
     Combine the metadata from input sources and output
     into a single ARD metadata yaml.
@@ -60,35 +59,21 @@ def merge_metadata(level1_tags, wagl_tags, gqa_tags, granule, image_paths):
              'SENTINEL_2A': 'S2MSIARD',
              'SENTINEL_2B': 'S2MSIARD'}
 
-    source_tags = {level1_tags['product_type']: copy.deepcopy(level1_tags)}
-    provider_info = provider_reference_info(granule, wagl_tags)
-
     # TODO: resolve common software version for fmask and gqa
-    fmask_repo_url = 'https://bitbucket.org/chchrsc/python-fmask'
     software_versions = wagl_tags['software_versions']
 
-    # Add software versions from gqa yaml
-    gqa_versions = gqa_tags.pop('software_versions')
-    for key, value in gqa_versions.items():
-        software_versions[key] = value
-
-    software_versions['fmask'] = {'repo_url': fmask_repo_url,
-                                  'version': fmask.__version__}
     software_versions['tesp'] = {'repo_url': tesp_repo_url,
                                  'version': tesp_version()}
 
     # TODO: extend yaml document to include fmask and gqa yamls
-    # Merge tags from each input and create a UUID
     merged_yaml = {
         'algorithm_information': wagl_tags['algorithm_information'],
-        'software_versions': software_versions,
         'system_information': wagl_tags['system_information'],
         'id': str(uuid.uuid4()),
         'processing_level': 'Level-2',
         'product_type': ptype[wagl_tags['source_datasets']['platform_id']],
         'platform': {'code': wagl_tags['source_datasets']['platform_id']},
         'instrument': {'name': wagl_tags['source_datasets']['sensor_id']},
-        'gqa': gqa_tags,
         'format': {'name': 'GeoTIFF'},
         'tile_id': granule,
         'extent': level1_tags['extent'],
@@ -96,11 +81,27 @@ def merge_metadata(level1_tags, wagl_tags, gqa_tags, granule, image_paths):
         'image': {'bands': image_paths},
         'lineage': {
             'ancillary': wagl_tags['ancillary'],
-            'source_datasets': source_tags
+            'source_datasets': {
+                level1_tags['product_type']: copy.deepcopy(level1_tags)
+            }
         },
     }
 
+    # Handles GQA and Fmask metadata currently
+    # Configured to handle gqa and fmask antecedent tasks
+    for task_name, task_md in antecedent_tags.items():
+        if 'software_versions' in task_md:
+            for key, value in task_md.pop('software_versions').items():
+                software_versions[key] = value  # This fails on key conflicts
+
+        # Check for valid metadata after merging the software versions
+        if task_md:
+            merged_yaml[task_name] = task_md
+
+    provider_info = provider_reference_info(granule, wagl_tags)
     if provider_info:
         merged_yaml['provider'] = provider_info
+
+    merged_yaml['software_versions'] = software_versions
 
     return merged_yaml
