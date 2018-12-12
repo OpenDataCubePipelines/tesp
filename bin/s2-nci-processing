@@ -283,12 +283,17 @@ def process_level2(level1_root, s2_aoi, start_date, end_date, pkgdir, workdir, l
             ard_cmd += ['--test']
 
         logging.info("calling %s", ' '.join(ard_cmd))
+        raw_output = None
         try:
             raw_output = check_output(ard_cmd)
         except CalledProcessError as exc:
             logging.error('ard_pbs failed with exit code %s', str(exc.returncode))
             logging.exception(exc.output)
             raise
+        finally:
+            if raw_output:
+                # Echo job info, can be useful to track job submission
+                click.echo(raw_output.decode('utf-8'))
 
 
 @cli.command('generate-level1')
