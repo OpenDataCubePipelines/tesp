@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import io
+import os
 import logging
 import math
 import tempfile
@@ -327,6 +328,7 @@ def generate_level1(level1_root: Path, output_dir: Path, start_date: datetime,
         # 5 degree by 5 degree geographies like level1 datasets
         # There is no reason for this breakup
         yaml_output_dir = output_dir / '/'.join(level1_dataset.parts[-(1 + copy_parent_dir_count):-1])
+        os.makedirs(yaml_output_dir, exist_ok=True)
         for i in range(retries):
             try:
                 if dry_run:
