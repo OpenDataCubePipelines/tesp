@@ -179,7 +179,7 @@ def cli():
 @click.option('--level1-root', default=DEFAULT_S2_L1C, type=str,
               help="Folder containing Sentinel-2 level-1 datasets.")
 @click.option('--s2-aoi', default=DEFAULT_S2_AOI, type=str,
-              help="List of MGRD tiles of interest.")
+              help="List of MGRS tiles of interest.")
 @click.option('--start-date', type=Datetime(format='%Y-%m-%d'),
               help="Start of date range to process.")
 @click.option('--end-date', type=Datetime(format='%Y-%m-%d'),
