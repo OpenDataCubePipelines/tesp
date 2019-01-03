@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import os
 import re
 import csv
@@ -37,14 +38,21 @@ class ExperimentList(luigi.WrapperTask):
         with open(self.experiment_list_yaml) as fl:
             experiments = yaml.load(fl)
 
-        for tag, settings in experiments.items():
-            if not self.tags or tag in self.tags:
-                for level1 in level1_list:
-                    for granule in preliminary_acquisitions_data(level1, self.acq_parser_hint):
+        def worker(level1):
+            for granule in preliminary_acquisitions_data(level1, self.acq_parser_hint):
+                for tag, settings in experiments.items():
+                    if not self.tags or tag in self.tags:
                         work_root = pjoin(self.workdir, '{}.{}'.format(basename(level1), tag))
                         work_dir = pjoin(work_root, granule['id'])
 
                         yield Experiment(level1, work_dir, granule['id'], self.pkgdir, tag, settings, self.cleanup)
+
+        executor = ThreadPoolExecutor()
+        futures = [executor.submit(worker, level1) for level1 in level1_list]
+
+        for future in as_completed(futures):
+            for exp in future.result():
+                yield exp
 
 # NOTE we probably need one more level here that creates the temporal mean image
 
@@ -96,6 +104,9 @@ class Experiment(luigi.Task):
             for entry in experiment_summary(inputs['wagl'].path, inputs['fmask'].path,
                                             self.granule, self.tag, self.settings):
                 writer.writerow(entry)
+
+        if self.cleanup:
+            shutil.rmtree(self.workdir)
 
 
 def experiment_summary(l2_path, fmask_path, granule, tag, settings):
