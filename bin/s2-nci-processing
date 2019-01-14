@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 
 import io
+import os
 import logging
 import math
 import tempfile
 import zipfile
+import sys
 from xml.etree import ElementTree
 from datetime import datetime
 from os.path import join, basename
@@ -111,7 +113,6 @@ def _level1_dataset_path_iter(root_directory: Path, *find_options, subprocess_de
     def _run_find(level1_dir: Path, *find_options):
         find_options = find_options or []
         cmd = ['find', str(level1_dir)] + list(find_options) + ['-name', '*.zip', ]
-        print(' '.join(cmd))
         in_stream = io.TextIOWrapper(Popen(cmd, stdout=PIPE).stdout, encoding='utf-8')
         logging.info("calling %s", ' '.join(cmd))
         for level1_path in in_stream:
@@ -131,7 +132,7 @@ def _level1_dataset_path_iter(root_directory: Path, *find_options, subprocess_de
                         try:
                             results.extend(get_dirs_recurse(_path, depth + 1, max_depth))
                         except OSError as e:
-                            logging.error(e)
+                            logging.exception(e)
             return results
 
         # Depth starts at one as it lists the files at the root
@@ -178,7 +179,7 @@ def cli():
 @click.option('--level1-root', default=DEFAULT_S2_L1C, type=str,
               help="Folder containing Sentinel-2 level-1 datasets.")
 @click.option('--s2-aoi', default=DEFAULT_S2_AOI, type=str,
-              help="List of MGRD tiles of interest.")
+              help="List of MGRS tiles of interest.")
 @click.option('--start-date', type=Datetime(format='%Y-%m-%d'),
               help="Start of date range to process.")
 @click.option('--end-date', type=Datetime(format='%Y-%m-%d'),
@@ -209,11 +210,7 @@ def cli():
 def process_level2(level1_root, s2_aoi, start_date, end_date, pkgdir, workdir, logdir, env,
                    workers, memory, jobfs, project, queue, walltime, email, test):
 
-    click.echo('process-level2 called with: ' + ' '.join([
-        str(level1_root), str(s2_aoi), str(end_date), str(pkgdir),
-        str(workdir), str(logdir), str(env), str(workers), str(memory),
-        str(jobfs), str(project), str(queue), str(walltime), str(email),
-        str(test)]))
+    click.echo(' '.join(sys.argv))
 
     logging.basicConfig(format='%(asctime)s %(levelname)s (%(pathname)s:%(lineno)s) %(message)s', level=logging.INFO)
 
@@ -236,6 +233,7 @@ def process_level2(level1_root, s2_aoi, start_date, end_date, pkgdir, workdir, l
                 container = acquisitions(str(level1_dataset))
             except Exception as e:
                 logging.warning('encountered unexpected error for %s: %s', str(level1_dataset), e)
+                logging.exception(e)
                 continue
 
             granule_md = get_archive_metadata(level1_dataset)
@@ -243,7 +241,7 @@ def process_level2(level1_root, s2_aoi, start_date, end_date, pkgdir, workdir, l
             for granule, sensing_date in granule_md.items():
                 tile_id = granule.split('_')[-2]
                 if tile_id not in tile_ids:
-                    logging.info('granule %s with MGRS tile ID %s outside AOI', granule, tile_id)
+                    logging.debug('granule %s with MGRS tile ID %s outside AOI', granule, tile_id)
                     continue
 
                 ymd = sensing_date.strftime('%Y-%m-%d')
@@ -254,10 +252,10 @@ def process_level2(level1_root, s2_aoi, start_date, end_date, pkgdir, workdir, l
                     pkgdir=join(pkgdir, ymd)
                 )
                 if package.output().exists():
-                    logging.info('granule %s already processed', granule)
+                    logging.debug('granule %s already processed', granule)
                     continue
 
-                logging.info('level1 dataset %s needs to be processed', level1_dataset)
+                logging.debug('level1 dataset %s needs to be processed', level1_dataset)
                 print(level1_dataset, file=out_stream)
                 count += len(granule_md.keys())  # To handle multigranule files
                 break
@@ -286,12 +284,17 @@ def process_level2(level1_root, s2_aoi, start_date, end_date, pkgdir, workdir, l
             ard_cmd += ['--test']
 
         logging.info("calling %s", ' '.join(ard_cmd))
+        raw_output = None
         try:
             raw_output = check_output(ard_cmd)
         except CalledProcessError as exc:
             logging.error('ard_pbs failed with exit code %s', str(exc.returncode))
-            logging.error(exc.output)
+            logging.exception(exc.output)
             raise
+        finally:
+            if raw_output:
+                # Echo job info, can be useful to track job submission
+                click.echo(raw_output.decode('utf-8'))
 
 
 @cli.command('generate-level1')
@@ -315,11 +318,9 @@ def process_level2(level1_root, s2_aoi, start_date, end_date, pkgdir, workdir, l
 def generate_level1(level1_root: Path, output_dir: Path, start_date: datetime,
                     end_date: datetime, copy_parent_dir_count: int,
                     retries: int, checksum: bool, dry_run: bool):
-    # run a find command to generate a list of level1 documents
+    click.echo(' '.join(sys.argv))
 
-    click.echo('generate-level1 called with: ' + ' '.join([
-        str(level1_root), str(output_dir), str(start_date),
-        str(end_date), str(copy_parent_dir_count), str(retries), str(checksum)]))
+    # run a find command to generate a list of level1 documents
     find_options = get_find_options(start_date, end_date)
 
     for level1_dataset in _level1_dataset_path_iter(Path(level1_root), *find_options):
@@ -327,6 +328,7 @@ def generate_level1(level1_root: Path, output_dir: Path, start_date: datetime,
         # 5 degree by 5 degree geographies like level1 datasets
         # There is no reason for this breakup
         yaml_output_dir = output_dir / '/'.join(level1_dataset.parts[-(1 + copy_parent_dir_count):-1])
+        os.makedirs(yaml_output_dir, exist_ok=True)
         for i in range(retries):
             try:
                 if dry_run:
@@ -340,7 +342,7 @@ def generate_level1(level1_root: Path, output_dir: Path, start_date: datetime,
                 break
             except Exception as e:
                 logging.error('Issue processing archive: %s', str(level1_dataset))
-                logging.error(e)
+                logging.exception(e)
         else:
             logging.error('Skipping: %s', str(level1_dataset))
 
