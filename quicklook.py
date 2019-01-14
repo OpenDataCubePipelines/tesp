@@ -58,7 +58,7 @@ def main(output, datasets):
         os.path.commonprefix(datasets)
         stem = Path(path).stem
         out = os.path.join(output, stem)
-        quicklook = out+".QUICKLOOK.img"
+        quicklook = out + ".QUICKLOOK.img"
         logging.info("Create quicklook " + contiguity)
         do_contiguity(path, contiguity)
 

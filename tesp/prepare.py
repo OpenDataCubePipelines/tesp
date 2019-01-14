@@ -17,7 +17,6 @@ def extract_level1_metadata(acq):
     )
     from wagl.acquisition.landsat import LandsatAcquisition
 
-
     if isinstance(acq, _Sentinel2SinergiseAcquisition):
         return sentinel_2_aws_pds_prepare(Path(acq.pathname))
     elif isinstance(acq, Sentinel2Acquisition):
