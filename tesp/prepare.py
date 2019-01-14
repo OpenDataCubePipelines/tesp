@@ -5,7 +5,7 @@ from eodatasets.prepare.s2_prepare_cophub_zip import prepare_dataset as sentinel
 from eodatasets.prepare.s2_l1c_aws_pds_prepare import prepare_dataset as sentinel_2_aws_pds_prepare
 
 
-def extract_level1_metadata(acq, acquisition_path):
+def extract_level1_metadata(acq):
     """
     Factory method for selecting a level1 metadata script
 
@@ -19,11 +19,11 @@ def extract_level1_metadata(acq, acquisition_path):
 
 
     if isinstance(acq, _Sentinel2SinergiseAcquisition):
-        return sentinel_2_aws_pds_prepare(Path(acq.granule_xml))
+        return sentinel_2_aws_pds_prepare(Path(acq.pathname))
     elif isinstance(acq, Sentinel2Acquisition):
         return sentinel_2_zip_prepare(Path(acq.pathname))
     elif isinstance(acq, LandsatAcquisition):
-        return landsat_prepare(Path(acquisition_path))
+        return landsat_prepare(Path(acq.pathname))
 
     raise NotImplementedError(
         'No level-1 YAML generation defined for target acquisition '
