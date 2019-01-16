@@ -22,11 +22,11 @@ install:
 - export CPLUS_INCLUDE_PATH="/usr/include/gdal"
 - export C_INCLUDE_PATH="/usr/include/gdal"
 - travis_retry pip install --upgrade pip
-- travis_retry pip install --upgrade pytest pytest-cov pytest-flake8 deepdiff flake8 pep8-naming
+- travis_retry pip install --upgrade pytest pytest-cov pytest-flake8 flake8 pep8-naming pylint
 - travis_retry pip install gdal==1.10.0 rasterio shapely pyyaml click ciso8601 checksumdir
 - pip freeze
 script:
-- pytest
+- python3 -m pycodestyle tesp --max-line-length 120
 before_deploy:
 - python setup.py sdist
 deploy:

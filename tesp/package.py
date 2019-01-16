@@ -454,11 +454,12 @@ def create_checksum(outdir):
     checksum(out_fname)
 
 
-def get_level1_tags(container, granule=None, yamls_path=None, l1_path=None):
+def get_level1_tags(container, granule=None, yamls_path=None):
+    _acq = container.get_all_acquisitions()[0]
     if yamls_path:
         # TODO define a consistent file structure where yaml metadata exists
         yaml_fname = pjoin(yamls_path,
-                           basename(dirname(l1_path)),
+                           basename(dirname(_acq.pathname)),
                            '{}.yaml'.format(container.label))
 
         # quick workaround if no source yaml
@@ -473,8 +474,8 @@ def get_level1_tags(container, granule=None, yamls_path=None, l1_path=None):
             }
             l1_tags = l1_documents[granule]
     else:
-        acq = container.get_all_acquisitions()[0]
-        docs = extract_level1_metadata(acq, l1_path)
+        docs = extract_level1_metadata(_acq)
+        # Sentinel-2 may contain multiple scenes in a granule
         if isinstance(docs, list):
             l1_tags = [doc for doc in docs
                        if doc.get('tile_id', doc.get('label')) == granule][0]
@@ -519,7 +520,7 @@ def package(l1_path, antecedents, yamls_path, outdir,
         None; The packages will be written to disk directly.
     """
     container = acquisitions(l1_path, acq_parser_hint)
-    l1_tags = get_level1_tags(container, granule, yamls_path, l1_path)
+    l1_tags = get_level1_tags(container, granule, yamls_path)
     antecedent_metadata = {}
 
     with h5py.File(antecedents['wagl'], 'r') as fid:

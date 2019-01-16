@@ -50,5 +50,4 @@ setup(name='tesp',
                'bin/ard_pbs',
                'bin/search_s2',
                'bin/s2-nci-processing'],
-      include_package_data=True
-)
+      include_package_data=True)
