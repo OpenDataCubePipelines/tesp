@@ -123,32 +123,20 @@ def experiment_summary(l2_path, fmask_path, granule, tag, settings):
 
     with h5py.File(l2_path) as h5:
 
-        def get(*keys):
-            return h5['/'.join([granule, *keys])]
+        dataset = h5[granule]
+        date = dataset[GroupName.ATMOSPHERIC_INPUTS_GRP.value].attrs['acquisition-datetime'][:len('2000-01-01')]
 
-        def band_dataset(product, band):
-            for res_group in ['RES-GROUP-2', 'RES-GROUP-1', 'RES-GROUP-0']:
-                try:
-                    return get(res_group, GroupName.STANDARD_GROUP.value,
-                               DatasetName.REFLECTANCE_FMT.value.format(product=product, band_name=band))
-                except KeyError:
-                    pass
+        def process(group):
+            for product in group:
+                for band in group[product]:
+                    ds = group[product][band]
 
-            raise KeyError(f'could not find {product} {band} in {granule}')
+                    band_name = ds.attrs['alias']
+                    data = numpy.where(valid_pixels, mask_invalid(ds[:]), numpy.nan)
 
-        date = get(GroupName.ATMOSPHERIC_INPUTS_GRP.value).attrs['acquisition-datetime'][:len('2000-01-01')]
+                    yield [product, date, granule, band_name,
+                           tag, numpy.nanmean(data), numpy.nanstd(data), numpy.sum(valid_pixels)]
 
-        def process_band(product, band):
-            try:
-                ds = band_dataset(product, band)
-                band_name = ds.attrs['alias']
-                data = numpy.where(valid_pixels, mask_invalid(ds[:]), numpy.nan)
-
-                yield [product, date, granule, band_name,
-                       tag, numpy.nanmean(data), numpy.nanstd(data), numpy.sum(valid_pixels)]
-            except KeyError:
-                pass
-
-        for product in [p.value for p in ArdProducts]:
-            for band in [f'BAND-{b}' for b in range(1, 8)]:
-                yield from process_band(product, band)
+        for res_group in dataset:
+            if res_group.startswith('RES-GROUP'):
+                yield from process(dataset[res_group][GroupName.STANDARD_GROUP.value]['REFLECTANCE'])
