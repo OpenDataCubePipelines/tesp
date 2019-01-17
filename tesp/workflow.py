@@ -73,13 +73,14 @@ class RunFmask(luigi.Task):
     level1 = luigi.Parameter()
     granule = luigi.Parameter()
     workdir = luigi.Parameter()
+    upstream_settings = luigi.DictParameter(default={})
     acq_parser_hint = luigi.OptionalParameter(default='')
 
     def requires(self):
         # for the time being have fmask require wagl,
         # no point in running fmask if wagl fails...
         # return WorkDir(self.level1, dirname(self.workdir))
-        return DataStandardisation(self.level1, self.workdir, self.granule)
+        return DataStandardisation(self.level1, self.workdir, self.granule, **self.upstream_settings)
 
     def output(self):
         out_fname = pjoin(self.workdir, '{}.fmask.img'.format(self.granule))
