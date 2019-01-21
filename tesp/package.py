@@ -33,6 +33,7 @@ from tesp.prepare import extract_level1_metadata
 
 from eugl.fmask import fmask_cogtif
 from eugl.contiguity import contiguity
+from eugl.metadata import get_fmask_metadata
 import fmask
 
 yaml.add_representer(numpy.int8, Representer.represent_int)
