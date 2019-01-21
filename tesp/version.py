@@ -83,7 +83,7 @@ def get_version():
     return version
 
 
-REPO_URL = 'https://github.com/OpenDataCubePipelines/opendatacubepipeline.tesp'
+REPO_URL = 'https://github.com/OpenDataCubePipelines/tesp'
 
 
 if __name__ == '__main__':

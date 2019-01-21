@@ -556,12 +556,7 @@ def package(l1_path, antecedents, yamls_path, outdir,
             fmask_cogtif(antecedents['fmask'], fmask_location)
 
             # Should move the metadata definition to eugl
-            antecedent_metadata['fmask'] = {
-                'software_versions': {
-                    'repo_url': 'https://bitbucket.org/chchrsc/python-fmask',
-                    'version': fmask.__version__
-                }
-            }
+            antecedent_metadata['fmask'] = get_fmask_metadata()
 
             with rasterio.open(fmask_location) as ds:
                 img_paths['fmask'] = get_img_dataset_info(ds, rel_path)
