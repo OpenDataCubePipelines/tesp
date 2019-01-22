@@ -33,6 +33,7 @@ from tesp.prepare import extract_level1_metadata
 
 from eugl.fmask import fmask_cogtif
 from eugl.contiguity import contiguity
+from eugl.metadata import get_fmask_metadata
 import fmask
 
 yaml.add_representer(numpy.int8, Representer.represent_int)
@@ -554,14 +555,7 @@ def package(l1_path, antecedents, yamls_path, outdir,
             rel_path = pjoin(QA, '{}_FMASK.TIF'.format(grn_id))
             fmask_location = pjoin(out_path, rel_path)
             fmask_cogtif(antecedents['fmask'], fmask_location)
-
-            # Should move the metadata definition to eugl
-            antecedent_metadata['fmask'] = {
-                'software_versions': {
-                    'repo_url': 'https://bitbucket.org/chchrsc/python-fmask',
-                    'version': fmask.__version__
-                }
-            }
+            antecedent_metadata['fmask'] = get_fmask_metadata()
 
             with rasterio.open(fmask_location) as ds:
                 img_paths['fmask'] = get_img_dataset_info(ds, rel_path)

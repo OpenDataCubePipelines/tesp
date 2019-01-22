@@ -87,7 +87,6 @@ def merge_metadata(level1_tags, wagl_tags, granule, image_paths, **antecedent_ta
         },
     }
 
-    # Handles GQA and Fmask metadata currently
     # Configured to handle gqa and fmask antecedent tasks
     for task_name, task_md in antecedent_tags.items():
         if 'software_versions' in task_md:
