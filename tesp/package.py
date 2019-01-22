@@ -555,8 +555,6 @@ def package(l1_path, antecedents, yamls_path, outdir,
             rel_path = pjoin(QA, '{}_FMASK.TIF'.format(grn_id))
             fmask_location = pjoin(out_path, rel_path)
             fmask_cogtif(antecedents['fmask'], fmask_location)
-
-            # Should move the metadata definition to eugl
             antecedent_metadata['fmask'] = get_fmask_metadata()
 
             with rasterio.open(fmask_location) as ds:
