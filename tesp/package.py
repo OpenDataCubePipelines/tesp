@@ -445,6 +445,7 @@ def create_contiguity(product_list, container, granule, outdir):
             alias = ALIAS_FMT[product].format('contiguity')
 
             # temp vrt
+            tmp_fname = pjoin(tmpdir, '{}.vrt'.format(product))
             cmd = ['gdalbuildvrt',
                    '-resolution',
                    'user',
