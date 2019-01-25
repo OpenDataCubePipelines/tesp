@@ -2,21 +2,14 @@
 """
 Preparation code supporting merge of target Analysis Ready Data yaml metadata document
 and the source Level 1 yaml
-
-example usage:
-    python yaml_merge.py /g/data/v10/tmp/S2A_OPER_MSI_ARD_TL_SGS__20160703T061054_A005376_T52KGA_N02.04/ARD-METADATA.yaml
-        --source /g/data/v10/AGDCv2/indexed_datasets/cophub/s2/s2_l1c_yamls/
 """  # nopep8
 from __future__ import absolute_import
 
-import logging
 import os
 import uuid
 import copy
 import re
 import numpy as np
-import click
-import yaml
 from tesp.version import get_version as tesp_version
 from tesp.version import REPO_URL as tesp_repo_url
 

@@ -13,7 +13,7 @@ import yaml
 
 from wagl.acquisition import preliminary_acquisitions_data
 from wagl.singlefile_workflow import DataStandardisation
-from wagl.constants import ArdProducts, GroupName, DatasetName
+from wagl.constants import GroupName
 from tesp.package import PATTERN2, ARD
 from tesp.workflow import RunFmask
 
@@ -55,6 +55,7 @@ class ExperimentList(luigi.WrapperTask):
                 yield exp
 
 # NOTE we probably need one more level here that creates the temporal mean image
+
 
 class Experiment(luigi.Task):
     """ Sensitivity analysis experiment. """
