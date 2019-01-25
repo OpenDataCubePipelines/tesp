@@ -8,7 +8,6 @@ from subprocess import check_call
 import tempfile
 import glob
 import re
-from functools import singledispatch
 from pkg_resources import resource_stream
 import numpy
 import h5py
