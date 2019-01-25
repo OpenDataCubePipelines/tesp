@@ -6,12 +6,10 @@ A temporary workflow for processing S2 data into an ARD package.
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from os.path import join as pjoin, basename
-from posixpath import join as ppjoin
 import shutil
 import re
 import logging
 import traceback
-from urllib.parse import urlencode
 
 from structlog import wrap_logger
 from structlog.processors import JSONRenderer
@@ -208,8 +206,8 @@ class ARDP(luigi.WrapperTask):
         futures = [executor.submit(worker, level1) for level1 in level1_list]
 
         for future in as_completed(futures):
-            for package in future.result():
-                yield package
+            for _package in future.result():
+                yield _package
 
 
 if __name__ == '__main__':

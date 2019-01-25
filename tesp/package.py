@@ -34,7 +34,6 @@ from tesp.prepare import extract_level1_metadata
 from eugl.fmask import fmask_cogtif
 from eugl.contiguity import contiguity
 from eugl.metadata import get_fmask_metadata
-import fmask
 
 yaml.add_representer(numpy.int8, Representer.represent_int)
 yaml.add_representer(numpy.uint8, Representer.represent_int)
@@ -98,7 +97,7 @@ def _write_tif(dataset, out_fname, cogtif=True, platform=None):
     # L1C products and its overview's blocksize are default value of GDAL's
     # overview block size of 128 x 128
 
-    #TODO Standardizing the Sentinel-2's overview tile size with external inputs
+    # TODO Standardizing the Sentinel-2's overview tile size with external inputs
 
     if platform == "LANDSAT":
         blockxsize = 512
@@ -616,7 +615,6 @@ def package(l1_path, antecedents, yamls_path, outdir,
         create_readme(out_path)
 
         # merge all the yaml documents
-        # TODO include fmask yaml (if we go ahead and create one)
         if 'gqa' in antecedents:
             with open(antecedents['gqa']) as fl:
                 antecedent_metadata['gqa'] = yaml.load(fl)
