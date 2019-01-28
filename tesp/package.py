@@ -9,6 +9,7 @@ from subprocess import check_call
 import tempfile
 import glob
 import re
+from functools import singledispatch
 from pkg_resources import resource_stream
 import numpy
 import h5py
@@ -92,7 +93,6 @@ def get_cogtif_options(dataset, overviews=True, blockxsize=None, blockysize=None
         (int) override the derived base blockysize in cogtif conversion
 
     returns a dict {'options': {}, 'config_options': {}}
-
     """
 
     # TODO Standardizing the Sentinel-2's overview tile size with external inputs
@@ -185,7 +185,7 @@ def write_tif_from_dataset(dataset, out_fname, options, config_options,
     if not exists(dirname(out_fname)):
         os.makedirs(dirname(out_fname))
 
-    write_img(data, out_fname, levels=LEVELS, nodata=nodata,
+    write_img(data, out_fname, cogtif=overviews, levels=LEVELS, nodata=nodata,
               geobox=geobox, resampling=Resampling.average,
               options=options, config_options=config_options)
 
@@ -236,6 +236,19 @@ def write_tif_from_file(dataset: str, out_fname, options, config_options, overvi
         run_command(command, dirname(dataset))
 
     return out_fname
+
+
+def _write_tif(dataset, out_fname, cogtif=True, platform=None):
+    """
+    Easy wrapper for writing a tif or cogtif, that takes care of datasets
+    that are written row by row rather square(ish) blocks.
+    All the overview level's block size is set to 512 x 512 for USGS dataset
+    """
+    if dataset.chunks[1] == dataset.shape[1]:
+        data = dataset[:]
+    else:
+        data = dataset
+>>>>>>> Fix merge conflicts in optional fmask
 
 
 def get_img_dataset_info(dataset, path, layer=1):
@@ -750,7 +763,6 @@ def package(l1_path, antecedents, yamls_path, outdir,
             # Set the predictor level
             fmask_cogtif_args['options']['predictor'] = 2
             write_tif_from_file(antecedents['fmask'], fmask_cogtif_out, **fmask_cogtif_args)
-
             antecedent_metadata['fmask'] = get_fmask_metadata()
 
             with rasterio.open(fmask_cogtif_out) as ds:
