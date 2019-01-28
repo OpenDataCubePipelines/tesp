@@ -1,26 +1,26 @@
-from unittest import TestClass
+from unittest import TestCase
 from collections import namedtuple
 
-import numpy
 from tesp.package import get_cogtif_options
 from deepdiff import DeepDiff
 
-TestAcquisition = namedtuple('TestAcquisiton', ['data'])
-TestDataset = namedtuple('TestDataset', ['shape', 'chunks'])
+TempAcquisition = namedtuple('TempAcquisition', ['data'])
+TempDataset = namedtuple('TempDataset', ['shape', 'chunks'])
 
-class TestCogtifOptions(TestClass):
+
+class TestCogtifOptions(TestCase):
 
     @classmethod
     def create_acq(cls, shape, chunks):
-        return TestAcquistion(
-            TestDataset(
+        return TempAcquisition(
+            TempDataset(
                 shape=shape,
                 chunks=chunks
             )
         )
 
     def test_cogtif_low_res(self):
-        low_res = self.create_acq((80, 80), (0,0))
+        low_res = self.create_acq((80, 80), (0, 0))
         expected = {
             'options': {
                 'compress': 'deflate',
@@ -34,13 +34,13 @@ class TestCogtifOptions(TestClass):
         self.assertEqual(DeepDiff(results, expected), {})
 
     def test_cogtif_boundary_res(self):
-        low_res = self.create_acq((1024, 512), (0,0))
+        low_res = self.create_acq((1024, 512), (512, 512))
         expected = {
             'options': {
                 'compress': 'deflate',
                 'zlevel': 4,
-                'copy_src_overviews': 'yes'
-                'blockysize': 80,
+                'copy_src_overviews': 'yes',
+                'blockysize': 512,
                 'blockxsize': 256
             },
             'config_options': {}
@@ -49,18 +49,19 @@ class TestCogtifOptions(TestClass):
         results = get_cogtif_options(low_res)
         self.assertEqual(DeepDiff(results, expected), {})
 
-    def test_cogtif_boundary_res(self):
+    def test_cogtif_single_tile(self):
         low_res = self.create_acq((1024, 1024), (1024, 1024))
         expected = {
             'options': {
                 'compress': 'deflate',
                 'zlevel': 4,
-                'copy_src_overviews': 'yes'
+                'copy_src_overviews': 'yes',
                 'blockysize': 512,
                 'blockxsize': 512,
+                'tiled': 'yes',
             },
             'config_options': {
-                'GDAL_TIFF_OVER_BLOCKSIZE': 512
+                'GDAL_TIFF_OVR_BLOCKSIZE': 512
             }
         }
 
@@ -73,7 +74,7 @@ class TestCogtifOptions(TestClass):
             'options': {
                 'compress': 'deflate',
                 'zlevel': 4,
-                'copy_src_overviews': 'yes'
+                'copy_src_overviews': 'yes',
                 'blockysize': 1024,
                 'blockxsize': 1024,
             },
@@ -82,4 +83,3 @@ class TestCogtifOptions(TestClass):
 
         results = get_cogtif_options(low_res)
         self.assertEqual(DeepDiff(results, expected), {})
-        
