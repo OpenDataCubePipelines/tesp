@@ -124,8 +124,6 @@ def get_cogtif_options(dataset, overviews=True, blockxsize=None, blockysize=None
         # gdal does not like a x blocksize the same as the whole dataset
         if options['blockxsize'] == blockxsize:
             options['blockxsize'] = int(options['blockxsize'] / 2)
-        if overviews:
-            options['copy_src_overviews'] = 'yes'
     else:
         if dataset.shape[1] == blockxsize:
             # dataset does not have an internal tiling layout
@@ -171,7 +169,7 @@ def write_tif_from_dataset(dataset, out_fname, options, config_options,
 
     returns the out_fname param
     """
-    if hasattr(dataset, 'chunks'):
+    if hasattr(dataset, 'chunks') and dataset.chunks[1] == dataset.shape[1]:
         data = dataset[:]
     else:
         data = dataset
@@ -185,7 +183,7 @@ def write_tif_from_dataset(dataset, out_fname, options, config_options,
     if not exists(dirname(out_fname)):
         os.makedirs(dirname(out_fname))
 
-    write_img(data, out_fname, cogtif=overviews, levels=LEVELS, nodata=nodata,
+    write_img(data, out_fname, levels=LEVELS, nodata=nodata,
               geobox=geobox, resampling=Resampling.average,
               options=options, config_options=config_options)
 
@@ -236,19 +234,6 @@ def write_tif_from_file(dataset: str, out_fname, options, config_options, overvi
         run_command(command, dirname(dataset))
 
     return out_fname
-
-
-def _write_tif(dataset, out_fname, cogtif=True, platform=None):
-    """
-    Easy wrapper for writing a tif or cogtif, that takes care of datasets
-    that are written row by row rather square(ish) blocks.
-    All the overview level's block size is set to 512 x 512 for USGS dataset
-    """
-    if dataset.chunks[1] == dataset.shape[1]:
-        data = dataset[:]
-    else:
-        data = dataset
->>>>>>> Fix merge conflicts in optional fmask
 
 
 def get_img_dataset_info(dataset, path, layer=1):
@@ -312,7 +297,7 @@ def unpack_products(product_list, container, granule, h5group, outdir):
             rel_path = pjoin(product, re.sub(PATTERN2, ARD, fname))
             out_fname = pjoin(outdir, rel_path)
 
-            _cogtif_args = get_cogtif_options(dataset, overviews=True)
+            _cogtif_args = get_cogtif_options(dataset)
             write_tif_from_dataset(dataset, out_fname, **_cogtif_args)
 
             # alias name for ODC metadata doc
@@ -460,7 +445,6 @@ def create_contiguity(product_list, container, granule, outdir):
             alias = ALIAS_FMT[product].format('contiguity')
 
             # temp vrt
-            tmp_fname = pjoin(tmpdir, '{}.vrt'.format(product))
             cmd = ['gdalbuildvrt',
                    '-resolution',
                    'user',
@@ -756,13 +740,15 @@ def package(l1_path, antecedents, yamls_path, outdir,
             fmask_cogtif_out = pjoin(out_path, rel_path)
 
             # Get cogtif args with overviews
-            acq = container.get_mode_resolution(granule=granule)[0][0]
-            tileysize, tilexsize = acq.tile_size
-            fmask_cogtif_args = get_cogtif_options(acq.data(), blockxsize=tilexsize, blockysize=tileysize)
+            fmask_cogtif_args = get_cogtif_options(
+                container.get_mode_resolution(granule=granule)[0][0].data()
+            )
 
             # Set the predictor level
             fmask_cogtif_args['options']['predictor'] = 2
-            write_tif_from_file(antecedents['fmask'], fmask_cogtif_out, **fmask_cogtif_args)
+            write_tif_from_file(fmask_fname, fmask_cogtif_out, **fmask_cogtif_args)
+
+            fmask_cogtif(antecedents['fmask'], fmask_location, platform)
             antecedent_metadata['fmask'] = get_fmask_metadata()
 
             with rasterio.open(fmask_cogtif_out) as ds:
