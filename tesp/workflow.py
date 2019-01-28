@@ -184,6 +184,22 @@ def list_packages(workdir, acq_parser_hint, pkgdir):
     return worker
 
 
+def list_packages(workdir, acq_parser_hint, pkgdir):
+    def worker(level1):
+        work_root = pjoin(workdir, '{}.ARD'.format(basename(level1)))
+
+        result = []
+        for granule in preliminary_acquisitions_data(level1, acq_parser_hint):
+            work_dir = pjoin(work_root, granule['id'])
+            ymd = granule['datetime'].strftime('%Y-%m-%d')
+            outdir = pjoin(pkgdir, ymd)
+            result.append(Package(level1, work_dir, granule['id'], outdir))
+
+        return result
+
+    return worker
+
+
 class ARDP(luigi.WrapperTask):
 
     """
