@@ -80,10 +80,10 @@ def _clean(alias):
     return alias.lower()
 
 
-def get_cogtif_options(acq, overviews=True):
+def get_cogtif_options(dataset, overviews=True):
     """ Returns write_img options according to the source imagery provided
-    :param acq:
-        Acquisition object to derive the tiling size from
+    :param dataset:
+        Numpy array or hdf5 dataset representing raster values of the tif
     :param overviews:
         (boolean) sets overview flags in gdal config options
 
@@ -99,17 +99,15 @@ def get_cogtif_options(acq, overviews=True):
     }
     config_options = {}
 
-    dataset = acq.data
-
     if dataset.shape[0] <= 512 and dataset.shape[1] <= 512:
         pass
     elif dataset.shape[1] <= 512:
         options['blockysize'] = min(dataset.chunks[0], 512)
         # Set blockxsize to power of 2 rounded down
-        options['blockxsize'] = (2 ** (dataset.chunks[1].bit_length() - 1))
+        options['blockxsize'] = int(2 ** (dataset.shape[1].bit_length() - 1))
         # gdal does not like a x blocksize the same as the whole dataset
         if options['blockxsize'] == dataset.chunks[1]:
-            options['blockxsize'] = (options['blockxsize'] / 2)
+            options['blockxsize'] = int(options['blockxsize'] / 2)
     elif dataset.chunks[1] == dataset.shape[1]:
         # dataset does not have an internal tiling layout
         # set the layout to a 512 block size
@@ -132,8 +130,8 @@ def get_cogtif_options(acq, overviews=True):
     }
 
 
-@singledispatch
-def write_tif(dataset, out_fname, options, config_options, overviews=True):
+def write_tif_from_dataset(dataset, out_fname, options, config_options,
+                           overviews=True, nodata=None, geobox=None):
     """
     Method to write a h5 dataset or numpy array to a tif file
     :param dataset:
@@ -155,26 +153,28 @@ def write_tif(dataset, out_fname, options, config_options, overviews=True):
 
     returns the out_fname param
     """
-    if dataset.chunks[1] == dataset.shape[1]:
+    if hasattr(dataset, 'chunks') and dataset.chunks[1] == dataset.shape[1]:
         data = dataset[:]
     else:
         data = dataset
-    nodata = dataset.attrs.get('no_data_value')
-    geobox = GriddedGeoBox.from_dataset(dataset)
+
+    if nodata is None and hasattr(dataset, 'attrs'):
+        nodata = dataset.attrs.get('no_data_value')
+    if geobox is None:
+        geobox = GriddedGeoBox.from_dataset(dataset)
 
     # path existence
     if not exists(dirname(out_fname)):
         os.makedirs(dirname(out_fname))
 
-    write_img(data, out_fname, cogtif=overviews, levels=LEVELS, nodata=nodata,
+    write_img(data, out_fname, levels=LEVELS, nodata=nodata,
               geobox=geobox, resampling=Resampling.average,
               options=options, config_options=config_options)
 
     return out_fname
 
 
-@write_tif.register
-def write_tif(dataset:str, out_fname, options, config_options, overviews=True):
+def write_tif_from_file(dataset:str, out_fname, options, config_options, overviews=True):
     """
     Compatible interface for writing (cog)tifs from a source file
     :param dataset:
@@ -197,15 +197,14 @@ def write_tif(dataset:str, out_fname, options, config_options, overviews=True):
     """
 
     with tempfile.TemporaryDirectory(
-            dir=dirname(fname), prefix='cogtif-') as tmpdir:
-        command = ["gdaladdo", "-clean", fname]
+            dir=dirname(out_fname), prefix='cogtif-') as tmpdir:
+        command = ["gdaladdo", "-clean", dataset]
         run_command(command, tmpdir)
         if overviews:
-            command = ["gdaladdo", "-r", "fname",].extend(levels)
+            command = ["gdaladdo", "-r", "mode", dataset]
+            command.extend([str(l) for l in LEVELS])
             run_command(command, tmpdir)
-        command = [
-            "gdal_translate", "-of", "GTiff", "-co"
-        ]
+        command = ["gdal_translate", "-of", "GTiff"]
 
         for key, value in options.items():
             command.extend(['-co', '{}={}'.format(key, value)])
@@ -214,23 +213,11 @@ def write_tif(dataset:str, out_fname, options, config_options, overviews=True):
             for key, value in config_options.items():
                 command.extend(['--config', '{}'.format(key), '{}'.format(value)])
 
-        command.extend([fname, out_fname])
+        command.extend([dataset, out_fname])
 
-        run_command(command, dirname(fname))
+        run_command(command, dirname(dataset))
 
     return out_fname
-
-
-def _write_tif(dataset, out_fname, cogtif=True, platform=None):
-    """
-    Easy wrapper for writing a tif or cogtif, that takes care of datasets
-    that are written row by row rather square(ish) blocks.
-    All the overview level's block size is set to 512 x 512 for USGS dataset
-    """
-    if dataset.chunks[1] == dataset.shape[1]:
-        data = dataset[:]
-    else:
-        data = dataset
 
 
 def get_img_dataset_info(dataset, path, layer=1):
@@ -295,7 +282,7 @@ def unpack_products(product_list, container, granule, h5group, outdir):
             out_fname = pjoin(outdir, rel_path)
 
             _cogtif_args = get_cogtif_options(dataset)
-            write_tif(dataset, out_fname, **_cogtif_args)
+            write_tif_from_dataset(dataset, out_fname, **_cogtif_args)
 
             # alias name for ODC metadata doc
             alias = _clean(ALIAS_FMT[product].format(dataset.attrs['alias']))
@@ -336,14 +323,14 @@ def unpack_supplementary(container, granule, h5group, outdir):
             dset = h5_group[dname]
             alias = _clean(dset.attrs['alias'])
             paths[alias] = get_img_dataset_info(dset, rel_path)
-            write_tif(dataset, out_fname, **_cogtif_args)
+            write_tif_from_dataset(dset, out_fname, **_cogtif_args)
 
         return paths
 
     acqs, res_grp = container.get_mode_resolution(granule)
     grn_id = re.sub(PATTERN2, ARD, granule)
     # Get tiling layout from mode resolution image, without overviews
-    _cogtif_args = get_cogtif_options(acqs[0], overviews=False)
+    _cogtif_args = get_cogtif_options(acqs[0].data(), overviews=False)
     del(acqs)
 
     # relative paths of each dataset for ODC metadata doc
@@ -357,7 +344,7 @@ def unpack_supplementary(container, granule, h5group, outdir):
               DatasetName.SOLAR_AZIMUTH.value,
               DatasetName.RELATIVE_AZIMUTH.value,
               DatasetName.TIME.value]
-    paths = _write(dnames, grp, grn_id, SUPPS, cogtif=False, _cogtif_args)
+    paths = _write(dnames, grp, grn_id, SUPPS, cogtif=False, cogtif_args=_cogtif_args)
     for key in paths:
         rel_paths[key] = paths[key]
 
@@ -368,7 +355,7 @@ def unpack_supplementary(container, granule, h5group, outdir):
     grp = h5group[ppjoin(res_grp, GroupName.INCIDENT_GROUP.value)]
     dnames = [DatasetName.INCIDENT.value,
               DatasetName.AZIMUTHAL_INCIDENT.value]
-    paths = _write(dnames, grp, grn_id, SUPPS, cogtif=False, _cogtif_args)
+    paths = _write(dnames, grp, grn_id, SUPPS, cogtif=False, cogtif_args=_cogtif_args)
     for key in paths:
         rel_paths[key] = paths[key]
 
@@ -376,21 +363,21 @@ def unpack_supplementary(container, granule, h5group, outdir):
     grp = h5group[ppjoin(res_grp, GroupName.EXITING_GROUP.value)]
     dnames = [DatasetName.EXITING.value,
               DatasetName.AZIMUTHAL_EXITING.value]
-    paths = _write(dnames, grp, grn_id, SUPPS, cogtif=False, _cogtif_args)
+    paths = _write(dnames, grp, grn_id, SUPPS, cogtif=False, cogtif_args=_cogtif_args)
     for key in paths:
         rel_paths[key] = paths[key]
 
     # relative slope
     grp = h5group[ppjoin(res_grp, GroupName.REL_SLP_GROUP.value)]
     dnames = [DatasetName.RELATIVE_SLOPE.value]
-    paths = _write(dnames, grp, grn_id, SUPPS, cogtif=False, _cogtif_args)
+    paths = _write(dnames, grp, grn_id, SUPPS, cogtif=False, cogtif_args=_cogtif_args)
     for key in paths:
         rel_paths[key] = paths[key]
 
     # terrain shadow
     grp = h5group[ppjoin(res_grp, GroupName.SHADOW_GROUP.value)]
     dnames = [DatasetName.COMBINED_SHADOW.value]
-    paths = _write(dnames, grp, grn_id, QA, cogtif=True, _cogtif_args)
+    paths = _write(dnames, grp, grn_id, QA, cogtif=True, cogtif_args=_cogtif_args)
     for key in paths:
         rel_paths[key] = paths[key]
 
@@ -407,7 +394,7 @@ def create_contiguity(product_list, container, granule, outdir):
     # this rule is expected to change once more people get involved
     # in the decision making process
     acqs, _ = container.get_mode_resolution(granule)
-    _cogtif_args = get_cogtif_options(acqs[0])
+    _cogtif_args = get_cogtif_options(acqs[0].data())
     _res = acqs[0].resolution
     del(acqs)
 
@@ -445,7 +432,6 @@ def create_contiguity(product_list, container, granule, outdir):
             alias = ALIAS_FMT[product].format('contiguity')
 
             # temp vrt
-            tmp_fname = pjoin(tmpdir, '{}.vrt'.format(product))
             cmd = ['gdalbuildvrt',
                    '-resolution',
                    'user',
@@ -458,10 +444,9 @@ def create_contiguity(product_list, container, granule, outdir):
             run_command(cmd, tmpdir)
 
             # contiguity mask for nbar product
-            contiguity_mask = contiguity(tmp_fname, out_fname, platform)
-
-            contiguity_data, _ = contiguity(tmp_fname)
-            write_tif(contiguity_data, out_fname, **_cogtif_args)
+            contiguity_data, geobox = contiguity(tmp_fname)
+            write_tif_from_dataset(contiguity_data, out_fname,
+                                   geobox=geobox, **_cogtif_args)
 
             if base_fname.endswith('NBAR_CONTIGUITY.TIF'):
                 nbar_contiguity = contiguity_data
@@ -563,12 +548,8 @@ def create_quicklook(product_list, container, outdir):
             cmd = ['gdaladdo',
                    '-r',
                    'average',
-                   tmp_fname3,
-                   '2',
-                   '4',
-                   '8',
-                   '16',
-                   '32']
+                   tmp_fname3]
+            cmd.extend([str(l) for l in LEVELS])
             run_command(cmd, tmpdir)
 
             # create the cogtif
@@ -728,12 +709,12 @@ def package(l1_path, antecedents, yamls_path, outdir,
 
             # Get cogtif args with overviews
             fmask_cogtif_args = get_cogtif_options(
-                container.get_mode_resolution(granule=granule)[0][0]
+                container.get_mode_resolution(granule=granule)[0][0].data()
             )
 
             # Set the predictor level
             fmask_cogtif_args['options']['predictor'] = 2
-            write_tif(fmask_fname, fmask_cogtif_out, **fmask_cogtif_args)
+            write_tif_from_file(fmask_fname, fmask_cogtif_out, **fmask_cogtif_args)
 
             fmask_cogtif(antecedents['fmask'], fmask_location, platform)
             antecedent_metadata['fmask'] = get_fmask_metadata()

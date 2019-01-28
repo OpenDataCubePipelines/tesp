@@ -5,8 +5,6 @@ import numpy
 import rasterio
 from skimage.exposure import rescale_intensity
 
-FACTORS = [2, 4, 8, 16, 32]
-
 
 def quicklook(fname, out_fname, src_min, src_max, out_min=0, out_max=255):
     """
@@ -73,9 +71,12 @@ def quicklook(fname, out_fname, src_min, src_max, out_min=0, out_max=255):
                   'nodata': 0,
                   'compress': 'jpeg',
                   'photometric': 'YCBCR',
-                  'tiled': 'yes',
-                  'blockxsize': 512,
-                  'blockysize': 512}
+                  'tiled': 'yes'}
+
+        # Only set blocksize on larger imagery; enables reduced resolution processing
+        if ds.height > 512 and ds.width > 512:
+            kwargs['blockxsize'] = 512
+            kwargs['blockysize'] = 512
 
         with rasterio.open(out_fname, 'w', **kwargs) as out_ds:
             for band in range(1, 4):
