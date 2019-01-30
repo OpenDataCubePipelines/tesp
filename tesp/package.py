@@ -8,7 +8,6 @@ from subprocess import check_call
 import tempfile
 import glob
 import re
-from functools import singledispatch
 from pkg_resources import resource_stream
 import numpy
 import h5py
@@ -550,6 +549,7 @@ def create_quicklook(product_list, container, outdir):
                    '-r',
                    'average',
                    tmp_fname3]
+            # Add levels
             cmd.extend([str(l) for l in LEVELS])
             run_command(cmd, tmpdir)
 
@@ -706,7 +706,7 @@ def package(l1_path, antecedents, yamls_path, outdir,
         # fmask cogtif conversion
         if 'fmask' in antecedents:
             rel_path = pjoin(QA, '{}_FMASK.TIF'.format(grn_id))
-            fmask_location = pjoin(out_path, rel_path)
+            fmask_cogtif_out = pjoin(out_path, rel_path)
 
             # Get cogtif args with overviews
             fmask_cogtif_args = get_cogtif_options(
@@ -715,12 +715,11 @@ def package(l1_path, antecedents, yamls_path, outdir,
 
             # Set the predictor level
             fmask_cogtif_args['options']['predictor'] = 2
-            write_tif_from_file(fmask_fname, fmask_cogtif_out, **fmask_cogtif_args)
+            write_tif_from_file(antecedents['fmask'], fmask_cogtif_out, **fmask_cogtif_args)
 
-            fmask_cogtif(antecedents['fmask'], fmask_location, platform)
             antecedent_metadata['fmask'] = get_fmask_metadata()
 
-            with rasterio.open(fmask_location) as ds:
+            with rasterio.open(fmask_cogtif_out) as ds:
                 img_paths['fmask'] = get_img_dataset_info(ds, rel_path)
 
         # map, quicklook/thumbnail, readme, checksum
