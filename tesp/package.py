@@ -9,7 +9,6 @@ from subprocess import check_call
 import tempfile
 import glob
 import re
-from functools import singledispatch
 from pkg_resources import resource_stream
 import numpy
 import h5py
@@ -605,7 +604,6 @@ def create_quicklook(product_list, container, outdir):
             # quick work around for products that aren't being packaged
             if not fnames:
                 continue
-
             _process_quicklook(product, fnames, out_path, tmpdir)
 
 
@@ -747,9 +745,8 @@ def package(l1_path, antecedents, yamls_path, outdir,
 
             # Set the predictor level
             fmask_cogtif_args['options']['predictor'] = 2
-            write_tif_from_file(fmask_fname, fmask_cogtif_out, **fmask_cogtif_args)
+            write_tif_from_file(antecedents['fmask'], fmask_cogtif_out, **fmask_cogtif_args)
 
-            fmask_cogtif(antecedents['fmask'], fmask_location, platform)
             antecedent_metadata['fmask'] = get_fmask_metadata()
 
             with rasterio.open(fmask_cogtif_out) as ds:
