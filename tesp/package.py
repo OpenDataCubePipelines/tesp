@@ -168,7 +168,7 @@ def write_tif_from_dataset(dataset, out_fname, options, config_options,
 
     returns the out_fname param
     """
-    if hasattr(dataset, 'chunks') and dataset.chunks[1] == dataset.shape[1]:
+    if hasattr(dataset, 'chunks'):
         data = dataset[:]
     else:
         data = dataset
@@ -296,7 +296,7 @@ def unpack_products(product_list, container, granule, h5group, outdir):
             rel_path = pjoin(product, re.sub(PATTERN2, ARD, fname))
             out_fname = pjoin(outdir, rel_path)
 
-            _cogtif_args = get_cogtif_options(dataset)
+            _cogtif_args = get_cogtif_options(dataset, overviews=True)
             write_tif_from_dataset(dataset, out_fname, **_cogtif_args)
 
             # alias name for ODC metadata doc
@@ -493,6 +493,8 @@ def create_quicklook(product_list, container, outdir):
     gdal_settings = get_cogtif_options(
         acq.data(), overviews=True, blockxsize=tilexsize, blockysize=tileysize
     )
+    gdal_settings['options']['COMPRESS'] = 'JPEG'
+    gdal_settings['options']['PHOTOMETRIC'] = 'YCBCR'
 
     # are quicklooks still needed?
     # this wildcard mechanism needs to change if quicklooks are to
@@ -561,17 +563,12 @@ def create_quicklook(product_list, container, outdir):
 
         # create the cogtif
         cmd = ['gdal_translate']
-        options_whitelist = ['blockxsize', 'blockysize', 'tiled', 'copy_src_overviews']
         for key, value in gdal_settings['options'].items():
-            if key in options_whitelist:
-                cmd.extend(['-co', '{}={}'.format(key, value)])
+            cmd.extend(['-co' '{}={}'.format(key, value)])
 
-        config_options_whitelist = ['GDAL_TIFF_OVR_BLOCKSIZE']
         for key, value in gdal_settings['config_options'].items():
-            if key in config_options_whitelist:
-                cmd.extend(['--config', str(key), str(value)])
+            cmd.extend(['--config', key, value])
 
-        cmd.extend(['-co', 'COMPRESS=JPEG', '-co', 'PHOTOMETRIC=YCBCR'])
         cmd.extend([tmp_fname3, out_fname1])
 
         run_command(cmd, tmpdir)
@@ -584,9 +581,7 @@ def create_quicklook(product_list, container, outdir):
                '10%',
                '10%',
                out_fname1,
-               out_fname2
-               ]
-
+               out_fname2]
         run_command(cmd, tmpdir)
 
     with tempfile.TemporaryDirectory(dir=outdir,
@@ -739,9 +734,9 @@ def package(l1_path, antecedents, yamls_path, outdir,
             fmask_cogtif_out = pjoin(out_path, rel_path)
 
             # Get cogtif args with overviews
-            fmask_cogtif_args = get_cogtif_options(
-                container.get_mode_resolution(granule=granule)[0][0].data()
-            )
+            acq = container.get_mode_resolution(granule=granule)[0][0]
+            tileysize, tilexsize = acq.tile_size
+            fmask_cogtif_args = get_cogtif_options(acq.data(), blockxsize=tilexsize, blockysize=tileysize)
 
             # Set the predictor level
             fmask_cogtif_args['options']['predictor'] = 2
