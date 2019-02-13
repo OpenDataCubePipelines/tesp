@@ -6,7 +6,7 @@ Constants
 from wagl.constants import ArdProducts
 
 
-class ProductPackage(object):
+class ProductPackage:
     """
     Helper class for selecting which ard products to package
     """
@@ -15,7 +15,7 @@ class ProductPackage(object):
         ArdProducts.SBT.value
     ))
 
-    _all_products = set([e.value for e in ArdProducts])
+    _all_products = {e.value for e in ArdProducts}
 
     @classmethod
     def validate_products(cls, product_list):

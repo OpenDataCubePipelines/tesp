@@ -61,16 +61,27 @@ def merge_metadata(level1_tags, wagl_tags, granule, image_paths, platform, **ant
     # for Landsat, from_dt and to_dt in ARD-METADATA is populated from max and min timedelta values
     if platform == 'LANDSAT':
 
-        center_dt = np.datetime64(level1_tags['extent'].pop('center_dt'))
-        from_dt = center_dt + np.timedelta64(int(float(wagl_tags.pop('timedelta_min')) * 1000000), 'us')
-        to_dt = center_dt + np.timedelta64(int(float(wagl_tags.pop('timedelta_max')) * 1000000), 'us')
+        # pylint: disable=too-many-function-args
+        def interpret_landsat_temporal_extent():
+            """
+            Landsat imagery only provides a center datetime; a time range can be derived
+            from the timedelta dataset
+            """
 
-        level1_tags_extent = {'center_dt': '{}Z'.format(center_dt),
-                              'coord': level1_tags['extent'].pop('coord'),
-                              'from_dt': '{}Z'.format(from_dt),
-                              'to_dt': '{}Z'.format(to_dt)}
+            center_dt = np.datetime64(level1_tags['extent']['center_dt'])
+            from_dt = center_dt + np.timedelta64(int(float(wagl_tags.pop('timedelta_min')) * 1000000), 'us')
+            to_dt = center_dt + np.timedelta64(int(float(wagl_tags.pop('timedelta_max')) * 1000000), 'us')
+
+            level2_extent = {'center_dt': '{}Z'.format(center_dt),
+                             'coord': level1_tags['extent']['coord'],
+                             'from_dt': '{}Z'.format(from_dt),
+                             'to_dt': '{}Z'.format(to_dt)}
+
+            return level2_extent
+
+        level2_extent = interpret_landsat_temporal_extent()
     else:
-        level1_tags_extent = level1_tags['extent']
+        level2_extent = level1_tags['extent']
 
     # TODO: extend yaml document to include fmask and gqa yamls
     merged_yaml = {
@@ -83,7 +94,7 @@ def merge_metadata(level1_tags, wagl_tags, granule, image_paths, platform, **ant
         'instrument': {'name': wagl_tags['source_datasets']['sensor_id']},
         'format': {'name': 'GeoTIFF'},
         'tile_id': granule,
-        'extent': level1_tags_extent,
+        'extent': level2_extent,
         'grid_spatial': level1_tags['grid_spatial'],
         'image': {'bands': image_paths},
         'lineage': {

@@ -95,7 +95,7 @@ def html_map(contiguity_fname, html_out_fname, json_out_fname):
     except OSError:
         pass
 
-    logging.info("Create valid bounds " + json_out_fname)
+    logging.info("Create valid bounds %s", str(json_out_fname))
     geom, crs = valid_region(contiguity_fname)
     gpdsr = gpd.GeoSeries([geom])
     gpdsr.crs = crs
