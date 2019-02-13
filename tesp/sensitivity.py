@@ -78,7 +78,6 @@ class Experiment(luigi.Task):
             for granule in preliminary_acquisitions_data(level1_path, self.acq_parser_hint):
                 work_root = pjoin(self.workdir, self.tag, basename(level1_path))
                 work_dir = pjoin(work_root, granule['id'])
-
                 yield dict(kind='leaf', level1_path=level1_path, workdir=work_dir, granule=granule['id'])
 
         # collect file info concurrently since IO is expensive
