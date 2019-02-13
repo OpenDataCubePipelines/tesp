@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# pylint: disable=too-many-locals
 
 import os
 from os.path import join as pjoin, basename, dirname, splitext, exists
@@ -49,7 +50,7 @@ yaml.add_representer(numpy.float64, Representer.represent_float)
 yaml.add_representer(numpy.ndarray, Representer.represent_list)
 
 ALIAS_FMT = {'LAMBERTIAN': 'lambertian_{}', 'NBAR': 'nbar_{}', 'NBART': 'nbart_{}', 'SBT': 'sbt_{}'}
-LEVELS = [2, 4, 8, 16, 32]
+LEVELS = [8, 16, 32]
 PATTERN1 = re.compile(
     r'(?P<prefix>(?:.*_)?)(?P<band_name>B[0-9][A0-9]|B[0-9]*|B[0-9a-zA-z]*)'
     r'(?P<extension>\.TIF)')
@@ -79,12 +80,16 @@ def _clean(alias):
     return alias.lower()
 
 
-def get_cogtif_options(dataset, overviews=True):
+def get_cogtif_options(dataset, overviews=True, blockxsize=None, blockysize=None):
     """ Returns write_img options according to the source imagery provided
     :param dataset:
         Numpy array or hdf5 dataset representing raster values of the tif
     :param overviews:
         (boolean) sets overview flags in gdal config options
+    :param blockxsize:
+        (int) override the derived base blockxsize in cogtif conversion
+    :param blockysize:
+        (int) override the derived base blockysize in cogtif conversion
 
     returns a dict {'options': {}, 'config_options': {}}
 
@@ -98,27 +103,41 @@ def get_cogtif_options(dataset, overviews=True):
     }
     config_options = {}
 
+    # If blocksize and datasets has chunks configured set to chunk size
+    # otherwise default to 512
+    if blockxsize is None or blockysize is None:
+        if hasattr(dataset, 'chunks'):
+            blockysize = blockysize or dataset.chunks[0]
+            blockxsize = blockxsize or dataset.chunks[1]
+        else:
+            # Fallback to hardcoded 512 value
+            blockysize = blockysize or 512
+            blockxsize = blockxsize or 512
+
     if dataset.shape[0] <= 512 and dataset.shape[1] <= 512:
+        # Do not set block sizes for small imagery
         pass
     elif dataset.shape[1] <= 512:
-        options['blockysize'] = min(dataset.chunks[0], 512)
+        options['blockysize'] = min(blockysize, 512)
         # Set blockxsize to power of 2 rounded down
-        options['blockxsize'] = int(2 ** (dataset.shape[1].bit_length() - 1))
+        options['blockxsize'] = int(2 ** (blockxsize.bit_length() - 1))
         # gdal does not like a x blocksize the same as the whole dataset
-        if options['blockxsize'] == dataset.chunks[1]:
+        if options['blockxsize'] == blockxsize:
             options['blockxsize'] = int(options['blockxsize'] / 2)
-    elif dataset.chunks[1] == dataset.shape[1]:
-        # dataset does not have an internal tiling layout
-        # set the layout to a 512 block size
-        options['blockxsize'] = 512
-        options['blockysize'] = 512
-        options['tiled'] = 'yes'
         if overviews:
-            config_options['GDAL_TIFF_OVR_BLOCKSIZE'] = 512
+            options['copy_src_overviews'] = 'yes'
     else:
-        # If dataset is already tiled maintain delivered tiling scheme
-        options['blockysize'] = dataset.chunks[0]
-        options['blockxsize'] = dataset.chunks[1]
+        if dataset.shape[1] == blockxsize:
+            # dataset does not have an internal tiling layout
+            # set the layout to a 512 block size
+            blockxsize = 512
+            blockysize = 512
+            if overviews:
+                config_options['GDAL_TIFF_OVR_BLOCKSIZE'] = blockxsize
+
+        options['blockxsize'] = blockxsize
+        options['blockysize'] = blockysize
+        options['tiled'] = 'yes'
 
     if overviews:
         options['copy_src_overviews'] = 'yes'
@@ -152,7 +171,7 @@ def write_tif_from_dataset(dataset, out_fname, options, config_options,
 
     returns the out_fname param
     """
-    if hasattr(dataset, 'chunks') and dataset.chunks[1] == dataset.shape[1]:
+    if hasattr(dataset, 'chunks'):
         data = dataset[:]
     else:
         data = dataset
@@ -173,7 +192,7 @@ def write_tif_from_dataset(dataset, out_fname, options, config_options,
     return out_fname
 
 
-def write_tif_from_file(dataset:str, out_fname, options, config_options, overviews=True):
+def write_tif_from_file(dataset: str, out_fname, options, config_options, overviews=True):
     """
     Compatible interface for writing (cog)tifs from a source file
     :param dataset:
@@ -280,7 +299,7 @@ def unpack_products(product_list, container, granule, h5group, outdir):
             rel_path = pjoin(product, re.sub(PATTERN2, ARD, fname))
             out_fname = pjoin(outdir, rel_path)
 
-            _cogtif_args = get_cogtif_options(dataset)
+            _cogtif_args = get_cogtif_options(dataset, overviews=True)
             write_tif_from_dataset(dataset, out_fname, **_cogtif_args)
 
             # alias name for ODC metadata doc
@@ -329,8 +348,11 @@ def unpack_supplementary(container, granule, h5group, outdir):
     acqs, res_grp = container.get_mode_resolution(granule)
     grn_id = re.sub(PATTERN2, ARD, granule)
     # Get tiling layout from mode resolution image, without overviews
-    _cogtif_args = get_cogtif_options(acqs[0].data(), overviews=False)
-    del(acqs)
+    tileysize, tilexsize = acqs[0].tile_size
+    _cogtif_args = get_cogtif_options(
+        acqs[0].data(), overviews=False, blockxsize=tilexsize, blockysize=tileysize
+    )
+    del acqs
 
     # relative paths of each dataset for ODC metadata doc
     rel_paths = {}
@@ -393,9 +415,10 @@ def create_contiguity(product_list, container, granule, outdir):
     # this rule is expected to change once more people get involved
     # in the decision making process
     acqs, _ = container.get_mode_resolution(granule)
-    _cogtif_args = get_cogtif_options(acqs[0].data())
+    tileysize, tilexsize = acqs[0].tile_size
+    _cogtif_args = get_cogtif_options(acqs[0].data(), blockxsize=tilexsize, blockysize=tileysize)
     _res = acqs[0].resolution
-    del(acqs)
+    del acqs
 
     grn_id = re.sub(PATTERN2, ARD, granule)
 
@@ -407,18 +430,11 @@ def create_contiguity(product_list, container, granule, outdir):
                                      prefix='contiguity-') as tmpdir:
         for product in product_list:
             search_path = pjoin(outdir, product)
-            fnames = [str(f) for f in Path(search_path).glob('*.TIF')]
+            fnames = [str(f) for f in Path(search_path).glob('*.TIF') if 'QUICKLOOK' not in str(f)]
 
             # quick work around for products that aren't being packaged
             if not fnames:
                 continue
-
-            # 2018-09-11 Please forgive me; quick hack to remove troublesome quicklook
-            # Issue arises on re-running from previous checkpoint
-            for _idx, name in enumerate(fnames):
-                if 'QUICKLOOK' in name:
-                    fnames.pop(_idx)
-                    break
 
             # output filename
             base_fname = '{}_{}_CONTIGUITY.TIF'.format(grn_id, product)
@@ -450,7 +466,7 @@ def create_contiguity(product_list, container, granule, outdir):
 
             if base_fname.endswith('NBAR_CONTIGUITY.TIF'):
                 nbar_contiguity = contiguity_data
-            del(contiguity_data)
+            del contiguity_data
 
             with rasterio.open(out_fname) as ds:
                 rel_paths[alias] = get_img_dataset_info(ds, rel_path)
@@ -475,7 +491,13 @@ def create_quicklook(product_list, container, outdir):
     """
     Create the quicklook and thumbnail images.
     """
-    acq = container.get_acquisitions(None, None, False)[0]
+    acq = container.get_mode_resolution()[0][0]
+    tileysize, tilexsize = acq.tile_size
+    gdal_settings = get_cogtif_options(
+        acq.data(), overviews=True, blockxsize=tilexsize, blockysize=tileysize
+    )
+    gdal_settings['options']['COMPRESS'] = 'JPEG'
+    gdal_settings['options']['PHOTOMETRIC'] = 'YCBCR'
 
     # are quicklooks still needed?
     # this wildcard mechanism needs to change if quicklooks are to
@@ -488,6 +510,82 @@ def create_quicklook(product_list, container, outdir):
 
     # appropriate wildcards
     wcards = band_wcards[acq.platform_id]
+    del acq
+
+    def _process_quicklook(product, fnames, out_path, tmpdir):
+        """
+        Wrapper function to encapsulate gdal commands used to
+        generate a quicklook for each product
+        """
+        # output filenames
+        match = PATTERN1.match(fnames[0]).groupdict()
+        out_fname1 = '{}{}{}'.format(match.get('prefix'),
+                                     'QUICKLOOK',
+                                     match.get('extension'))
+        out_fname2 = '{}{}{}'.format(match.get('prefix'),
+                                     'THUMBNAIL',
+                                     '.JPG')
+
+        # initial vrt of required rgb bands
+        tmp_fname1 = pjoin(tmpdir, '{}.vrt'.format(product))
+        cmd = ['gdalbuildvrt',
+               '-separate',
+               '-overwrite',
+               tmp_fname1]
+        cmd.extend(fnames)
+        run_command(cmd, tmpdir)
+
+        # quicklook with contrast scaling
+        tmp_fname2 = pjoin(tmpdir, '{}_{}.tif'.format(product, 'qlook'))
+        quicklook(tmp_fname1, out_fname=tmp_fname2, src_min=1,
+                  src_max=3500, out_min=1)
+
+        # warp to Lon/Lat WGS84
+        tmp_fname3 = pjoin(tmpdir, '{}_{}.tif'.format(product, 'warp'))
+        cmd = ['gdalwarp',
+               '-t_srs',
+               '"EPSG:4326"',
+               '-co',
+               'COMPRESS=JPEG',
+               '-co',
+               'PHOTOMETRIC=YCBCR',
+               '-co',
+               'TILED=YES',
+               tmp_fname2,
+               tmp_fname3]
+        run_command(cmd, tmpdir)
+
+        # build overviews/pyramids
+        cmd = ['gdaladdo',
+               '-r',
+               'average',
+               tmp_fname3]
+        # Add levels
+        cmd.extend([str(l) for l in LEVELS])
+        run_command(cmd, tmpdir)
+
+        # create the cogtif
+        cmd = ['gdal_translate']
+        for key, value in gdal_settings['options'].items():
+            cmd.extend(['-co' '{}={}'.format(key, value)])
+
+        for key, value in gdal_settings['config_options'].items():
+            cmd.extend(['--config', key, value])
+
+        cmd.extend([tmp_fname3, out_fname1])
+
+        run_command(cmd, tmpdir)
+
+        # create the thumbnail
+        cmd = ['gdal_translate',
+               '-of',
+               'JPEG',
+               '-outsize',
+               '10%',
+               '10%',
+               out_fname1,
+               out_fname2]
+        run_command(cmd, tmpdir)
 
     with tempfile.TemporaryDirectory(dir=outdir,
                                      prefix='quicklook-') as tmpdir:
@@ -506,77 +604,7 @@ def create_quicklook(product_list, container, outdir):
             if not fnames:
                 continue
 
-            # output filenames
-            match = PATTERN1.match(fnames[0]).groupdict()
-            out_fname1 = '{}{}{}'.format(match.get('prefix'),
-                                         'QUICKLOOK',
-                                         match.get('extension'))
-            out_fname2 = '{}{}{}'.format(match.get('prefix'),
-                                         'THUMBNAIL',
-                                         '.JPG')
-
-            # initial vrt of required rgb bands
-            tmp_fname1 = pjoin(tmpdir, '{}.vrt'.format(product))
-            cmd = ['gdalbuildvrt',
-                   '-separate',
-                   '-overwrite',
-                   tmp_fname1]
-            cmd.extend(fnames)
-            run_command(cmd, tmpdir)
-
-            # quicklook with contrast scaling
-            tmp_fname2 = pjoin(tmpdir, '{}_{}.tif'.format(product, 'qlook'))
-            quicklook(tmp_fname1, out_fname=tmp_fname2, src_min=1,
-                      src_max=3500, out_min=1)
-
-            # warp to Lon/Lat WGS84
-            tmp_fname3 = pjoin(tmpdir, '{}_{}.tif'.format(product, 'warp'))
-            cmd = ['gdalwarp',
-                   '-t_srs',
-                   '"EPSG:4326"',
-                   '-co',
-                   'COMPRESS=JPEG',
-                   '-co',
-                   'PHOTOMETRIC=YCBCR',
-                   '-co',
-                   'TILED=YES',
-                   tmp_fname2,
-                   tmp_fname3]
-            run_command(cmd, tmpdir)
-
-            # build overviews/pyramids
-            cmd = ['gdaladdo',
-                   '-r',
-                   'average',
-                   tmp_fname3]
-            # Add levels
-            cmd.extend([str(l) for l in LEVELS])
-            run_command(cmd, tmpdir)
-
-            # create the cogtif
-            cmd = ['gdal_translate',
-                   '-co',
-                   'TILED=YES',
-                   '-co',
-                   'COPY_SRC_OVERVIEWS=YES',
-                   '-co',
-                   'COMPRESS=JPEG',
-                   '-co',
-                   'PHOTOMETRIC=YCBCR',
-                   tmp_fname3,
-                   out_fname1]
-            run_command(cmd, tmpdir)
-
-            # create the thumbnail
-            cmd = ['gdal_translate',
-                   '-of',
-                   'JPEG',
-                   '-outsize',
-                   '10%',
-                   '10%',
-                   out_fname1,
-                   out_fname2]
-            run_command(cmd, tmpdir)
+            _process_quicklook(product, fnames, out_path, tmpdir)
 
 
 def create_readme(outdir):
@@ -594,6 +622,8 @@ def create_checksum(outdir):
     """
     out_fname = pjoin(outdir, 'CHECKSUM.sha1')
     checksum(out_fname)
+
+    return out_fname
 
 
 def get_level1_tags(container, granule=None, yamls_path=None):
@@ -709,9 +739,9 @@ def package(l1_path, antecedents, yamls_path, outdir,
             fmask_cogtif_out = pjoin(out_path, rel_path)
 
             # Get cogtif args with overviews
-            fmask_cogtif_args = get_cogtif_options(
-                container.get_mode_resolution(granule=granule)[0][0].data()
-            )
+            acq = container.get_mode_resolution(granule=granule)[0][0]
+            tileysize, tilexsize = acq.tile_size
+            fmask_cogtif_args = get_cogtif_options(acq.data(), blockxsize=tilexsize, blockysize=tileysize)
 
             # Set the predictor level
             fmask_cogtif_args['options']['predictor'] = 2
