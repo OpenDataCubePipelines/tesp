@@ -26,7 +26,7 @@ install:
 - travis_retry pip install gdal==1.10.0 rasterio shapely pyyaml click ciso8601 checksumdir
 - pip freeze
 script:
-- check-code.sh
+- ./check-code.sh
 before_deploy:
 - python setup.py sdist
 deploy:
