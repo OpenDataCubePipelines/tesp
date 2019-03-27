@@ -100,13 +100,15 @@ class Experiment(luigi.Task):
             os.makedirs(outdir)
 
         if self.input():
-            unpack(self.input()['images'].path, outdir)
+            unpack(self.input(), outdir)
 
         with open(pjoin(self.pkgdir, self.tag, '.done'), 'w') as fl:
             pass
 
         if self.input() and self.cleanup:
             os.remove(self.input()['images'].path)
+            if 'fmask' in self.input():
+                os.remove(self.input()['fmask'].path)
 
 
 class MergeImages(luigi.Task):
@@ -138,11 +140,13 @@ class MergeImages(luigi.Task):
             os.makedirs(target_dir)
 
         inputs = self.input()
-        merge_images(inputs[0]['images'].path, inputs[1]['images'].path, target)
+        merge_images(inputs[0], inputs[1], target)
 
         if self.cleanup:
-            os.remove(inputs[0]['images'].path)
-            os.remove(inputs[1]['images'].path)
+            for dep in inputs:
+                os.remove(dep['images'].path)
+                if 'fmask' in dep:
+                    os.remove(dep['fmask'].path)
 
 
 class ExperimentGranule(luigi.Task):
@@ -181,7 +185,9 @@ class ExperimentGranule(luigi.Task):
         return tasks
 
     def output(self):
-        return {'images': self.input()['wagl'], 'csv': luigi.LocalTarget(self._output_filename())}
+        return {'images': self.input()['wagl'],
+                'fmask': self.input()['fmask'],
+                'csv': luigi.LocalTarget(self._output_filename())}
 
     def run(self):
         inputs = self.input()
@@ -196,9 +202,6 @@ class ExperimentGranule(luigi.Task):
             for entry in experiment_summary(inputs['wagl'].path, inputs['fmask'].path,
                                             self.granule, self.tag, self.settings):
                 writer.writerow(entry)
-
-        if self.cleanup:
-            os.remove(self.input()['fmask'].path)
 
 
 def dict_tree(leaf_list, prefix):
@@ -247,37 +250,38 @@ def find_dataset_by_name(product, band_name):
         if product[band].attrs['alias'] == band_name:
             return product[band]
 
+    return None
 
-def unpack(input_file, outdir):
+
+def unpack(input_target, outdir):
     """
     Convert an `.h5` file to `GeoTIFF` files.
     """
     options = {'blockxsize': 1024, 'blockysize': 1024,
                'compress': 'deflate', 'zlevel': 4}
 
+    input_file, mask = filename_and_mask(input_target)
+
     def unpack_dataset(product, product_name, band):
         dataset = product[band]
-        outfile = pjoin(outdir, '{}_{}.tif'.format(product_name, dataset.attrs['alias']))
+        band_name = dataset.attrs['alias']
+        outfile = pjoin(outdir, '{}_{}.tif'.format(product_name, band_name))
+        count_file = pjoin(outdir, '{}_{}_valid_pixel_count.tif'.format(product_name, band_name))
         nodata = dataset.attrs.get('no_data_value')
         geobox = GriddedGeoBox.from_dataset(dataset)
 
-        data = dataset[:]
+        data, count = sum_and_count(product, mask, band_name)
 
-        if (band + "_pixelcount") not in product:
-            # `wagl` produced `.h5` file
-            write_img(data, outfile,
-                      nodata=nodata, geobox=geobox, options=options)
+        # calculate the mean from sum and count
+        mean = data / count
+        mean[count == 0] = nodata
+        mean = mean.astype('int16')
 
-        else:
-            # calculate the mean from sum and count
-            pixelcount = product[band + "_pixelcount"]
-            count = pixelcount[:]
-            mean = data / count
-            mean[count == 0] = nodata
-            mean = mean.astype('int16')
+        write_img(mean, outfile,
+                  nodata=nodata, geobox=geobox, options=options)
 
-            write_img(mean, outfile,
-                      nodata=nodata, geobox=geobox, options=options)
+        write_img(count, count_file,
+                  nodata=0, geobox=geobox, options=options)
 
     def unpack_group(group):
         for product in group:
@@ -374,7 +378,7 @@ class GeoBox:
         return (slice(ul[1], lr[1]), slice(ul[0], lr[0]))
 
 
-def sum_and_count(src_product, band_name):
+def sum_and_count(src_product, src_mask, band_name):
     """
     Sum and count of pixels of surface reflectance images.
     """
@@ -384,6 +388,10 @@ def sum_and_count(src_product, band_name):
     src_data = src_ds[:]
     if src_count is None:
         count_data = numpy.where(src_data == src_ds.attrs['no_data_value'], 0, 1)
+        if src_mask is not None:
+            assert count_data.shape == src_mask.shape
+            count_data[src_mask] = 0
+
         src_valid_data = numpy.where(count_data > 0, src_data, 0)
         src_data = src_valid_data
     else:
@@ -392,13 +400,13 @@ def sum_and_count(src_product, band_name):
     return src_data, count_data
 
 
-def copy_dataset(src_product, target_product, band_name):
+def copy_dataset(src_product, src_mask, target_product, band_name):
     """
     If only one dataset has this band, then just copy it over to the target dataset.
     """
     src_ds = find_dataset_by_name(src_product, band_name)
 
-    src_data, count_data = sum_and_count(src_product, band_name)
+    src_data, count_data = sum_and_count(src_product, src_mask, band_name)
 
     target_ds = target_product.create_dataset(band_name, data=src_data, dtype='int32', chunks=(1024, 1024))
     target_count = target_product.create_dataset(band_name + "_pixelcount",
@@ -411,7 +419,7 @@ def copy_dataset(src_product, target_product, band_name):
     target_count.attrs['alias'] = band_name + "_pixelcount"
 
 
-def merge_datasets(left_product, right_product, target_product, band_name):
+def merge_datasets(left_product, left_mask, right_product, right_mask, target_product, band_name):
     """
     Merge images from two `.h5` groups in two different `.h5` container.
     """
@@ -429,20 +437,20 @@ def merge_datasets(left_product, right_product, target_product, band_name):
                                                  shape=target_box.shape, dtype='int32', chunks=(1024, 1024))
     target_count[:] = 0
 
-    def add_image(src_box, src_product):
+    def add_image(src_box, src_product, src_mask):
         """
         Add this image to the target array.
         """
         window = target_box.window(src_box)
 
-        src_data, count_data = sum_and_count(src_product, band_name)
+        src_data, count_data = sum_and_count(src_product, src_mask, band_name)
 
         # add the data to appropriate window in the target array
         target_ds[window] += src_data
         target_count[window] += count_data
 
-    add_image(left_box, left_product)
-    add_image(right_box, right_product)
+    add_image(left_box, left_product, left_mask)
+    add_image(right_box, right_product, right_mask)
 
     # copy over metadata
     for key in left_ds.attrs:
@@ -462,7 +470,7 @@ def merge_datasets(left_product, right_product, target_product, band_name):
     target_count.attrs['alias'] = band_name + "_pixelcount"
 
 
-def merge_groups(left_group, right_group, target_group):
+def merge_groups(left_group, left_mask, right_group, right_mask, target_group):
     """
     Merge groups from the `.h5` containers.
     """
@@ -479,21 +487,40 @@ def merge_groups(left_group, right_group, target_group):
 
         for band in band_names:
             if find_dataset_by_name(left_group[product], band) is None:
-                copy_dataset(right_group[product], target_product, band)
+                copy_dataset(right_group[product], right_mask, target_product, band)
 
             elif find_dataset_by_name(right_group[product], band) is None:
-                copy_dataset(left_group[product], target_product, band)
+                copy_dataset(left_group[product], left_mask, target_product, band)
 
             else:
-                merge_datasets(left_group[product], right_group[product], target_product, band)
+                merge_datasets(left_group[product], left_mask,
+                               right_group[product], right_mask,
+                               target_product, band)
+
+
+def filename_and_mask(luigi_target):
+    filename = luigi_target['images'].path
+    if 'fmask' in luigi_target:
+        with rasterio.open(luigi_target['fmask'].path) as mask_file:
+            # we will mask out these pixels
+            mask = mask_file.read(1) != 1
+    else:
+        mask = None
+
+    return filename, mask
 
 
 def merge_images(left, right, target):
     """
-    Merge all images in two `.h5` containers.
-    The `left`, `right`, and `target` parameters are file names.
+    Merge all images in two containers.
     """
-    with h5py.File(target) as target_fid, h5py.File(left, 'r') as left_fid, h5py.File(right, 'r') as right_fid:
+    left_filename, left_mask = filename_and_mask(left)
+    right_filename, right_mask = filename_and_mask(right)
+
+    with h5py.File(target) as target_fid, \
+            h5py.File(left_filename, 'r') as left_fid, \
+            h5py.File(right_filename, 'r') as right_fid:
+
         assert len(left_fid) == 1, 'multiple granules not supported'
         assert len(right_fid) == 1, 'multiple granules not supported'
         left_granule = left_fid[list(left_fid)[0]]
@@ -513,8 +540,10 @@ def merge_images(left, right, target):
                 if res_group.startswith('RES-GROUP'):
                     return granule[res_group][std_group]['REFLECTANCE']
 
-        merge_groups(reflectance(left_granule),
-                     reflectance(right_granule),
+            raise ValueError('reflectance group not found')
+
+        merge_groups(reflectance(left_granule), left_mask,
+                     reflectance(right_granule), right_mask,
                      target_group)
 
 
