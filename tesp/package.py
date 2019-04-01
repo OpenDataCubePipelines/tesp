@@ -535,7 +535,7 @@ def package(l1_path, antecedents, yamls_path, outdir,
 
     :param antecedents:
         A dictionary describing antecedent task outputs
-        (currently supporting wagl, eugl-gqa, eugl-fmask)
+        (currently supporting: wagl, gqa, fmask-image, fmask-metadata)
         to package.
 
     :param yamls_path:
@@ -600,11 +600,12 @@ def package(l1_path, antecedents, yamls_path, outdir,
             img_paths[key] = qa_paths[key]
 
         # fmask cogtif conversion
-        if 'fmask' in antecedents:
+        if 'fmask-image' in antecedents:
             rel_path = pjoin(QA, '{}_FMASK.TIF'.format(grn_id))
             fmask_location = pjoin(out_path, rel_path)
-            fmask_cogtif(antecedents['fmask'], fmask_location, platform)
-            antecedent_metadata['fmask'] = get_fmask_metadata()
+            fmask_cogtif(antecedents['fmask-image'], fmask_location, platform)
+            with open(antecedents['fmask-metadata'], 'r') as src:
+                antecedent_metadata['fmask'] = yaml.load(src)
 
             with rasterio.open(fmask_location) as ds:
                 img_paths['fmask'] = get_img_dataset_info(ds, rel_path)
