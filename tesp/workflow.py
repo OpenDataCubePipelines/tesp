@@ -86,15 +86,24 @@ class RunFmask(luigi.Task):
         return DataStandardisation(self.level1, self.workdir, self.granule, **self.upstream_settings)
 
     def output(self):
-        out_fname = pjoin(self.workdir, '{}.fmask.img'.format(self.granule))
+        out_fname1 = pjoin(self.workdir, '{}.fmask.img'.format(self.granule))
+        out_fname2 = pjoin(self.workdir, '{}.fmask.yaml'.format(self.granule))
 
-        return luigi.LocalTarget(out_fname)
+        out_fnames = {
+            'image': luigi.LocalTarget(out_fname1),
+            'metadata': luigi.LocalTarget(out_fname2)
+        }
+
+        return out_fnames
 
     def run(self):
-        with self.output().temporary_path() as out_fname:
-            fmask(self.level1, self.granule, out_fname, self.workdir,
-                  self.acq_parser_hint, self.cloud_buffer_distance,
-                  self.cloud_shadow_buffer_distance, self.parallax_test)
+        out_fnames = self.output()
+        with out_fnames['image'].temporary_path() as out_fname1:
+            with out_fnames['metadata'].temporary_path() as out_fname2:
+                fmask(self.level1, self.granule, out_fname1, out_fname2,
+                      self.workdir, self.acq_parser_hint,
+                      self.cloud_buffer_distance,
+                      self.cloud_shadow_buffer_distance, self.parallax_test)
 
 
 # useful for testing fmask via the CLI
@@ -170,7 +179,11 @@ class Package(luigi.Task):
         # Extract the file path for each dependent task configured
         antecedent_paths = {}
         for key, value in self.input().items():
-            antecedent_paths[key] = value.path
+            if key == 'fmask':
+                antecedent_paths['fmask-image'] = value['image'].path
+                antecedent_paths['fmask-metadata'] = value['metadata'].path
+            else:
+                antecedent_paths[key] = value.path
 
         package(self.level1, antecedent_paths, self.yamls_dir, self.pkgdir,
                 self.granule, self.products, self.acq_parser_hint)
