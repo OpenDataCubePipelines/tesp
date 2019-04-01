@@ -33,7 +33,6 @@ from tesp.prepare import extract_level1_metadata
 
 from eugl.fmask import fmask_cogtif
 from eugl.contiguity import contiguity
-from eugl.metadata import get_fmask_metadata
 
 yaml.add_representer(numpy.int8, Representer.represent_int)
 yaml.add_representer(numpy.uint8, Representer.represent_int)
@@ -604,8 +603,8 @@ def package(l1_path, antecedents, yamls_path, outdir,
             rel_path = pjoin(QA, '{}_FMASK.TIF'.format(grn_id))
             fmask_location = pjoin(out_path, rel_path)
             fmask_cogtif(antecedents['fmask-image'], fmask_location, platform)
-            with open(antecedents['fmask-metadata'], 'r') as src:
-                antecedent_metadata['fmask'] = yaml.load(src)
+            with open(antecedents['fmask-metadata'], 'r') as fl:
+                antecedent_metadata['fmask'] = yaml.load(fl)
 
             with rasterio.open(fmask_location) as ds:
                 img_paths['fmask'] = get_img_dataset_info(ds, rel_path)
