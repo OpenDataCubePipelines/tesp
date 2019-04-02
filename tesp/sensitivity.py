@@ -72,18 +72,18 @@ class Experiment(luigi.Task):
 
     def requires(self):
         with open(self.level1_list) as src:
-            level1_list = [level1.strip() for level1 in src.readlines()]
+            level1_paths = [level1_path.strip() for level1_path in src.readlines()]
 
-        def worker(level1):
-            for granule in preliminary_acquisitions_data(level1, self.acq_parser_hint):
-                work_root = pjoin(self.workdir, self.tag, basename(level1))
+        def worker(level1_path):
+            for granule in preliminary_acquisitions_data(level1_path, self.acq_parser_hint):
+                work_root = pjoin(self.workdir, self.tag, basename(level1_path))
                 work_dir = pjoin(work_root, granule['id'])
 
-                yield dict(kind='leaf', level1=level1, workdir=work_dir, granule=granule['id'])
+                yield dict(kind='leaf', level1_path=level1_path, workdir=work_dir, granule=granule['id'])
 
         # collect file info concurrently since IO is expensive
         executor = ThreadPoolExecutor()
-        futures = [executor.submit(worker, level1) for level1 in level1_list]
+        futures = [executor.submit(worker, level1_path) for level1_path in level1_paths]
 
         # organize the task list in a tree
         tree = dict_tree([exp for future in as_completed(futures) for exp in future.result()], ['mean_sr'])
@@ -127,20 +127,23 @@ class MergeImages(luigi.Task):
     def requires(self):
         return [requires_tree(self.left, self), requires_tree(self.right, self)]
 
+    @property
+    def _target_dir(self):
+        return pjoin(self.workdir, self.tag, *self.prefix)
+
+    @property
+    def _target(self):
+        return pjoin(self._target_dir, 'mean_images.h5')
+
     def output(self):
-        target_dir = pjoin(self.workdir, self.tag, *self.prefix)
-        target = pjoin(target_dir, 'mean_images.h5')
-        return {'images': luigi.LocalTarget(target)}
+        return {'images': luigi.LocalTarget(self._target)}
 
     def run(self):
-        target_dir = pjoin(self.workdir, self.tag, *self.prefix)
-        target = pjoin(target_dir, 'mean_images.h5')
-
-        if not exists(target_dir):
-            os.makedirs(target_dir)
+        if not exists(self._target_dir):
+            os.makedirs(self._target_dir)
 
         inputs = self.input()
-        merge_images(inputs[0], inputs[1], target)
+        merge_images(inputs[0], inputs[1], self._target)
 
         if self.cleanup:
             for dep in inputs:
@@ -154,7 +157,7 @@ class ExperimentGranule(luigi.Task):
     Collect data from a granule.
     Produces a `.csv` file containing the statistics from a `.h5` file from `wagl`.
     """
-    level1 = luigi.Parameter()
+    level1_path = luigi.Parameter()
     workdir = luigi.Parameter()
     granule = luigi.OptionalParameter(default='')
     pkgdir = luigi.Parameter()
@@ -178,8 +181,8 @@ class ExperimentGranule(luigi.Task):
                 settings[key] = {'user': value}
 
         tasks = {
-            'wagl': DataStandardisation(self.level1, self.workdir, self.granule, **settings),
-            'fmask': RunFmask(self.level1, self.granule, self.workdir, upstream_settings=settings)
+            'wagl': DataStandardisation(self.level1_path, self.workdir, self.granule, **settings),
+            'fmask': RunFmask(self.level1_path, self.granule, self.workdir, upstream_settings=settings)
         }
 
         return tasks
@@ -231,11 +234,10 @@ def requires_tree(tree, parent_task):
         return []
 
     if tree['kind'] == 'leaf':
-        return ExperimentGranule(level1=tree['level1'], workdir=tree['workdir'], granule=tree['granule'],
+        return ExperimentGranule(level1_path=tree['level1_path'], workdir=tree['workdir'], granule=tree['granule'],
                                  pkgdir=parent_task.pkgdir, tag=parent_task.tag, settings=parent_task.settings,
                                  cleanup=parent_task.cleanup)
 
-    assert tree['kind'] == 'node'
     return MergeImages(left=tree['left'], right=tree['right'], prefix=tree['prefix'],
                        workdir=parent_task.workdir, pkgdir=parent_task.pkgdir, tag=parent_task.tag,
                        settings=parent_task.settings, cleanup=parent_task.cleanup)
@@ -262,43 +264,46 @@ def unpack(input_target, outdir):
 
     input_file, mask = filename_and_mask(input_target)
 
-    def unpack_dataset(product, product_name, band):
-        dataset = product[band]
+    def unpack_dataset(product_group, product_name, band):
+        dataset = product_group[band]
+
+        # human readable band name
         band_name = dataset.attrs['alias']
-        outfile = pjoin(outdir, '{}_{}.tif'.format(product_name, band_name))
+
+        out_file = pjoin(outdir, '{}_{}.tif'.format(product_name, band_name))
         count_file = pjoin(outdir, '{}_{}_valid_pixel_count.tif'.format(product_name, band_name))
         nodata = dataset.attrs.get('no_data_value')
         geobox = GriddedGeoBox.from_dataset(dataset)
 
-        data, count = sum_and_count(product, mask, band_name)
+        data, count = sum_and_count(product_group, mask, band_name)
 
         # calculate the mean from sum and count
         mean = data / count
         mean[count == 0] = nodata
         mean = mean.astype('int16')
 
-        write_img(mean, outfile,
+        write_img(mean, out_file,
                   nodata=nodata, geobox=geobox, options=options)
 
         write_img(count, count_file,
                   nodata=0, geobox=geobox, options=options)
 
     def unpack_group(group):
-        for product in group:
-            for band in group[product]:
+        for product_name in group:
+            for band in group[product_name]:
                 if not band.endswith('_pixelcount'):
-                    unpack_dataset(group[product], product, band)
+                    unpack_dataset(group[product_name], product_name, band)
 
     with h5py.File(input_file) as fid:
         dataset = fid[list(fid)[0]]
 
-        for res_group in dataset:
-            if res_group == 'REFLECTANCE':
+        for group_name in dataset:
+            if group_name == 'REFLECTANCE':
                 # synthetic group created by merging `.h5` containers
-                unpack_group(dataset[res_group])
-            elif res_group.startswith('RES-GROUP'):
+                unpack_group(dataset[group_name])
+            elif group_name.startswith('RES-GROUP'):
                 # original `h5` container produced by `wagl`
-                unpack_group(dataset[res_group][GroupName.STANDARD_GROUP.value]['REFLECTANCE'])
+                unpack_group(dataset[group_name][GroupName.STANDARD_GROUP.value]['REFLECTANCE'])
 
 
 def assert_ints(array):
@@ -378,18 +383,19 @@ class GeoBox:
         return (slice(ul[1], lr[1]), slice(ul[0], lr[0]))
 
 
-def sum_and_count(src_product, src_mask, band_name):
+def sum_and_count(src_product_group, src_mask, band_name):
     """
     Sum and count of pixels of surface reflectance images.
     """
-    src_ds = find_dataset_by_name(src_product, band_name)
-    src_count = find_dataset_by_name(src_product, band_name + "_pixelcount")
+    src_ds = find_dataset_by_name(src_product_group, band_name)
+    src_count = find_dataset_by_name(src_product_group, band_name + "_pixelcount")
 
     src_data = src_ds[:]
     if src_count is None:
         count_data = numpy.where(src_data == src_ds.attrs['no_data_value'], 0, 1)
         if src_mask is not None:
-            assert count_data.shape == src_mask.shape
+            if count_data.shape != src_mask.shape:
+                raise ValueError("image and mask have different shapes")
             count_data[src_mask] = 0
 
         src_valid_data = numpy.where(count_data > 0, src_data, 0)
@@ -400,17 +406,17 @@ def sum_and_count(src_product, src_mask, band_name):
     return src_data, count_data
 
 
-def copy_dataset(src_product, src_mask, target_product, band_name):
+def copy_dataset(src_product_group, src_mask, target_product_group, band_name):
     """
     If only one dataset has this band, then just copy it over to the target dataset.
     """
-    src_ds = find_dataset_by_name(src_product, band_name)
+    src_ds = find_dataset_by_name(src_product_group, band_name)
 
-    src_data, count_data = sum_and_count(src_product, src_mask, band_name)
+    src_data, count_data = sum_and_count(src_product_group, src_mask, band_name)
 
-    target_ds = target_product.create_dataset(band_name, data=src_data, dtype='int32', chunks=(1024, 1024))
-    target_count = target_product.create_dataset(band_name + "_pixelcount",
-                                                 data=count_data, dtype='int32', chunks=(1024, 1024))
+    target_ds = target_product_group.create_dataset(band_name, data=src_data, dtype='int32', chunks=(1024, 1024))
+    target_count = target_product_group.create_dataset(band_name + "_pixelcount",
+                                                       data=count_data, dtype='int32', chunks=(1024, 1024))
 
     for key in src_ds.attrs:
         target_ds.attrs[key] = src_ds.attrs[key]
@@ -419,22 +425,25 @@ def copy_dataset(src_product, src_mask, target_product, band_name):
     target_count.attrs['alias'] = band_name + "_pixelcount"
 
 
-def merge_datasets(left_product, left_mask, right_product, right_mask, target_product, band_name):
+def merge_datasets(left_product_group, left_mask, right_product_group, right_mask, target_product_group, band_name):
     """
     Merge images from two `.h5` groups in two different `.h5` container.
     """
-    left_ds = find_dataset_by_name(left_product, band_name)
-    right_ds = find_dataset_by_name(right_product, band_name)
+    left_ds = find_dataset_by_name(left_product_group, band_name)
+    right_ds = find_dataset_by_name(right_product_group, band_name)
 
-    assert left_ds.attrs['crs_wkt'] == right_ds.attrs['crs_wkt'], "I can't merge images from different CRSs yet"
+    if left_ds.attrs['crs_wkt'] != right_ds.attrs['crs_wkt']:
+        raise ValueError("I can't merge images from different CRSs yet")
+
     left_box = GeoBox.from_dataset(left_ds)
     right_box = GeoBox.from_dataset(right_ds)
     target_box = left_box | right_box
 
-    target_ds = target_product.create_dataset(band_name, shape=target_box.shape, dtype='int32', chunks=(1024, 1024))
+    target_ds = target_product_group.create_dataset(band_name, shape=target_box.shape,
+                                                    dtype='int32', chunks=(1024, 1024))
     target_ds[:] = 0
-    target_count = target_product.create_dataset(band_name + "_pixelcount",
-                                                 shape=target_box.shape, dtype='int32', chunks=(1024, 1024))
+    target_count = target_product_group.create_dataset(band_name + "_pixelcount", shape=target_box.shape,
+                                                       dtype='int32', chunks=(1024, 1024))
     target_count[:] = 0
 
     def add_image(src_box, src_product, src_mask):
@@ -449,10 +458,10 @@ def merge_datasets(left_product, left_mask, right_product, right_mask, target_pr
         target_ds[window] += src_data
         target_count[window] += count_data
 
-    add_image(left_box, left_product, left_mask)
-    add_image(right_box, right_product, right_mask)
+    add_image(left_box, left_product_group, left_mask)
+    add_image(right_box, right_product_group, right_mask)
 
-    # copy over metadata
+    # copy over common metadata
     for key in left_ds.attrs:
         if key in right_ds.attrs:
             try:
@@ -460,6 +469,7 @@ def merge_datasets(left_product, left_mask, right_product, right_mask, target_pr
                     target_ds.attrs[key] = left_ds.attrs[key]
                     target_count.attrs[key] = left_ds.attrs[key]
             except ValueError:
+                # value is a numpy array
                 if numpy.all(left_ds.attrs[key] == right_ds.attrs[key]):
                     target_ds.attrs[key] = left_ds.attrs[key]
                     target_count.attrs[key] = left_ds.attrs[key]
@@ -474,28 +484,29 @@ def merge_groups(left_group, left_mask, right_group, right_mask, target_group):
     """
     Merge groups from the `.h5` containers.
     """
-    products = set(left_group)
-    assert products == set(right_group)
+    product_names = set(left_group)
+    if product_names != set(right_group):
+        raise ValueError("products from two groups do not match")
 
-    for product in products:
-        target_product = target_group.create_group(product)
+    for product_name in product_names:
+        target_product_group = target_group.create_group(product_name)
 
-        band_names = {left_group[product][band].attrs['alias']
-                      for band in left_group[product] if not band.endswith("_pixelcount")}
-        band_names |= {right_group[product][band].attrs['alias']
-                       for band in right_group[product] if not band.endswith("_pixelcount")}
+        band_names = {left_group[product_name][band].attrs['alias']
+                      for band in left_group[product_name] if not band.endswith("_pixelcount")}
+        band_names |= {right_group[product_name][band].attrs['alias']
+                       for band in right_group[product_name] if not band.endswith("_pixelcount")}
 
-        for band in band_names:
-            if find_dataset_by_name(left_group[product], band) is None:
-                copy_dataset(right_group[product], right_mask, target_product, band)
+        for band_name in band_names:
+            if find_dataset_by_name(left_group[product_name], band_name) is None:
+                copy_dataset(right_group[product_name], right_mask, target_product_group, band_name)
 
-            elif find_dataset_by_name(right_group[product], band) is None:
-                copy_dataset(left_group[product], left_mask, target_product, band)
+            elif find_dataset_by_name(right_group[product_name], band_name) is None:
+                copy_dataset(left_group[product_name], left_mask, target_product_group, band_name)
 
             else:
-                merge_datasets(left_group[product], left_mask,
-                               right_group[product], right_mask,
-                               target_product, band)
+                merge_datasets(left_group[product_name], left_mask,
+                               right_group[product_name], right_mask,
+                               target_product_group, band_name)
 
 
 def filename_and_mask(luigi_target):
@@ -521,8 +532,9 @@ def merge_images(left, right, target):
             h5py.File(left_filename, 'r') as left_fid, \
             h5py.File(right_filename, 'r') as right_fid:
 
-        assert len(left_fid) == 1, 'multiple granules not supported'
-        assert len(right_fid) == 1, 'multiple granules not supported'
+        if len(left_fid) != 1 or len(right_fid) != 1:
+            raise ValueError('multiple granules not supported')
+
         left_granule = left_fid[list(left_fid)[0]]
         right_granule = right_fid[list(right_fid)[0]]
         target_granule = target_fid.create_group('synthetic')
@@ -536,9 +548,9 @@ def merge_images(left, right, target):
                 return granule['REFLECTANCE']
 
             # wagl .h5
-            for res_group in granule:
-                if res_group.startswith('RES-GROUP'):
-                    return granule[res_group][std_group]['REFLECTANCE']
+            for group_name in granule:
+                if group_name.startswith('RES-GROUP'):
+                    return granule[group_name][std_group]['REFLECTANCE']
 
             raise ValueError('reflectance group not found')
 
@@ -565,16 +577,16 @@ def experiment_summary(l2_path, fmask_path, granule, tag, settings):
         date = dataset[GroupName.ATMOSPHERIC_INPUTS_GRP.value].attrs['acquisition-datetime'][:len('2000-01-01')]
 
         def process(group):
-            for product in group:
-                for band in group[product]:
-                    ds = group[product][band]
+            for product_name in group:
+                for band in group[product_name]:
+                    ds = group[product_name][band]
 
                     band_name = ds.attrs['alias']
                     data = numpy.where(valid_pixels, mask_invalid(ds[:]), numpy.nan)
 
-                    yield [product, date, granule, band_name,
+                    yield [product_name, date, granule, band_name,
                            tag, numpy.nanmean(data), numpy.nanstd(data), numpy.sum(valid_pixels)]
 
-        for res_group in dataset:
-            if res_group.startswith('RES-GROUP'):
-                yield from process(dataset[res_group][GroupName.STANDARD_GROUP.value]['REFLECTANCE'])
+        for group_name in dataset:
+            if group_name.startswith('RES-GROUP'):
+                yield from process(dataset[group_name][GroupName.STANDARD_GROUP.value]['REFLECTANCE'])
