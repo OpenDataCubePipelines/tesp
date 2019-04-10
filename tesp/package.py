@@ -306,17 +306,9 @@ def unpack_products(product_list, container, granule, h5group, outdir):
             rel_paths[alias] = get_img_dataset_info(dataset, rel_path)
 
     # retrieve metadata
-    scalar_paths = find(h5group, 'SCALAR')
-    pathnames = [pth for pth in scalar_paths if 'NBAR-METADATA' in pth]
+    wagl_metadata = yaml.load(h5group[DatasetName.METADATA.value][DatasetName.CURRENT_METADATA.value][()])
 
-    def tags():
-        result = yaml.load(h5group[pathnames[0]][()])
-        for path in pathnames[1:]:
-            other = yaml.load(h5group[path][()])
-            result['ancillary'].update(other['ancillary'])
-        return result
-
-    return tags(), rel_paths
+    return wagl_metadata, rel_paths
 
 
 def unpack_supplementary(container, granule, h5group, outdir):
