@@ -92,6 +92,7 @@ def merge_metadata(level1_tags, wagl_tags, granule, image_paths, platform, **ant
         'product_type': ptype[wagl_tags['source_datasets']['platform_id']],
         'platform': {'code': wagl_tags['source_datasets']['platform_id']},
         'instrument': {'name': wagl_tags['source_datasets']['sensor_id']},
+        'parameters': wagl_tags['parameters'],
         'format': {'name': 'GeoTIFF'},
         'tile_id': granule,
         'extent': level2_extent,
