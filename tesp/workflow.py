@@ -73,6 +73,9 @@ class RunFmask(luigi.Task):
     level1 = luigi.Parameter()
     granule = luigi.Parameter()
     workdir = luigi.Parameter()
+    cloud_buffer_distance = luigi.FloatParameter(default=150.0)
+    cloud_shadow_buffer_distance = luigi.FloatParameter(default=300.0)
+    parallax_test = luigi.BoolParameter()
     upstream_settings = luigi.DictParameter(default={})
     acq_parser_hint = luigi.OptionalParameter(default='')
 
@@ -86,14 +89,24 @@ class RunFmask(luigi.Task):
         )
 
     def output(self):
-        out_fname = pjoin(self.workdir, '{}.fmask.img'.format(self.granule))
+        out_fname1 = pjoin(self.workdir, '{}.fmask.img'.format(self.granule))
+        out_fname2 = pjoin(self.workdir, '{}.fmask.yaml'.format(self.granule))
 
-        return luigi.LocalTarget(out_fname)
+        out_fnames = {
+            'image': luigi.LocalTarget(out_fname1),
+            'metadata': luigi.LocalTarget(out_fname2)
+        }
+
+        return out_fnames
 
     def run(self):
-        with self.output().temporary_path() as out_fname:
-            fmask(self.level1, self.granule, out_fname, self.workdir,
-                  self.acq_parser_hint)
+        out_fnames = self.output()
+        with out_fnames['image'].temporary_path() as out_fname1:
+            with out_fnames['metadata'].temporary_path() as out_fname2:
+                fmask(self.level1, self.granule, out_fname1, out_fname2,
+                      self.workdir, self.acq_parser_hint,
+                      self.cloud_buffer_distance,
+                      self.cloud_shadow_buffer_distance, self.parallax_test)
 
 
 # useful for testing fmask via the CLI
@@ -105,12 +118,18 @@ class Fmask(luigi.WrapperTask):
 
     level1 = luigi.Parameter()
     workdir = luigi.Parameter()
+    cloud_buffer_distance = luigi.FloatParameter(default=150.0)
+    cloud_shadow_buffer_distance = luigi.FloatParameter(default=300.0)
+    parallax_test = luigi.BoolParameter()
     acq_parser_hint = luigi.OptionalParameter(default='')
 
     def requires(self):
         # issues task per granule
         for granule in preliminary_acquisitions_data(self.level1, self.acq_parser_hint):
-            yield RunFmask(self.level1, granule['id'], self.workdir)
+            yield RunFmask(self.level1, granule['id'], self.workdir,
+                           self.cloud_buffer_distance,
+                           self.cloud_shadow_buffer_distance,
+                           self.parallax_test)
 
 
 class Package(luigi.Task):
@@ -129,6 +148,9 @@ class Package(luigi.Task):
     acq_parser_hint = luigi.OptionalParameter(default='')
     products = luigi.ListParameter(default=ProductPackage.default())
     qa_products = luigi.ListParameter(default=QA_PRODUCTS)
+    cloud_buffer_distance = luigi.FloatParameter(default=150.0)
+    cloud_shadow_buffer_distance = luigi.FloatParameter(default=300.0)
+    parallax_test = luigi.BoolParameter()
 
     def requires(self):
         # Ensure configuration values are valid
@@ -136,7 +158,10 @@ class Package(luigi.Task):
 
         tasks = {'wagl': DataStandardisation(self.level1, self.workdir,
                                              self.granule),
-                 'fmask': RunFmask(self.level1, self.granule, self.workdir),
+                 'fmask': RunFmask(self.level1, self.granule, self.workdir,
+                                   self.cloud_buffer_distance,
+                                   self.cloud_shadow_buffer_distance,
+                                   self.parallax_test),
                  'gqa': GQATask(self.level1, self.acq_parser_hint, self.granule, self.workdir)}
 
         # Need to improve pluggability across tesp/eugl/wagl
@@ -157,7 +182,11 @@ class Package(luigi.Task):
         # Extract the file path for each dependent task configured
         antecedent_paths = {}
         for key, value in self.input().items():
-            antecedent_paths[key] = value.path
+            if key == 'fmask':
+                antecedent_paths['fmask-image'] = value['image'].path
+                antecedent_paths['fmask-metadata'] = value['metadata'].path
+            else:
+                antecedent_paths[key] = value.path
 
         package(self.level1, antecedent_paths, self.yamls_dir, self.pkgdir,
                 self.granule, self.products, self.acq_parser_hint)

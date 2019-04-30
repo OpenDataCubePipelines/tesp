@@ -33,7 +33,6 @@ from tesp.constants import ProductPackage
 from tesp.prepare import extract_level1_metadata
 
 from eugl.contiguity import contiguity
-from eugl.metadata import get_fmask_metadata
 
 yaml.add_representer(numpy.int8, Representer.represent_int)
 yaml.add_representer(numpy.uint8, Representer.represent_int)
@@ -661,7 +660,7 @@ def package(l1_path, antecedents, yamls_path, outdir,
 
     :param antecedents:
         A dictionary describing antecedent task outputs
-        (currently supporting wagl, eugl-gqa, eugl-fmask)
+        (currently supporting: wagl, gqa, fmask-image, fmask-metadata)
         to package.
 
     :param yamls_path:
@@ -726,20 +725,12 @@ def package(l1_path, antecedents, yamls_path, outdir,
             img_paths[key] = qa_paths[key]
 
         # fmask cogtif conversion
-        if 'fmask' in antecedents:
+        if 'fmask-image' in antecedents:
             rel_path = pjoin(QA, '{}_FMASK.TIF'.format(grn_id))
-            fmask_cogtif_out = pjoin(out_path, rel_path)
-
-            # Get cogtif args with overviews
-            acq = container.get_mode_resolution(granule=granule)[0][0]
-            tileysize, tilexsize = acq.tile_size
-            fmask_cogtif_args = get_cogtif_options(acq.data(), blockxsize=tilexsize, blockysize=tileysize)
-
-            # Set the predictor level
-            fmask_cogtif_args['options']['predictor'] = 2
-            write_tif_from_file(antecedents['fmask'], fmask_cogtif_out, **fmask_cogtif_args)
-
-            antecedent_metadata['fmask'] = get_fmask_metadata()
+            fmask_location = pjoin(out_path, rel_path)
+            fmask_cogtif(antecedents['fmask-image'], fmask_location, platform)
+            with open(antecedents['fmask-metadata'], 'r') as fl:
+                antecedent_metadata['fmask'] = yaml.load(fl)
 
             with rasterio.open(fmask_cogtif_out) as ds:
                 img_paths['fmask'] = get_img_dataset_info(ds, rel_path)
