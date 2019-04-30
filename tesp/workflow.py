@@ -83,7 +83,10 @@ class RunFmask(luigi.Task):
         # for the time being have fmask require wagl,
         # no point in running fmask if wagl fails...
         # return WorkDir(self.level1, dirname(self.workdir))
-        return DataStandardisation(self.level1, self.workdir, self.granule, **self.upstream_settings)
+        return DataStandardisation(
+            self.level1, self.workdir, self.granule,
+            **self.upstream_settings  # pylint: disable=not-a-mapping
+        )
 
     def output(self):
         out_fname1 = pjoin(self.workdir, '{}.fmask.img'.format(self.granule))
@@ -164,7 +167,7 @@ class Package(luigi.Task):
         # Need to improve pluggability across tesp/eugl/wagl
         # and adopt patterns that facilitate reuse
         for key in list(tasks.keys()):
-            if key != 'wagl' and key not in self.qa_products:
+            if key != 'wagl' and key not in list(self.qa_products):
                 del tasks[key]
 
         return tasks
