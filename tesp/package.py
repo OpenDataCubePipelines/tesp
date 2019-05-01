@@ -733,7 +733,7 @@ def package(l1_path, antecedents, yamls_path, outdir,
             with open(antecedents['fmask-metadata'], 'r') as fl:
                 antecedent_metadata['fmask'] = yaml.load(fl)
 
-            with rasterio.open(fmask_cogtif_out) as ds:
+            with rasterio.open(fmask_location) as ds:
                 img_paths['fmask'] = get_img_dataset_info(ds, rel_path)
 
         # map, quicklook/thumbnail, readme, checksum
