@@ -8,29 +8,21 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from os.path import join as pjoin, basename
 import shutil
 import re
-import logging
 import traceback
-
-from structlog import wrap_logger
-from structlog.processors import JSONRenderer
 
 import luigi
 from luigi.local_target import LocalFileSystem
 
 from wagl.acquisition import preliminary_acquisitions_data
 from wagl.singlefile_workflow import DataStandardisation
+from wagl.logs import ERROR_LOGGER
+
 from tesp.package import package, PATTERN2, ARD
 from tesp.constants import ProductPackage
 
 from eugl.fmask import fmask
 from eugl.gqa import GQATask
 
-
-ERROR_LOGGER = wrap_logger(logging.getLogger('errors'),
-                           processors=[JSONRenderer(indent=1, sort_keys=True)])
-STATUS_LOGGER = wrap_logger(logging.getLogger('status'),
-                            processors=[JSONRenderer(indent=1, sort_keys=True)])
-INTERFACE_LOGGER = logging.getLogger('luigi-interface')
 
 QA_PRODUCTS = ['gqa', 'fmask']
 

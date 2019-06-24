@@ -20,12 +20,15 @@ import click
 os.environ["CPL_ZIP_ENCODING"] = "UTF-8"
 
 
+_LOG = logging.getLogger(__name__)
+
+
 def valid_region(fname, mask_value=None):
     """
     Return valid data region for input images based on mask value and input image path
     """
     mask = None
-    logging.info("Valid regions for %s", fname)
+    _LOG.info("Valid regions for %s", fname)
     # ensure formats match
     with rasterio.open(str(fname), 'r') as dataset:
         transform = dataset.transform.to_gdal()
@@ -95,7 +98,7 @@ def html_map(contiguity_fname, html_out_fname, json_out_fname):
     except OSError:
         pass
 
-    logging.info("Create valid bounds %s", str(json_out_fname))
+    _LOG.info("Create valid bounds %s", str(json_out_fname))
     geom, crs = valid_region(contiguity_fname)
     gpdsr = gpd.GeoSeries([geom])
     gpdsr.crs = crs
@@ -130,7 +133,7 @@ def main(contiguity):
     For input contiguity write geojson valid data extent and publish html folium map to
     'contiguity directory'
     """
-    logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.INFO)
+    _LOG.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.INFO)
     contiguity = os.path.abspath(str(contiguity[0]))
     out_dir = os.path.dirname(contiguity)
     geo_path = os.path.join(out_dir, 'bounds.geojson')
