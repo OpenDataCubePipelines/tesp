@@ -133,7 +133,7 @@ def main(contiguity):
     For input contiguity write geojson valid data extent and publish html folium map to
     'contiguity directory'
     """
-    _LOG.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.INFO)
+    logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.INFO)
     contiguity = os.path.abspath(str(contiguity[0]))
     out_dir = os.path.dirname(contiguity)
     geo_path = os.path.join(out_dir, 'bounds.geojson')

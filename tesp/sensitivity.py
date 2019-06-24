@@ -43,7 +43,7 @@ class ExperimentList(luigi.WrapperTask):
         for tag, settings in experiments.items():
             # a `tag` is a name given to an experiment
             # the `settings` for an experiment is the set of custom parameter values
-            if not self.tags or tag in self.tags:
+            if not self.tags or tag in self.tags:  # pylint: disable=unsupported-membership-test
                 yield Experiment(self.level1_list, self.workdir, self.pkgdir,
                                  self.cleanup, self.acq_parser_hint,
                                  tag, settings)
@@ -128,7 +128,7 @@ class MergeImages(luigi.Task):
 
     @property
     def _target_dir(self):
-        return pjoin(self.workdir, self.tag, *self.prefix)
+        return pjoin(self.workdir, self.tag, *self.prefix)  # pylint: disable=not-an-iterable
 
     @property
     def _target(self):
