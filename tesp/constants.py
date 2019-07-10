@@ -11,11 +11,11 @@ class ProductPackage:
     Helper class for selecting which ard products to package
     """
     _default_excludes = set((
-        ArdProducts.LAMBERTIAN.value,
-        ArdProducts.SBT.value
+        ArdProducts.LAMBERTIAN.value.lower(),
+        ArdProducts.SBT.value.lower()
     ))
 
-    _all_products = {e.value for e in ArdProducts}
+    _all_products = {e.value.lower() for e in ArdProducts}
 
     @classmethod
     def validate_products(cls, product_list):
