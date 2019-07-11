@@ -178,14 +178,16 @@ class Package(luigi.Task):
     def run(self):
         # TODO; the package_file func can accept additional fnames for yamls etc
         wagl_fname = self.input()['wagl'].path
-        package_file(Path(self.pkgdir), Path(wagl_fname), self.products)
+        md = package_file(Path(self.pkgdir), Path(wagl_fname), self.products)
 
         if self.cleanup:
             shutil.rmtree(self.workdir)
 
         with self.output().temporary_path() as out_fname:
             with open(out_fname, 'w') as outf:
-                data = {k: v for k, v in self.get_params()}
+                data = {k: v for k, v in self.get_param_values()}
+                # JSON can't serialise the returned Path obj
+                data['packaged_datasets'] = {str(k): str(v) for k, v in md.items()}
                 json.dump(data, outf)
 
 
