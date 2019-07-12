@@ -183,7 +183,8 @@ class Package(luigi.Task):
         gqa_doc_fname = Path(self.input()['gqa'].path)
 
         md = {}
-        for eods_granule in Granule.for_path(wagl_fname, [self.granule],
+        for eods_granule in Granule.for_path(wagl_fname,
+                                             granule_names=[self.granule],
                                              fmask_image_path=fmask_img_fname,
                                              fmask_doc_path=fmask_doc_fname,
                                              gqa_doc_path=gqa_doc_fname):
