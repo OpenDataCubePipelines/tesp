@@ -1,0 +1,49 @@
+#!/usr/bin/env python
+
+"""
+Summarise all the jobs submitted within a given batch.
+"""
+
+from pathlib import Path
+import click
+from luigi_db_utils import retrieve_status
+
+
+@click.command()
+@click.option("--indir", type=click.Path(file_okay=False, readable=True),
+              help="The input directory of the batchjob.")
+@click.option("--outdir", type=click.Path(file_okay=False, writable=True),
+              help=("The output directory to contain the done, failed, and "
+                    "pending lists."))
+def main(indir, outdir):
+    """
+    """
+    # status lists
+    reprocess = []
+    done = []
+    fail = []
+
+    outdir = Path(outdir)
+    files = Path(indir).rglob('luigi-task-hist.db')
+
+    for fname in files:
+        done_df, fail_df, pending_df = retrieve_status(str(fname), 'Package')
+        reprocess.extend(pending_df.value.tolist())
+        done.extend(done_df.value.tolist())
+        fail.extend(fail_df.value.tolist())
+
+    out_fname = outdir.joinpath('level-1-pending.txt')
+    with open(out_fname, 'w') as src:
+        src.writelines(['{}\n'.format(fname) for fname in reprocess])
+
+    out_fname = outdir.joinpath('level-1-done.txt')
+    with open(out_fname, 'w') as src:
+        src.writelines(['{}\n'.format(fname) for fname in done])
+
+    out_fname = outdir.joinpath('level-1-failed.txt')
+    with open(out_fname, 'w') as src:
+        src.writelines(['{}\n'.format(fname) for fname in fail])
+
+
+if __name__ == '__main__':
+    main()
