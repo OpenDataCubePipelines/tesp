@@ -48,5 +48,5 @@ setup(name='tesp',
                'bin/ard_pbs',
                'bin/search_s2',
                'bin/s2-nci-processing',
-               'batch_summary'],
+               'bin/batch_summary'],
       include_package_data=True)
