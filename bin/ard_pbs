@@ -35,7 +35,7 @@ luigi --module tesp.workflow ARDP --level1-list {scene_list} --workdir {outdir} 
 """)
 
 SUMMARY_TEMPLATE = ("""{pbs_resources}
-#PBS depend=afterany:{jobids}
+#PBS -W depend=afterany:{jobids}
 
 source {env}
 batch_summary --indir {indir} --outdir {outdir}
