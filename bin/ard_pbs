@@ -109,7 +109,7 @@ def _submit_multiple(scattered, env, batch_logdir, batch_outdir, pkgdir,
 
 def _submit_summary(indir, outdir, batch_id, pbs_resources, env, job_ids, test):
     """Summarise the jobs submitted within the batchjob."""
-    jobids = ":".join([j.split('.')[0] for j in job_ids)
+    jobids = ":".join([j.split('.')[0] for j in job_ids])
     pbs = SUMMARY_TEMPLATE.format(pbs_resources=pbs_resources, env=env,
                                   indir=indir, outdir=outdir, jobids=jobids)
 
