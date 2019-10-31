@@ -4,6 +4,7 @@ Constants
 """
 
 from wagl.constants import ArdProducts
+from wagl.constants import AtmosphericCoefficients
 
 
 class ProductPackage:
@@ -12,7 +13,9 @@ class ProductPackage:
     """
     _default_excludes = set((
         ArdProducts.LAMBERTIAN.value.lower(),
-        ArdProducts.SBT.value.lower()
+        ArdProducts.SBT.value.lower(),
+        ArdProducts.ADJ.value.lower(),
+        ArdProducts.SKY.value.lower()
     ))
 
     _all_products = {e.value.lower() for e in ArdProducts}
@@ -28,3 +31,9 @@ class ProductPackage:
     @classmethod
     def default(cls):
         return cls._all_products - cls._default_excludes
+
+    @classmethod
+    def marine(cls):
+        marine_products = cls._all_products - {ArdProducts.SBT.value.lower()}
+        marine_products.add(AtmosphericCoefficients.FV.value.lower())
+        return marine_products
