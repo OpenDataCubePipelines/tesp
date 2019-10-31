@@ -145,13 +145,14 @@ class Package(luigi.Task):
     cloud_buffer_distance = luigi.FloatParameter(default=150.0)
     cloud_shadow_buffer_distance = luigi.FloatParameter(default=300.0)
     parallax_test = luigi.BoolParameter()
+    water_atcor = luigi.BoolParameter()
 
     def requires(self):
         # Ensure configuration values are valid
         # self._validate_cfg()
 
         tasks = {'wagl': DataStandardisation(self.level1, self.workdir,
-                                             self.granule),
+                                             self.granule, water_atcor=self.water_atcor),
                  'fmask': RunFmask(self.level1, self.granule, self.workdir,
                                    self.cloud_buffer_distance,
                                    self.cloud_shadow_buffer_distance,
@@ -208,14 +209,14 @@ class Package(luigi.Task):
                 json.dump(data, outf)
 
 
-def list_packages(workdir, acq_parser_hint, pkgdir):
+def list_packages(workdir, acq_parser_hint, pkgdir, products, water_atcor):
     def worker(level1):
         work_root = pjoin(workdir, '{}.ARD'.format(basename(level1)))
 
         result = []
         for granule in preliminary_acquisitions_data(level1, acq_parser_hint):
             work_dir = pjoin(work_root, granule['id'])
-            result.append(Package(level1, work_dir, granule['id'], pkgdir))
+            result.append(Package(level1, work_dir, granule['id'], pkgdir, products=products, water_atcor=water_atcor))
 
         return result
 
@@ -233,12 +234,15 @@ class ARDP(luigi.WrapperTask):
     workdir = luigi.Parameter()
     pkgdir = luigi.Parameter()
     acq_parser_hint = luigi.OptionalParameter(default='')
+    products = luigi.ListParameter(default=ProductPackage.marine())
+    water_atcor = luigi.BoolParameter(parsing='explicit', default=False)
 
     def requires(self):
+
         with open(self.level1_list) as src:
             level1_list = [level1.strip() for level1 in src.readlines()]
 
-        worker = list_packages(self.workdir, self.acq_parser_hint, self.pkgdir)
+        worker = list_packages(self.workdir, self.acq_parser_hint, self.pkgdir, self.products, self.water_atcor)
 
         executor = ThreadPoolExecutor()
         futures = [executor.submit(worker, level1) for level1 in level1_list]
