@@ -35,5 +35,5 @@ class ProductPackage:
     @classmethod
     def marine(cls):
         marine_products = cls._all_products - {ArdProducts.SBT.value.lower()}
-        marine_products.add(AtmosphericCoefficients.FV.value.lower())
+        marine_products.add(AtmosphericCoefficients.FS.value.lower())
         return marine_products
