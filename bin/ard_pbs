@@ -99,7 +99,7 @@ def _submit_multiple(scattered, env, batch_logdir, batch_outdir, pkgdir,
             raise
 
         if hasattr(raw_output, 'decode'):
-            matches = re.match('^(?P<nci_job_id>\d{7,}.r-man2)$', raw_output.decode('utf-8'))
+            matches = re.match('^(?P<nci_job_id>\d{7,}.gadi-pbs)$', raw_output.decode('utf-8'))
             if matches:
                 nci_job_ids.append(matches.groupdict()['nci_job_id'])
 
@@ -131,7 +131,7 @@ def _submit_summary(indir, outdir, batch_id, pbs_resources, env, job_ids, test):
         raise
 
     if hasattr(raw_output, 'decode'):
-        matches = re.match('^(?P<nci_job_id>\d{7,}.r-man2)$', raw_output.decode('utf-8'))
+        matches = re.match('^(?P<nci_job_id>\d{7,}.gadi-pbs)$', raw_output.decode('utf-8'))
         if matches:
             job_id = matches.groupdict()['nci_job_id']
 
