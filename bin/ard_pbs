@@ -9,6 +9,7 @@ import re
 import json
 import logging
 from os.path import join as pjoin, dirname, exists
+from pathlib import Path
 import subprocess
 import uuid
 import click
@@ -22,6 +23,7 @@ PBS_RESOURCES = ("""#!/bin/bash
 #PBS -q {queue}
 #PBS -l walltime={walltime},mem={memory}GB,ncpus={ncpus},jobfs={jobfs}GB,other=pernodejobfs
 #PBS -l wd
+{filesystem_projects}
 #PBS -me
 {email}
 """)
@@ -47,7 +49,27 @@ FMT2 = 'jobid-{jobid}'
 FMT3 = 'level1-scenes-{jobid}.txt'
 FMT4 = 'jobid-{jobid}.bash'
 FMT5 = 'batch-{batchid}.bash'
+FMT6 = '#PBS -l storage=scratch/{f_project}+gdata/{f_project}\n'
 DAEMON_FMT = 'luigid --background --logdir {}'
+
+
+def _get_project_for_path(path: Path):
+    """
+    Get the NCI project used to store the given path, if any.
+    >>> _get_project_for_path(Path('/g/data/v10/some/data/path.txt'))
+    'v10'
+    >>> _get_project_for_path(Path('/g/data4/fk4/some/data/path.txt'))
+    'fk4'
+    >>> _get_project_for_path(Path('/scratch/da82/path.txt'))
+    'da82'
+    >>> _get_project_for_path(Path('/tmp/other/data'))
+    """
+    posix_path = path.as_posix()
+    if posix_path.startswith('/g/data'):
+        return posix_path.split('/')[3]
+    if posix_path.startswith('/scratch/'):
+        return posix_path.split('/')[2]
+    return None
 
 
 # pylint: disable=too-many-arguments
@@ -182,10 +204,19 @@ def main(level1_list, workdir, logdir, pkgdir, env, workers, nodes, memory,
     batch_logdir = pjoin(logdir, FMT1.format(batchid=batchid))
     batch_outdir = pjoin(workdir, FMT1.format(batchid=batchid))
 
+    filesystem_projects = {None}
+    filesystem_projects.add(_get_project_for_path(Path(workdir))
+    filesystem_projects.add(_get_project_for_path(Path(logdir))
+    filesystem_projects.add(_get_project_for_path(Path(pkgdir))
+    filesystem_projects.remove(None)
+
+    fsys_projects = [FMT6.format(f_project=fprj) for fprj in filesystem_projects]
+
     # optionally set pbs email string
     pbs_resources = PBS_RESOURCES.format(project=project, queue=queue,
                                          walltime=walltime, memory=memory,
                                          ncpus=workers, jobfs=jobfs,
+                                         filesystem_projects=''.join(fsys_projects),
                                          email=('#PBS -M ' + email) if email else "")
 
     if test:
@@ -201,6 +232,7 @@ def main(level1_list, workdir, logdir, pkgdir, env, workers, nodes, memory,
     pbs_resources = PBS_RESOURCES.format(project=project, queue='express',
                                          walltime="00:10:00", memory=6,
                                          ncpus=1, jobfs=2,
+                                         filesystem_projects=''.join(fsys_projects),
                                          email=('#PBS -M ' + email) if email else "")
 
     job_id = _submit_summary(batch_logdir, batch_logdir, batchid,
