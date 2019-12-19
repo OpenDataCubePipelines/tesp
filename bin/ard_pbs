@@ -23,8 +23,7 @@ PBS_RESOURCES = ("""#!/bin/bash
 #PBS -q {queue}
 #PBS -l walltime={walltime},mem={memory}GB,ncpus={ncpus},jobfs={jobfs}GB,other=pernodejobfs
 #PBS -l wd
-{filesystem_projects}
-#PBS -me
+{filesystem_projects}#PBS -me
 {email}
 """)
 
@@ -205,9 +204,9 @@ def main(level1_list, workdir, logdir, pkgdir, env, workers, nodes, memory,
     batch_outdir = pjoin(workdir, FMT1.format(batchid=batchid))
 
     filesystem_projects = {None}
-    filesystem_projects.add(_get_project_for_path(Path(workdir))
-    filesystem_projects.add(_get_project_for_path(Path(logdir))
-    filesystem_projects.add(_get_project_for_path(Path(pkgdir))
+    filesystem_projects.add(_get_project_for_path(Path(workdir)))
+    filesystem_projects.add(_get_project_for_path(Path(logdir)))
+    filesystem_projects.add(_get_project_for_path(Path(pkgdir)))
     filesystem_projects.remove(None)
 
     fsys_projects = [FMT6.format(f_project=fprj) for fprj in filesystem_projects]
