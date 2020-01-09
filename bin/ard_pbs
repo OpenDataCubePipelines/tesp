@@ -71,6 +71,32 @@ def _get_project_for_path(path: Path):
     return None
 
 
+def _filesystem_projects(level1_list: list,
+                         env: str,
+                         logdir: str,
+                         workdir: str,
+                         pkgdir: str):
+    """
+    Collect all the filesystem projects into a set.
+    """
+    fs_projects = {None}
+
+    fs_projects.add(_get_project_for_path(Path(workdir)))
+    fs_projects.add(_get_project_for_path(Path(logdir)))
+    fs_projects.add(_get_project_for_path(Path(pkgdir)))
+    fs_projects.add(_get_project_for_path(Path(env)))
+
+    with open(level1_list, 'r') as src:
+        paths = [p.strip() for p in src.readlines()]
+
+    for pathname in paths:
+        fs_projects.add(_get_project_for_path(Path(pathname)))
+    
+    fs_projects.remove(None)
+
+    return fs_projects
+
+
 # pylint: disable=too-many-arguments
 def _submit_multiple(scattered, env, batch_logdir, batch_outdir, pkgdir,
                      workers, pbs_resources, test):
@@ -203,13 +229,9 @@ def main(level1_list, workdir, logdir, pkgdir, env, workers, nodes, memory,
     batch_logdir = pjoin(logdir, FMT1.format(batchid=batchid))
     batch_outdir = pjoin(workdir, FMT1.format(batchid=batchid))
 
-    filesystem_projects = {None}
-    filesystem_projects.add(_get_project_for_path(Path(workdir)))
-    filesystem_projects.add(_get_project_for_path(Path(logdir)))
-    filesystem_projects.add(_get_project_for_path(Path(pkgdir)))
-    filesystem_projects.remove(None)
-
-    fsys_projects = [FMT6.format(f_project=fprj) for fprj in filesystem_projects]
+    fs_projects = _filesystem_projects(level1_list, env, logdir, workdir,
+                                       pkgdir)
+    fsys_projects = [FMT6.format(f_project=fprj) for fprj in fs_projects]
 
     # optionally set pbs email string
     pbs_resources = PBS_RESOURCES.format(project=project, queue=queue,
