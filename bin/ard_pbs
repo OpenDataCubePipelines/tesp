@@ -23,7 +23,8 @@ PBS_RESOURCES = ("""#!/bin/bash
 #PBS -q {queue}
 #PBS -l walltime={walltime},mem={memory}GB,ncpus={ncpus},jobfs={jobfs}GB,other=pernodejobfs
 #PBS -l wd
-{filesystem_projects}#PBS -me
+#PBS -l storage={filesystem_projects}
+#PBS -me
 {email}
 """)
 
@@ -48,7 +49,7 @@ FMT2 = 'jobid-{jobid}'
 FMT3 = 'level1-scenes-{jobid}.txt'
 FMT4 = 'jobid-{jobid}.bash'
 FMT5 = 'batch-{batchid}.bash'
-FMT6 = '#PBS -l storage=scratch/{f_project}+gdata/{f_project}\n'
+FMT6 = 'scratch/{f_project}+gdata/{f_project}'
 DAEMON_FMT = 'luigid --background --logdir {}'
 
 
@@ -231,13 +232,13 @@ def main(level1_list, workdir, logdir, pkgdir, env, workers, nodes, memory,
 
     fs_projects = _filesystem_projects(level1_list, env, logdir, workdir,
                                        pkgdir)
-    fsys_projects = [FMT6.format(f_project=fprj) for fprj in fs_projects]
+    fsys_projects = '+'.join([FMT6.format(f_project=f) for f in fs_projects])
 
     # optionally set pbs email string
     pbs_resources = PBS_RESOURCES.format(project=project, queue=queue,
                                          walltime=walltime, memory=memory,
                                          ncpus=workers, jobfs=jobfs,
-                                         filesystem_projects=''.join(fsys_projects),
+                                         filesystem_projects=fsys_projects,
                                          email=('#PBS -M ' + email) if email else "")
 
     if test:
