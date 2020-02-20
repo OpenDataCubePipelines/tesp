@@ -88,6 +88,8 @@ def _filesystem_projects(level1_list: list,
     fs_projects.add(_get_project_for_path(Path(env)))
     fs_projects.add(_get_project_for_path(Path(click.__file__)))
 
+    fs_projects.add(_get_project_for_path(Path('/g/data/u39/public/data/modis/lpdaac-mosaics-cmar/v1-hdf4/aust/MCD43A1.005')))
+
     with open(level1_list, 'r') as src:
         paths = [p.strip() for p in src.readlines()]
 
