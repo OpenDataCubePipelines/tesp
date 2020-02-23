@@ -158,6 +158,37 @@ def _submit_multiple(scattered, env, batch_logdir, batch_outdir, pkgdir,
     return nci_job_ids
 
 
+def _submit_summary(indir, outdir, batch_id, pbs_resources, env, job_ids, test):
+    """Summarise the jobs submitted within the batchjob."""
+    jobids = ":".join([j.split('.')[0] for j in job_ids])
+    pbs = SUMMARY_TEMPLATE.format(pbs_resources=pbs_resources, env=env,
+                                  indir=indir, outdir=outdir, jobids=jobids)
+
+    out_fname = pjoin(indir, FMT5.format(batchid=batch_id))
+    with open(out_fname, 'w') as src:
+        src.write(pbs)
+
+    if test:
+        click.echo("Mocking... Submitting Job: {} ...Mocking".format(batch_id))
+        click.echo("qsub {}".format(out_fname))
+
+    os.chdir(dirname(out_fname))
+    click.echo("Submitting Job: {}".format(batch_id))
+    try:
+        raw_output = subprocess.check_output(['qsub', out_fname])
+    except subprocess.CalledProcessError as exc:
+        logging.error('qsub failed with exit code %s', str(exc.returncode))
+        logging.error(exc.output)
+        raise
+
+    if hasattr(raw_output, 'decode'):
+        matches = re.match(r'^(?P<nci_job_id>\d+\.gadi-pbs)$', raw_output.decode('utf-8'))
+        if matches:
+            job_id = matches.groupdict()['nci_job_id']
+
+    return job_id
+
+
 @click.command()
 @click.option("--level1-list", type=click.Path(exists=True, readable=True),
               help="The input level1 scene list.")
@@ -222,6 +253,17 @@ def main(level1_list, workdir, logdir, pkgdir, env, workers, nodes, memory,
     nci_job_ids = _submit_multiple(scattered, env, batch_logdir, batch_outdir,
                                    pkgdir, workers, pbs_resources, test)
 
+    # job resources for batch summary
+    pbs_resources = PBS_RESOURCES.format(project=project, queue='express',
+                                         walltime="00:10:00", memory=6,
+                                         ncpus=1, jobfs=2,
+                                         filesystem_projects=''.join(fsys_projects),
+                                         email=('#PBS -M ' + email) if email else "")
+
+    job_id = _submit_summary(batch_logdir, batch_logdir, batchid,
+                             pbs_resources, env, nci_job_ids, test)
+
+    nci_job_ids.append(job_id)
     job_details = {
         'ardpbs_batch_id': batchid,
         'nci_job_ids': nci_job_ids
