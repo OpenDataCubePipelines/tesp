@@ -6,7 +6,7 @@ Summarise all the jobs submitted within a given batch.
 
 from pathlib import Path
 import click
-from luigi_db_utils import retrieve_status
+from tesp.luigi_db_utils import retrieve_status
 
 
 @click.command()
