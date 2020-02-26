@@ -9,15 +9,9 @@ Eg:
 db_connection = sqlite:///luigi-task-hist.db
 """
 
-<<<<<<< HEAD
-import sqlite3
-import pandas
-=======
-from pathlib import Path
 import sqlite3
 import pandas
 import click
->>>>>>> 8ae3a1c... Initial upload of batch_summary and luigi_db_utils.py
 
 
 def read_task_db(fname):
@@ -36,20 +30,10 @@ def read_task_db(fname):
     return tasks, events, params
 
 
-<<<<<<< HEAD
 def retrieve_status(fname, task_name):
     """
     Retrieve the task status given by `task_name` for each L1 dataset.
     """
-=======
-def retrieve_status(fname, task_name=None):
-    """
-    Retrieve the task status given by `task_name` for each L1 dataset.
-    """
-    if task_name is None:
-        raise ValueError('Parameter "task_name" cannot be None')
-
->>>>>>> 8ae3a1c... Initial upload of batch_summary and luigi_db_utils.py
     tasks, events, params = read_task_db(fname)
 
     task = tasks[tasks.name == task_name]
