@@ -198,10 +198,10 @@ def _submit_summary(indir, outdir, batch_id, pbs_resources, env, job_ids, test):
               help="The base output packaged directory.")
 @click.option("--env", type=click.Path(exists=True, readable=True),
               help="Environment script to source.")
-@click.option("--workers", type=click.IntRange(1, 32), default=16,
+@click.option("--workers", type=click.IntRange(1, 48), default=30,
               help="The number of workers to request per node.")
 @click.option("--nodes", default=1, help="The number of nodes to request.")
-@click.option("--memory", default=32,
+@click.option("--memory", default=192,
               help="The memory in GB to request per node.")
 @click.option("--jobfs", default=50,
               help="The jobfs memory in GB to request per node.")
