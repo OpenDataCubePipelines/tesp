@@ -33,6 +33,8 @@ NUMERIC = re.compile(r'^\d+$')
 GIT_ARCHIVE_REF_NAMES = '$Format:%D$'
 GIT_ARCHIVE_COMMIT_HASH = '$Format:%h$'
 
+REPO_URL = 'https://github.com/OpenDataCubePipelines/tesp.git'
+
 
 def get_version():
     package_dir = dirname(dirname(__file__))
