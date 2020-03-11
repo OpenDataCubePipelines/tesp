@@ -10,6 +10,7 @@ from pathlib import Path
 import shutil
 import traceback
 import json
+import yaml
 
 import luigi
 from luigi.local_target import LocalFileSystem
@@ -21,6 +22,7 @@ from wagl.singlefile_workflow import DataStandardisation
 from wagl.logs import TASK_LOGGER
 
 from tesp.constants import ProductPackage
+from tesp.metadata import _get_tesp_metadata
 
 from eugl.fmask import fmask
 from eugl.gqa import GQATask
@@ -193,12 +195,17 @@ class Package(luigi.Task):
         fmask_doc_fname = Path(self.input()['fmask']['metadata'].path)
         gqa_doc_fname = Path(self.input()['gqa'].path)
 
+        tesp_doc_fname = Path(self.workdir) / '{}.tesp.yaml'.format(self.granule)
+        with tesp_doc_fname.open('w') as src:
+            yaml.safe_dump(_get_tesp_metadata(), src)
+
         md = {}
         for eods_granule in Granule.for_path(wagl_fname,
                                              granule_names=[self.granule],
                                              fmask_image_path=fmask_img_fname,
                                              fmask_doc_path=fmask_doc_fname,
-                                             gqa_doc_path=gqa_doc_fname):
+                                             gqa_doc_path=gqa_doc_fname,
+                                             tesp_doc_path=tesp_doc_fname):
 
             ds_id, md_path = package(Path(self.pkgdir),
                                      eods_granule,
