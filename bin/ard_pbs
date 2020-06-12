@@ -13,6 +13,7 @@ from pathlib import Path
 import subprocess
 import uuid
 import click
+import math
 
 from wagl.tiling import scatter
 
@@ -82,6 +83,18 @@ FMT5 = 'batch-{batchid}-summary.bash'
 FMT6 = 'batch-{batchid}-indexing.bash'
 FMT7 = 'scratch/{f_project}+gdata/{f_project}'
 DAEMON_FMT = 'luigid --background --logdir {}'
+
+def _calc_nodes_req(granule_count, walltime, workers, hours_per_granule=1.5):
+    """ Provides estimation of the number of nodes required to process granule count
+
+    >>> _calc_nodes_req(400, '20:59', 28)
+    2
+    >>> _calc_nodes_req(800, '20:00', 28)
+    3
+    """
+
+    hours, _, _ = [int(x) for x in walltime.split(':')]
+    return int(math.ceil(float(hours_per_granule * granule_count) / (hours * workers)))
 
 
 def _get_project_for_path(path: Path):
@@ -268,7 +281,7 @@ def _submit_index(indir, outdir, batch_id, pbs_resources, env, job_id, test):
               help="Environment script to source.")
 @click.option("--workers", type=click.IntRange(1, 48), default=30,
               help="The number of workers to request per node.")
-@click.option("--nodes", default=1, help="The number of nodes to request.")
+@click.option("--nodes", default=None, help="The number of nodes to request.")
 @click.option("--memory", default=192,
               help="The memory in GB to request per node.")
 @click.option("--jobfs", default=50,
@@ -297,7 +310,8 @@ def main(level1_list, workdir, logdir, pkgdir, env, workers, nodes, memory,
     """
     with open(level1_list, 'r') as src:
         scenes = src.readlines()
-
+    if nodes is None:
+        nodes = _calc_nodes_req(len(scenes), walltime, workers)
     scattered = scatter(scenes, nodes)
 
     batchid = uuid.uuid4().hex[0:10]
