@@ -217,7 +217,7 @@ def write_tif_from_file(dataset: str, out_fname, options, config_options, overvi
         run_command(command, tmpdir)
         if overviews:
             command = ["gdaladdo", "-r", "mode", dataset]
-            command.extend([str(l) for l in LEVELS])
+            command.extend([str(x) for x in LEVELS])
             run_command(command, tmpdir)
         command = ["gdal_translate", "-of", "GTiff"]
 
@@ -548,7 +548,7 @@ def create_quicklook(product_list, container, outdir):
                'average',
                tmp_fname3]
         # Add levels
-        cmd.extend([str(l) for l in LEVELS])
+        cmd.extend([str(x) for x in LEVELS])
         run_command(cmd, tmpdir)
 
         # create the cogtif
@@ -605,7 +605,7 @@ def create_readme(outdir):
     """
     with resource_stream(tesp.__name__, '_README.md') as src:
         with open(pjoin(outdir, 'README.md'), 'w') as out_src:
-            out_src.writelines([l.decode('utf-8') for l in src.readlines()])
+            out_src.writelines([x.decode('utf-8') for x in src.readlines()])
 
 
 def create_checksum(outdir):
