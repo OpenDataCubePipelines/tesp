@@ -8,7 +8,7 @@ import tempfile
 import zipfile
 import sys
 from xml.etree import ElementTree
-from datetime import datetime
+from datetime import datetime, timedelta
 from os.path import join, basename
 from subprocess import Popen, PIPE, check_output, CalledProcessError
 from pathlib import Path
@@ -315,11 +315,19 @@ def process_level2(level1_root, s2_aoi, start_date, end_date, pkgdir, workdir, l
 @click.option('--retries', type=int, default=3)
 @click.option('--checksum/--no-checksum', default=False)
 @click.option('--dry-run', default=False, is_flag=True)
+@click.option('--log-level', default="WARNING", type=str,
+              help="Set a log level.  e.g. WARNING INFO")
 def generate_level1(level1_root: Path, output_dir: Path, start_date: datetime,
                     end_date: datetime, copy_parent_dir_count: int,
-                    retries: int, checksum: bool, dry_run: bool):
+                    retries: int, checksum: bool, dry_run: bool,
+                    log_level: str):
     click.echo(' '.join(sys.argv))
-
+    try:
+        logging.basicConfig(level=log_level)
+    except:
+        logging.basicConfig(level="WARNING")
+        logging.warning("Log level defaulting to warning.")
+    logging.info('this is an info level test')
     # run a find command to generate a list of level1 documents
     find_options = get_find_options(start_date, end_date)
 
@@ -331,6 +339,9 @@ def generate_level1(level1_root: Path, output_dir: Path, start_date: datetime,
         os.makedirs(yaml_output_dir, exist_ok=True)
         for i in range(retries):
             try:
+                # This is to avoid skipping due to Dataset creation time being older than start date
+                # Note if the difference is more than 7 days it will still skip
+                start_date = start_date - timedelta(7)
                 if dry_run:
                     click.echo(
                         'Processing: datasets: {}, outdir: {}, checksum: {}, start_date: {}'.format(
@@ -338,6 +349,7 @@ def generate_level1(level1_root: Path, output_dir: Path, start_date: datetime,
                         )
                     )
                 else:
+                    logging.info('Processing archive: %s', str(level1_dataset))
                     _process_datasets(yaml_output_dir, (level1_dataset, ), checksum, start_date)
                 break
             except Exception as e:
