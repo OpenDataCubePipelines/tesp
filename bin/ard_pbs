@@ -210,7 +210,10 @@ def _submit_summary(indir, outdir, batch_id, pbs_resources, env, job_ids, test):
 
 def _submit_index(indir, outdir, batch_id, pbs_resources, env, job_id, test):
     """Submit a job that adds datasets to a datacube index."""
-    jobid = job_id.split('.')[0]
+    if job_id:
+        jobid = job_id.split('.')[0]
+    else:
+        jobid = ''
     pbs = INDEXING_TEMPLATE.format(pbs_resources=pbs_resources, env=env,
                                    indir=indir, outdir=outdir, jobid=jobid,
                                    batchid=batch_id)
