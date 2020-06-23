@@ -44,9 +44,9 @@ batch_summary --indir {indir} --outdir {outdir}
 
 # jq queries
 find -type f -name 'task-log.jsonl' | xargs cat >> {batchid}-task-log.jsonl
-jq 'select(.status == "success") | {task, level1}' {batchid}-task-log.jsonl | jq --slurp 'unique_by(.level1, .task) | group_by(.task) | map({task: .[0].task, count: length})' > success-task-summary.json
-jq 'select(.status == "failure") | {task, level1}' {batchid}-task-log.jsonl | jq --slurp 'unique_by(.level1, .task) | group_by(.task) | map({task: .[0].task, count: length})' > failure-task-summary.json
-jq 'select(.status == "failure") | {level1, exception, task}' {batchid}-task-log.jsonl > exception-log.json
+jq 'select(.status == "success") | {{task, level1}}' {batchid}-task-log.jsonl | jq --slurp 'unique_by(.level1, .task) | group_by(.task) | map({{task: .[0].task, count: length}})' > success-task-summary.json
+jq 'select(.status == "failure") | {{task, level1}}' {batchid}-task-log.jsonl | jq --slurp 'unique_by(.level1, .task) | group_by(.task) | map({{task: .[0].task, count: length}})' > failure-task-summary.json
+jq 'select(.status == "failure") | {{level1, exception, task}}' {batchid}-task-log.jsonl > exception-log.json
 """)
 
 INDEXING_TEMPLATE = ("""{pbs_resources}
