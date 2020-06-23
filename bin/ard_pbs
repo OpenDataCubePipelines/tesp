@@ -44,18 +44,21 @@ batch_summary --indir {indir} --outdir {outdir}
 
 # jq queries
 find -type f -name 'task-log.jsonl' | xargs cat >> batch-{batchid}-task-log.jsonl
+find -type f -name 'status-log.jsonl' | xargs cat >> batch-{batchid}-status-log.jsonl
 jq 'select(.status == "success") | {{task, level1}}' batch-{batchid}-task-log.jsonl | jq --slurp 'unique_by(.level1, .task) | group_by(.task) | map({{task: .[0].task, count: length}})' > success-task-summary.json
 jq 'select(.status == "failure") | {{task, level1}}' batch-{batchid}-task-log.jsonl | jq --slurp 'unique_by(.level1, .task) | group_by(.task) | map({{task: .[0].task, count: length}})' > failure-task-summary.json
 jq 'select(.status == "failure") | {{level1, exception, task}}' batch-{batchid}-task-log.jsonl > exception-log.json
+jq 'select((.status == "success") and (.task == "ARDP")) | {{task}}' batch-{batchid}-task-log.jsonl | jq --slurp 'group_by(.task) | map({{task: .[0].task, job_count: length}})' > ardp-job-count.json
+jq 'select(.event == "packaged dataset") | .dataset_path' batch-{batchid}-status-log.jsonl | jq -sr 'unique | .[]' > batch-{batchid}-datasets-to-index.txt
 """)
 
 INDEXING_TEMPLATE = ("""{pbs_resources}
-#PBS -W depend=afterany:{jobids}
+#PBS -W depend=afterany:{jobid}
 
 source {env}
 
 # indexing
-jq 'select( | contains("packaged dataset")) | .dataset_path' batch-{batchid}-task-log.jsonl | parallel -j 47 -m -n 20 --line-buffer datacube dataset add
+cat batch-{batchid}-datasets-to-index.txt | parallel -j 47 -m -n 20 --line-buffer datacube dataset add
 """)
 
 
@@ -63,8 +66,9 @@ FMT1 = 'batchid-{batchid}'
 FMT2 = 'jobid-{jobid}'
 FMT3 = 'level1-scenes-{jobid}.txt'
 FMT4 = 'jobid-{jobid}.bash'
-FMT5 = 'batch-{batchid}.bash'
-FMT6 = 'scratch/{f_project}+gdata/{f_project}'
+FMT5 = 'batch-{batchid}-summary.bash'
+FMT6 = 'batch-{batchid}-summary.bash'
+FMT7 = 'scratch/{f_project}+gdata/{f_project}'
 DAEMON_FMT = 'luigid --background --logdir {}'
 
 
@@ -183,11 +187,41 @@ def _submit_summary(indir, outdir, batch_id, pbs_resources, env, job_ids, test):
         src.write(pbs)
 
     if test:
-        click.echo("Mocking... Submitting Job: {} ...Mocking".format(batch_id))
+        click.echo("Mocking... Submitting Summary Job for batch: {} ...Mocking".format(batch_id))
         click.echo("qsub {}".format(out_fname))
 
     os.chdir(dirname(out_fname))
-    click.echo("Submitting Job: {}".format(batch_id))
+    click.echo("Submitting Summary Job for batch: {}".format(batch_id))
+    try:
+        raw_output = subprocess.check_output(['qsub', out_fname])
+    except subprocess.CalledProcessError as exc:
+        logging.error('qsub failed with exit code %s', str(exc.returncode))
+        logging.error(exc.output)
+        raise
+
+    if hasattr(raw_output, 'decode'):
+        matches = re.match(r'^(?P<nci_job_id>\d+\.gadi-pbs)$', raw_output.decode('utf-8'))
+        if matches:
+            job_id = matches.groupdict()['nci_job_id']
+
+    return job_id
+
+
+def _submit_index(indir, outdir, batch_id, pbs_resources, env, job_id, test):
+    """Submit a job that adds datasets to a datacube index."""
+    pbs = INDEXING_TEMPLATE.format(pbs_resources=pbs_resources, env=env,
+                                   indir=indir, outdir=outdir, jobid=job_id,
+                                   batchid=batch_id)
+
+    out_fname = pjoin(indir, FMT6.format(batchid=batch_id))
+    with open(out_fname, 'w') as src:
+        src.write(pbs)
+
+    if test:
+        click.echo("Mocking... Submitting Indexing Job for batch: {} ...Mocking".format(batch_id))
+
+    os.chdir(dirname(out_fname))
+    click.echo("Submitting Indexing Job for batch: {}".format(batch_id))
     try:
         raw_output = subprocess.check_output(['qsub', out_fname])
     except subprocess.CalledProcessError as exc:
@@ -228,12 +262,17 @@ def _submit_summary(indir, outdir, batch_id, pbs_resources, env, job_ids, test):
               help="Job walltime in `hh:mm:ss` format.")
 @click.option("--email", default="",
               help="Notification email address.")
+@click.option("--datacube-env", type=click.Path(exists=True, readable=True),
+              help="Datacube specific environment script to source.")
+@click.option("--datacube-index", default=False, is_flag=True,
+              help="Index newly created datasets into a datacube instance.")
 @click.option("--test", default=False, is_flag=True,
               help=("Test job execution (Don't submit the job to the "
                     "PBS queue)."))
 # pylint: disable=too-many-arguments
 def main(level1_list, workdir, logdir, pkgdir, env, workers, nodes, memory,
-         jobfs, project, queue, walltime, email, test):
+         jobfs, project, queue, walltime, email, datacube_env, datacube_index,
+         test):
     """
     Equally partition a list of scenes across n nodes and submit
     n jobs into the PBS queue.
@@ -249,7 +288,7 @@ def main(level1_list, workdir, logdir, pkgdir, env, workers, nodes, memory,
 
     fs_projects = _filesystem_projects(level1_list, env, logdir, workdir,
                                        pkgdir)
-    fsys_projects = '+'.join([FMT6.format(f_project=f) for f in fs_projects])
+    fsys_projects = '+'.join([FMT7.format(f_project=f) for f in fs_projects])
 
     # optionally set pbs email string
     pbs_resources = PBS_RESOURCES.format(project=project, queue=queue,
@@ -276,8 +315,18 @@ def main(level1_list, workdir, logdir, pkgdir, env, workers, nodes, memory,
 
     job_id = _submit_summary(batch_logdir, batch_logdir, batchid,
                              pbs_resources, env, nci_job_ids, test)
-
     nci_job_ids.append(job_id)
+
+    if datacube_index:
+        pbs_resources = PBS_RESOURCES.format(project=project, queue='normal',
+                                             walltime="01:00:00", memory=6,
+                                             ncpus=48, jobfs=2,
+                                             filesystem_projects=''.join(fsys_projects),
+                                             email=('#PBS -M ' + email) if email else "")
+        index_job_id = _submit_index(batch_logdir, batch_logdir, batchid,
+                                     pbs_resources, datacube_env, job_id, test)
+        nci_job_ids.append(index_job_id)
+
     job_details = {
         'ardpbs_batch_id': batchid,
         'nci_job_ids': nci_job_ids
