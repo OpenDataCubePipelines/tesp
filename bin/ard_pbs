@@ -41,6 +41,21 @@ SUMMARY_TEMPLATE = ("""{pbs_resources}
 
 source {env}
 batch_summary --indir {indir} --outdir {outdir}
+
+# jq queries
+find -type f -name 'task-log.jsonl' | xargs cat >> {batchid}-task-log.jsonl
+jq 'select(.status == "success") | {task, level1}' {batchid}-task-log.jsonl | jq --slurp 'unique_by(.level1, .task) | group_by(.task) | map({task: .[0].task, count: length})' > success-task-summary.json
+jq 'select(.status == "failure") | {task, level1}' {batchid}-task-log.jsonl | jq --slurp 'unique_by(.level1, .task) | group_by(.task) | map({task: .[0].task, count: length})' > failure-task-summary.json
+jq 'select(.status == "failure") | {level1, exception, task}' {batchid}-task-log.jsonl > exception-log.json
+""")
+
+INDEXING_TEMPLATE = ("""{pbs_resources}
+#PBS -W depend=afterany:{jobids}
+
+source {env}
+
+# indexing
+jq 'select( | contains("packaged dataset")) | .dataset_path' {batchid}-task-log.jsonl | parallel -j 47 -m -n 20 --line-buffer datacube dataset add
 """)
 
 
@@ -160,7 +175,8 @@ def _submit_summary(indir, outdir, batch_id, pbs_resources, env, job_ids, test):
     """Summarise the jobs submitted within the batchjob."""
     jobids = ":".join([j.split('.')[0] for j in job_ids])
     pbs = SUMMARY_TEMPLATE.format(pbs_resources=pbs_resources, env=env,
-                                  indir=indir, outdir=outdir, jobids=jobids)
+                                  indir=indir, outdir=outdir, jobids=jobids,
+                                  batchid=batch_id)
 
     out_fname = pjoin(indir, FMT5.format(batchid=batch_id))
     with open(out_fname, 'w') as src:
