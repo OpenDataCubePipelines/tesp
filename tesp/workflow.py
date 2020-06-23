@@ -19,7 +19,7 @@ from eodatasets3.wagl import package, Granule
 
 from wagl.acquisition import preliminary_acquisitions_data
 from wagl.singlefile_workflow import DataStandardisation
-from wagl.logs import TASK_LOGGER
+from wagl.logs import TASK_LOGGER, STATUS_LOGGER
 
 from tesp.constants import ProductPackage
 from tesp.metadata import _get_tesp_metadata
@@ -212,11 +212,11 @@ class Package(luigi.Task):
                                      self.products)
 
             md[ds_id] = md_path
-            TASK_LOGGER.info("packaged dataset",
-                             granule=self.granule,
-                             level1=self.level1,
-                             dataset_id=str(ds_id),
-                             dataset_path=str(md_path))
+            STATUS_LOGGER.info("packaged dataset",
+                               granule=self.granule,
+                               level1=self.level1,
+                               dataset_id=str(ds_id),
+                               dataset_path=str(md_path))
 
         if self.cleanup:
             shutil.rmtree(self.workdir)
