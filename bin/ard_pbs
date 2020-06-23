@@ -189,6 +189,7 @@ def _submit_summary(indir, outdir, batch_id, pbs_resources, env, job_ids, test):
     if test:
         click.echo("Mocking... Submitting Summary Job for batch: {} ...Mocking".format(batch_id))
         click.echo("qsub {}".format(out_fname))
+        return
 
     os.chdir(dirname(out_fname))
     click.echo("Submitting Summary Job for batch: {}".format(batch_id))
@@ -220,6 +221,7 @@ def _submit_index(indir, outdir, batch_id, pbs_resources, env, job_id, test):
 
     if test:
         click.echo("Mocking... Submitting Indexing Job for batch: {} ...Mocking".format(batch_id))
+        return
 
     os.chdir(dirname(out_fname))
     click.echo("Submitting Indexing Job for batch: {}".format(batch_id))
