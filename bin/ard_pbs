@@ -48,7 +48,7 @@ find -type f -name 'status-log.jsonl' | xargs cat >> batch-{batchid}-status-log.
 jq 'select(.status == "success") | {{task, level1}}' batch-{batchid}-task-log.jsonl | jq --slurp 'unique_by(.level1, .task) | group_by(.task) | map({{task: .[0].task, count: length}})' > batch-{batchid}-success-task-summary.json
 jq 'select(.status == "failure") | {{task, level1}}' batch-{batchid}-task-log.jsonl | jq --slurp 'unique_by(.level1, .task) | group_by(.task) | map({{task: .[0].task, count: length}})' > batch-{batchid}-failure-task-summary.json
 jq 'select(.status == "failure") | {{level1, exception, task}}' batch-{batchid}-task-log.jsonl > batch-{batchid}-exception-log.json
-jq 'select(.task == "ARDP") | {{task, level1_list: .params.level1_list, status}}' batch-{batchid}-task-log.jsonl | jq --slurp 'unique_by(.params.level1_list, .task)' > batch-{batchid}-ardp-job-sucess.json
+jq 'select(.task == "ARDP") | {{task, level1_list: .params.level1_list, status}}' batch-{batchid}-task-log.jsonl | jq --slurp 'unique_by(level1_list)' > batch-{batchid}-ardp-job-sucess.json
 jq 'select(.event == "packaged dataset") | .dataset_path' batch-{batchid}-status-log.jsonl | jq -sr 'unique | .[]' > batch-{batchid}-datasets-to-index.txt
 """)
 
