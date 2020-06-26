@@ -43,12 +43,24 @@ source {env}
 batch_summary --indir {indir} --outdir {outdir}
 
 # jq queries
+# concatenate logs to enable querying on a single file
 find -type f -name 'task-log.jsonl' | xargs cat >> batch-{batchid}-task-log.jsonl
 find -type f -name 'status-log.jsonl' | xargs cat >> batch-{batchid}-status-log.jsonl
+
+# summaries on success and failure records
 jq 'select(.status == "success") | {{task, level1}}' batch-{batchid}-task-log.jsonl | jq --slurp 'unique_by(.level1, .task) | group_by(.task) | map({{task: .[0].task, count: length}})' > batch-{batchid}-success-task-summary.json
 jq 'select(.status == "failure") | {{task, level1}}' batch-{batchid}-task-log.jsonl | jq --slurp 'unique_by(.level1, .task) | group_by(.task) | map({{task: .[0].task, count: length}})' > batch-{batchid}-failure-task-summary.json
-jq 'select(.status == "failure") | {{level1, exception, task}}' batch-{batchid}-task-log.jsonl > batch-{batchid}-exception-log.json
+
+# capture failures and report the exception, level1, task and granule id
+jq 'select(.status == "failure") | {{level1, exception, task, granule: .params.granule}}' batch-{batchid}-task-log.jsonl | jq --slurp 'unique_by(.level1, .task, .granule)' > batch-{batchid}-exception-log.json
+
+# get a listing of which level1-lists from which jobid's had 100% success (all scenes processed through to packaging)
 jq 'select(.task == "ARDP") | {{task, level1_list: .params.level1_list, status}}' batch-{batchid}-task-log.jsonl | jq --slurp 'unique_by(.level1_list)' > batch-{batchid}-ardp-job-sucess.json
+
+# get a listing of level1 datasets and the granule id that packaged successfully (Package is the last task to be done as defined in the luigi workflow
+jq 'select(.status == "success" and .task == "Package") | {{task, level1, granule: .params.granule}}' batch-{batchid}-task-log.jsonl | jq --slurp 'unique_by(.level1, .task, .granule)' > batch-{batchid}-package-success.json
+
+# compile a list of successfully packaged datasets (and their path) to pass over to indexing
 jq 'select(.event == "packaged dataset") | .dataset_path' batch-{batchid}-status-log.jsonl | jq -sr 'unique | .[]' > batch-{batchid}-datasets-to-index.txt
 """)
 
