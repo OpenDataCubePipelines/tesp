@@ -57,8 +57,8 @@ jq 'select(.status == "failure") | {{level1, exception, task, granule: .params.g
 # get a listing of which level1-lists from which jobid's had 100% success (all scenes processed through to packaging)
 jq 'select(.task == "ARDP") | {{task, level1_list: .params.level1_list, status}}' batch-{batchid}-task-log.jsonl | jq --slurp 'unique_by(.level1_list)' > batch-{batchid}-ardp-job-sucess.json
 
-# get a listing of level1 datasets and the granule id that packaged successfully (Package is the last task to be done as defined in the luigi workflow
-jq 'select(.status == "success" and .task == "Package") | {{task, level1, granule: .params.granule}}' batch-{batchid}-task-log.jsonl | jq --slurp 'unique_by(.level1, .task, .granule)' > batch-{batchid}-package-success.json
+# get a listing of level1 datasets and the granule id that packaged successfully (Package is the last task to be done as defined in the luigi workflow) and report that "ard processing is complete"
+jq 'select(.status == "success" and .task == "Package") | {{level1, granule: .params.granule, notification: "ard processing complete"}}' batch-{batchid}-task-log.jsonl | jq --slurp 'unique_by(.level1, .granule)' > batch-{batchid}-package-success.json
 
 # compile a list of successfully packaged datasets (and their path) to pass over to indexing
 jq 'select(.event == "packaged dataset") | .dataset_path' batch-{batchid}-status-log.jsonl | jq -sr 'unique | .[]' > batch-{batchid}-datasets-to-index.txt
