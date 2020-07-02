@@ -71,7 +71,7 @@ INDEXING_TEMPLATE = ("""{pbs_resources}
 source {env}
 
 # indexing
-cat batch-{batchid}-datasets-to-index.txt | parallel -j 47 -m -n 20 --line-buffer datacube dataset add
+cat batch-{batchid}-datasets-to-index.txt | parallel -j 47 -m -n 20 --line-buffer datacube dataset add --no-verify-lineage
 """)
 
 
