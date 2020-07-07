@@ -295,15 +295,12 @@ def _submit_index(indir, outdir, batch_id, pbs_resources, env, job_id, test):
               help="Notification email address.")
 @click.option("--datacube-env", type=click.Path(exists=True, readable=True),
               help="Datacube specific environment script to source.")
-@click.option("--datacube-index", default=False, is_flag=True,
-              help="Index newly created datasets into a datacube instance.")
 @click.option("--test", default=False, is_flag=True,
               help=("Test job execution (Don't submit the job to the "
                     "PBS queue)."))
 # pylint: disable=too-many-arguments
 def main(level1_list, workdir, logdir, pkgdir, env, workers, nodes, memory,
-         jobfs, project, queue, walltime, email, datacube_env, datacube_index,
-         test):
+         jobfs, project, queue, walltime, email, datacube_env, test):
     """
     Equally partition a list of scenes across n nodes and submit
     n jobs into the PBS queue.
@@ -349,7 +346,7 @@ def main(level1_list, workdir, logdir, pkgdir, env, workers, nodes, memory,
                              pbs_resources, env, nci_job_ids, test)
     nci_job_ids.append(job_id)
 
-    if datacube_index:
+    if datacube_env:
         pbs_resources = PBS_RESOURCES.format(project=project, queue='normal',
                                              walltime="00:30:00", memory=4,
                                              ncpus=48, jobfs=2,
