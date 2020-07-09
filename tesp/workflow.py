@@ -19,7 +19,7 @@ from eodatasets3.wagl import package, Granule
 
 from wagl.acquisition import preliminary_acquisitions_data
 from wagl.singlefile_workflow import DataStandardisation
-from wagl.logs import TASK_LOGGER
+from wagl.logs import TASK_LOGGER, STATUS_LOGGER
 
 from tesp.constants import ProductPackage
 from tesp.metadata import _get_tesp_metadata
@@ -37,6 +37,7 @@ def on_failure(task, exception):
     TASK_LOGGER.exception(task=task.get_task_family(),
                           params=task.to_str_params(),
                           level1=getattr(task, 'level1', ''),
+                          granule=getattr(task, 'granule', ''),
                           stack_info=True,
                           status='failure',
                           exception=exception.__str__(),
@@ -49,6 +50,7 @@ def on_success(task):
     TASK_LOGGER.info(task=task.get_task_family(),
                      params=task.to_str_params(),
                      level1=getattr(task, 'level1', ''),
+                     granule=getattr(task, 'granule', ''),
                      status='success')
 
 
@@ -212,6 +214,11 @@ class Package(luigi.Task):
                                      self.products)
 
             md[ds_id] = md_path
+            STATUS_LOGGER.info("packaged dataset",
+                               granule=self.granule,
+                               level1=self.level1,
+                               dataset_id=str(ds_id),
+                               dataset_path=str(md_path))
 
         if self.cleanup:
             shutil.rmtree(self.workdir)
