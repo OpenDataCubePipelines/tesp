@@ -34,19 +34,20 @@ def main(indir, outdir):
         fail.extend(fail_df.value.tolist())
         running.extend(running_df.value.tolist())
 
-    out_fname = outdir.joinpath('level-1-pending.txt')
+    out_fname_fmt = "level-1-final_state-{}.txt"
+    out_fname = outdir.joinpath(out_fname_fmt.format("pending"))
     with open(out_fname, 'w') as src:
         src.writelines(['{}\n'.format(fname) for fname in reprocess])
 
-    out_fname = outdir.joinpath('level-1-done.txt')
+    out_fname = outdir.joinpath(out_fname_fmt.format("done"))
     with open(out_fname, 'w') as src:
         src.writelines(['{}\n'.format(fname) for fname in done])
 
-    out_fname = outdir.joinpath('level-1-failed.txt')
+    out_fname = outdir.joinpath(out_fname_fmt.format("failed"))
     with open(out_fname, 'w') as src:
         src.writelines(['{}\n'.format(fname) for fname in fail])
 
-    out_fname = outdir.joinpath('level-1-running.txt')
+    out_fname = outdir.joinpath(out_fname_fmt.format("running"))
     with open(out_fname, 'w') as src:
         src.writelines(['{}\n'.format(fname) for fname in running])
 
