@@ -54,6 +54,7 @@ def retrieve_status(fname, task_name):
     done = final_status[final_status.event_name == 'DONE']
     fail = final_status[final_status.event_name == 'FAILED']
     pending = final_status[final_status.event_name == 'PENDING']
+    running = final_status[final_status.event_name == 'RUNNING']
 
     l1_done = done.merge(l1_datasets, how='left', right_on='task_id',
                          left_on='id_{}'.format(task_name))
@@ -61,5 +62,7 @@ def retrieve_status(fname, task_name):
                          left_on='id_{}'.format(task_name))
     l1_pending = pending.merge(l1_datasets, how='left', right_on='task_id',
                                left_on='id_{}'.format(task_name))
+    l1_running = running.merge(l1_datasets, how='left', right_on='task_id',
+                               left_on='id_{}'.format(task_name))
 
-    return l1_done, l1_fail, l1_pending
+    return l1_done, l1_fail, l1_pending, l1_running
