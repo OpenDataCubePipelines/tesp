@@ -22,15 +22,17 @@ def main(indir, outdir):
     reprocess = []
     done = []
     fail = []
+    running = []
 
     outdir = Path(outdir)
     files = Path(indir).rglob('luigi-task-hist.db')
 
     for fname in files:
-        done_df, fail_df, pending_df = retrieve_status(str(fname), 'Package')
+        done_df, fail_df, pending_df, running_df = retrieve_status(str(fname), 'Package')
         reprocess.extend(pending_df.value.tolist())
         done.extend(done_df.value.tolist())
         fail.extend(fail_df.value.tolist())
+        running.extend(running_df.value.tolist())
 
     out_fname = outdir.joinpath('level-1-pending.txt')
     with open(out_fname, 'w') as src:
@@ -43,6 +45,10 @@ def main(indir, outdir):
     out_fname = outdir.joinpath('level-1-failed.txt')
     with open(out_fname, 'w') as src:
         src.writelines(['{}\n'.format(fname) for fname in fail])
+
+    out_fname = outdir.joinpath('level-1-running.txt')
+    with open(out_fname, 'w') as src:
+        src.writelines(['{}\n'.format(fname) for fname in running])
 
 
 if __name__ == '__main__':
