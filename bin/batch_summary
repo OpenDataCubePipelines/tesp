@@ -29,10 +29,10 @@ def main(indir, outdir):
 
     for fname in files:
         done_df, fail_df, pending_df, running_df = retrieve_status(str(fname), 'Package')
-        reprocess.extend(pending_df.value.tolist())
-        done.extend(done_df.value.tolist())
-        fail.extend(fail_df.value.tolist())
-        running.extend(running_df.value.tolist())
+        reprocess.extend(pending_df.value_level1.tolist())
+        done.extend(done_df.value_level1.tolist())
+        fail.extend(fail_df.value_level1.tolist())
+        running.extend(running_df.value_level1.tolist())
 
     out_fname_fmt = "level-1-final_state-{}.txt"
     out_fname = outdir.joinpath(out_fname_fmt.format("pending"))
