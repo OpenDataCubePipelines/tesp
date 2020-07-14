@@ -13,8 +13,8 @@ from tesp.luigi_db_utils import retrieve_status
 @click.option("--indir", type=click.Path(file_okay=False, readable=True),
               help="The input directory of the batchjob.")
 @click.option("--outdir", type=click.Path(file_okay=False, writable=True),
-              help=("The output directory to contain the done, failed, and "
-                    "pending lists."))
+              help=("The output directory to contain the done, failed, pending "
+                    "and running lists."))
 def main(indir, outdir):
     """
     """
