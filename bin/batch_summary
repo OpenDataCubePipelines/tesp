@@ -33,8 +33,9 @@ def main(indir, outdir):
     fail = []
     running = []
 
+    indir = Path(indir)
     outdir = Path(outdir)
-    files = Path(indir).rglob('luigi-task-hist.db')
+    files = indir.rglob('luigi-task-hist.db')
 
     msg = "package task state at end of batchjob"
     structlog.configure(processors=COMMON_PROCESSORS)
