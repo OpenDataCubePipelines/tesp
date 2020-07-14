@@ -22,27 +22,34 @@ def main(indir, outdir):
     reprocess = []
     done = []
     fail = []
+    running = []
 
     outdir = Path(outdir)
     files = Path(indir).rglob('luigi-task-hist.db')
 
     for fname in files:
-        done_df, fail_df, pending_df = retrieve_status(str(fname), 'Package')
+        done_df, fail_df, pending_df, running_df = retrieve_status(str(fname), 'Package')
         reprocess.extend(pending_df.value.tolist())
         done.extend(done_df.value.tolist())
         fail.extend(fail_df.value.tolist())
+        running.extend(running_df.value.tolist())
 
-    out_fname = outdir.joinpath('level-1-pending.txt')
+    out_fname_fmt = "level-1-final_state-{}.txt"
+    out_fname = outdir.joinpath(out_fname_fmt.format("pending"))
     with open(out_fname, 'w') as src:
         src.writelines(['{}\n'.format(fname) for fname in reprocess])
 
-    out_fname = outdir.joinpath('level-1-done.txt')
+    out_fname = outdir.joinpath(out_fname_fmt.format("done"))
     with open(out_fname, 'w') as src:
         src.writelines(['{}\n'.format(fname) for fname in done])
 
-    out_fname = outdir.joinpath('level-1-failed.txt')
+    out_fname = outdir.joinpath(out_fname_fmt.format("failed"))
     with open(out_fname, 'w') as src:
         src.writelines(['{}\n'.format(fname) for fname in fail])
+
+    out_fname = outdir.joinpath(out_fname_fmt.format("running"))
+    with open(out_fname, 'w') as src:
+        src.writelines(['{}\n'.format(fname) for fname in running])
 
 
 if __name__ == '__main__':
