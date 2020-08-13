@@ -348,8 +348,8 @@ def main(level1_list, workdir, logdir, pkgdir, env, workers, nodes, memory,
 
     if index_datacube_env:
         pbs_resources = PBS_RESOURCES.format(project=project, queue='normal',
-                                             walltime="00:30:00", memory=4,
-                                             ncpus=48, jobfs=2,
+                                             walltime="00:30:00", memory=192,
+                                             ncpus=48, jobfs=20,
                                              filesystem_projects=''.join(fsys_projects),
                                              email=('#PBS -M ' + email) if email else "")
         index_job_id = _submit_index(batch_logdir, batch_logdir, batchid,
