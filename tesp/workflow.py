@@ -26,9 +26,10 @@ from tesp.metadata import _get_tesp_metadata
 
 from eugl.fmask import fmask
 from eugl.gqa import GQATask
+from eugl.mndwi import mndwi
 
 
-QA_PRODUCTS = ['gqa', 'fmask']
+QA_PRODUCTS = ['gqa', 'fmask', 'mndwi']
 
 
 @luigi.Task.event_handler(luigi.Event.FAILURE)
@@ -71,6 +72,31 @@ class WorkDir(luigi.Task):
     def run(self):
         local_fs = LocalFileSystem()
         local_fs.mkdir(self.output().path)
+
+
+class Mndwi(luigi.Task):
+
+    """
+    Execute the MNDWI computation for a given granule.
+    """
+
+    level1 = luigi.Parameter()
+    workdir = luigi.Parameter()
+    granule = luigi.Parameter()
+
+    def requires(self):
+        return DataStandardisation(self.level1, self.workdir, self.granule)
+
+    def output(self):
+        out_fname = pjoin(self.workdir, "{}.mndwi.h5".format(self.granule))
+
+        return luigi.LocalTarget(out_fname)
+
+    def run(self):
+        out_fname = self.output()
+
+        with self.output().temporary_path() as out_fname:
+            mndwi(self.input()['wagl'].path, self.granule, out_fname)
 
 
 class RunFmask(luigi.Task):
@@ -171,7 +197,8 @@ class Package(luigi.Task):
                                    self.cloud_buffer_distance,
                                    self.cloud_shadow_buffer_distance,
                                    self.parallax_test),
-                 'gqa': GQATask(self.level1, self.acq_parser_hint, self.granule, self.workdir)}
+                 'gqa': GQATask(self.level1, self.acq_parser_hint, self.granule, self.workdir),
+                 'mndwi': Mndwi(self.level1, self.workdir, self.granule)}
 
         # Need to improve pluggability across tesp/eugl/wagl
         # and adopt patterns that facilitate reuse
