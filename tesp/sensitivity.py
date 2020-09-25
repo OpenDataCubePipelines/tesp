@@ -121,7 +121,7 @@ class Experiment(luigi.Task):
         if self.input():
             unpack(self.input(), outdir)
 
-        with open(pjoin(self.pkgdir, self.tag, ".done"), "w") as fl:
+        with open(pjoin(self.pkgdir, self.tag, ".done"), "w") as fl:  # noqa: F841
             pass
 
         if self.input() and self.cleanup:
@@ -193,7 +193,7 @@ class ExperimentGranule(luigi.Task):
         return pjoin(self.pkgdir, self.tag, granule)
 
     def _output_filename(self):
-        return pjoin(self._output_folder(), f"summary.csv")
+        return pjoin(self._output_folder(), "summary.csv")
 
     def requires(self):
         settings = {}
