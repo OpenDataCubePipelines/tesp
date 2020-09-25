@@ -19,7 +19,7 @@ def checksum(out_fname):
     """
 
     out_fname = Path(out_fname)
-    files = [f for f in out_fname.parent.glob('**/*') if f.is_file()]
+    files = [f for f in out_fname.parent.glob("**/*") if f.is_file()]
     chksum = PackageChecksum()
     chksum.add_files(files)
     chksum.write(out_fname)
@@ -32,14 +32,16 @@ def run():
     description = "Generate a package checksum."
     parser = argparse.ArgumentParser(description=description)
 
-    parser.add_argument("--out_fname", required=True,
-                        help=("The full file pathname of the file to contain "
-                              "the checksums."))
+    parser.add_argument(
+        "--out_fname",
+        required=True,
+        help=("The full file pathname of the file to contain " "the checksums."),
+    )
 
     args = parser.parse_args()
 
     checksum(args.out_fname)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     run()

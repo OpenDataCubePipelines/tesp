@@ -29,30 +29,34 @@ from eugl.gqa import GQATask
 from eugl.mndwi import mndwi
 
 
-QA_PRODUCTS = ['gqa', 'fmask', 'mndwi']
+QA_PRODUCTS = ["gqa", "fmask", "mndwi"]
 
 
 @luigi.Task.event_handler(luigi.Event.FAILURE)
 def on_failure(task, exception):
     """Capture any Task Failure here."""
-    TASK_LOGGER.exception(task=task.get_task_family(),
-                          params=task.to_str_params(),
-                          level1=getattr(task, 'level1', ''),
-                          granule=getattr(task, 'granule', ''),
-                          stack_info=True,
-                          status='failure',
-                          exception=exception.__str__(),
-                          traceback=traceback.format_exc().splitlines())
+    TASK_LOGGER.exception(
+        task=task.get_task_family(),
+        params=task.to_str_params(),
+        level1=getattr(task, "level1", ""),
+        granule=getattr(task, "granule", ""),
+        stack_info=True,
+        status="failure",
+        exception=exception.__str__(),
+        traceback=traceback.format_exc().splitlines(),
+    )
 
 
 @luigi.Task.event_handler(luigi.Event.SUCCESS)
 def on_success(task):
     """Capture any Task Success here."""
-    TASK_LOGGER.info(task=task.get_task_family(),
-                     params=task.to_str_params(),
-                     level1=getattr(task, 'level1', ''),
-                     granule=getattr(task, 'granule', ''),
-                     status='success')
+    TASK_LOGGER.info(
+        task=task.get_task_family(),
+        params=task.to_str_params(),
+        level1=getattr(task, "level1", ""),
+        granule=getattr(task, "granule", ""),
+        status="success",
+    )
 
 
 class WorkDir(luigi.Task):
@@ -96,7 +100,7 @@ class Mndwi(luigi.Task):
         out_fname = self.output()
 
         with self.output().temporary_path() as out_fname:
-            mndwi(self.input()['wagl'].path, self.granule, out_fname)
+            mndwi(self.input()["wagl"].path, self.granule, out_fname)
 
 
 class RunFmask(luigi.Task):
@@ -112,36 +116,45 @@ class RunFmask(luigi.Task):
     cloud_shadow_buffer_distance = luigi.FloatParameter(default=300.0)
     parallax_test = luigi.BoolParameter()
     upstream_settings = luigi.DictParameter(default={})
-    acq_parser_hint = luigi.OptionalParameter(default='')
+    acq_parser_hint = luigi.OptionalParameter(default="")
 
     def requires(self):
         # for the time being have fmask require wagl,
         # no point in running fmask if wagl fails...
         # return WorkDir(self.level1, dirname(self.workdir))
         return DataStandardisation(
-            self.level1, self.workdir, self.granule,
-            **self.upstream_settings  # pylint: disable=not-a-mapping
+            self.level1,
+            self.workdir,
+            self.granule,
+            **self.upstream_settings,  # pylint: disable=not-a-mapping
         )
 
     def output(self):
-        out_fname1 = pjoin(self.workdir, '{}.fmask.img'.format(self.granule))
-        out_fname2 = pjoin(self.workdir, '{}.fmask.yaml'.format(self.granule))
+        out_fname1 = pjoin(self.workdir, "{}.fmask.img".format(self.granule))
+        out_fname2 = pjoin(self.workdir, "{}.fmask.yaml".format(self.granule))
 
         out_fnames = {
-            'image': luigi.LocalTarget(out_fname1),
-            'metadata': luigi.LocalTarget(out_fname2)
+            "image": luigi.LocalTarget(out_fname1),
+            "metadata": luigi.LocalTarget(out_fname2),
         }
 
         return out_fnames
 
     def run(self):
         out_fnames = self.output()
-        with out_fnames['image'].temporary_path() as out_fname1:
-            with out_fnames['metadata'].temporary_path() as out_fname2:
-                fmask(self.level1, self.granule, out_fname1, out_fname2,
-                      self.workdir, self.acq_parser_hint,
-                      self.cloud_buffer_distance,
-                      self.cloud_shadow_buffer_distance, self.parallax_test)
+        with out_fnames["image"].temporary_path() as out_fname1:
+            with out_fnames["metadata"].temporary_path() as out_fname2:
+                fmask(
+                    self.level1,
+                    self.granule,
+                    out_fname1,
+                    out_fname2,
+                    self.workdir,
+                    self.acq_parser_hint,
+                    self.cloud_buffer_distance,
+                    self.cloud_shadow_buffer_distance,
+                    self.parallax_test,
+                )
 
 
 # useful for testing fmask via the CLI
@@ -156,15 +169,19 @@ class Fmask(luigi.WrapperTask):
     cloud_buffer_distance = luigi.FloatParameter(default=150.0)
     cloud_shadow_buffer_distance = luigi.FloatParameter(default=300.0)
     parallax_test = luigi.BoolParameter()
-    acq_parser_hint = luigi.OptionalParameter(default='')
+    acq_parser_hint = luigi.OptionalParameter(default="")
 
     def requires(self):
         # issues task per granule
         for granule in preliminary_acquisitions_data(self.level1, self.acq_parser_hint):
-            yield RunFmask(self.level1, granule['id'], self.workdir,
-                           self.cloud_buffer_distance,
-                           self.cloud_shadow_buffer_distance,
-                           self.parallax_test)
+            yield RunFmask(
+                self.level1,
+                granule["id"],
+                self.workdir,
+                self.cloud_buffer_distance,
+                self.cloud_shadow_buffer_distance,
+                self.parallax_test,
+            )
 
 
 class Package(luigi.Task):
@@ -176,11 +193,11 @@ class Package(luigi.Task):
 
     level1 = luigi.Parameter()
     workdir = luigi.Parameter()
-    granule = luigi.OptionalParameter(default='')
+    granule = luigi.OptionalParameter(default="")
     pkgdir = luigi.Parameter()
-    yamls_dir = luigi.OptionalParameter(default='')
+    yamls_dir = luigi.OptionalParameter(default="")
     cleanup = luigi.BoolParameter()
-    acq_parser_hint = luigi.OptionalParameter(default='')
+    acq_parser_hint = luigi.OptionalParameter(default="")
     products = luigi.ListParameter(default=ProductPackage.default())
     qa_products = luigi.ListParameter(default=QA_PRODUCTS)
     cloud_buffer_distance = luigi.FloatParameter(default=150.0)
@@ -191,19 +208,24 @@ class Package(luigi.Task):
         # Ensure configuration values are valid
         # self._validate_cfg()
 
-        tasks = {'wagl': DataStandardisation(self.level1, self.workdir,
-                                             self.granule),
-                 'fmask': RunFmask(self.level1, self.granule, self.workdir,
-                                   self.cloud_buffer_distance,
-                                   self.cloud_shadow_buffer_distance,
-                                   self.parallax_test),
-                 'gqa': GQATask(self.level1, self.acq_parser_hint, self.granule, self.workdir),
-                 'mndwi': Mndwi(self.level1, self.workdir, self.granule)}
+        tasks = {
+            "wagl": DataStandardisation(self.level1, self.workdir, self.granule),
+            "fmask": RunFmask(
+                self.level1,
+                self.granule,
+                self.workdir,
+                self.cloud_buffer_distance,
+                self.cloud_shadow_buffer_distance,
+                self.parallax_test,
+            ),
+            "gqa": GQATask(self.level1, self.acq_parser_hint, self.granule, self.workdir),
+            "mndwi": Mndwi(self.level1, self.workdir, self.granule),
+        }
 
         # Need to improve pluggability across tesp/eugl/wagl
         # and adopt patterns that facilitate reuse
         for key in list(tasks.keys()):
-            if key != 'wagl' and key not in list(self.qa_products):
+            if key != "wagl" and key not in list(self.qa_products):
                 del tasks[key]
 
         return tasks
@@ -213,61 +235,63 @@ class Package(luigi.Task):
         # create a text file to act as a completion target
         # this could be changed to be a database record
         parent_dir = Path(self.workdir).parent
-        out_fname = parent_dir.joinpath('{}.completed'.format(self.granule))
+        out_fname = parent_dir.joinpath("{}.completed".format(self.granule))
 
         return luigi.LocalTarget(str(out_fname))
 
     def run(self):
         # TODO; the package_file func can accept additional fnames for yamls etc
-        wagl_fname = Path(self.input()['wagl'].path)
-        fmask_img_fname = Path(self.input()['fmask']['image'].path)
-        fmask_doc_fname = Path(self.input()['fmask']['metadata'].path)
-        gqa_doc_fname = Path(self.input()['gqa'].path)
+        wagl_fname = Path(self.input()["wagl"].path)
+        fmask_img_fname = Path(self.input()["fmask"]["image"].path)
+        fmask_doc_fname = Path(self.input()["fmask"]["metadata"].path)
+        gqa_doc_fname = Path(self.input()["gqa"].path)
 
-        tesp_doc_fname = Path(self.workdir) / '{}.tesp.yaml'.format(self.granule)
-        with tesp_doc_fname.open('w') as src:
+        tesp_doc_fname = Path(self.workdir) / "{}.tesp.yaml".format(self.granule)
+        with tesp_doc_fname.open("w") as src:
             yaml.safe_dump(_get_tesp_metadata(), src)
 
         md = {}
-        for eods_granule in Granule.for_path(wagl_fname,
-                                             granule_names=[self.granule],
-                                             fmask_image_path=fmask_img_fname,
-                                             fmask_doc_path=fmask_doc_fname,
-                                             gqa_doc_path=gqa_doc_fname,
-                                             tesp_doc_path=tesp_doc_fname):
+        for eods_granule in Granule.for_path(
+            wagl_fname,
+            granule_names=[self.granule],
+            fmask_image_path=fmask_img_fname,
+            fmask_doc_path=fmask_doc_fname,
+            gqa_doc_path=gqa_doc_fname,
+            tesp_doc_path=tesp_doc_fname,
+        ):
 
-            ds_id, md_path = package(Path(self.pkgdir),
-                                     eods_granule,
-                                     self.products)
+            ds_id, md_path = package(Path(self.pkgdir), eods_granule, self.products)
 
             md[ds_id] = md_path
-            STATUS_LOGGER.info("packaged dataset",
-                               granule=self.granule,
-                               level1=self.level1,
-                               dataset_id=str(ds_id),
-                               dataset_path=str(md_path))
+            STATUS_LOGGER.info(
+                "packaged dataset",
+                granule=self.granule,
+                level1=self.level1,
+                dataset_id=str(ds_id),
+                dataset_path=str(md_path),
+            )
 
         if self.cleanup:
             shutil.rmtree(self.workdir)
 
         with self.output().temporary_path() as out_fname:
-            with open(out_fname, 'w') as outf:
+            with open(out_fname, "w") as outf:
                 data = {
-                    'params': self.to_str_params(),
+                    "params": self.to_str_params(),
                     # JSON can't serialise the returned Path obj
-                    'packaged_datasets': {str(k): str(v) for k, v in md.items()},
+                    "packaged_datasets": {str(k): str(v) for k, v in md.items()},
                 }
                 json.dump(data, outf)
 
 
 def list_packages(workdir, acq_parser_hint, pkgdir):
     def worker(level1):
-        work_root = pjoin(workdir, '{}.ARD'.format(basename(level1)))
+        work_root = pjoin(workdir, "{}.ARD".format(basename(level1)))
 
         result = []
         for granule in preliminary_acquisitions_data(level1, acq_parser_hint):
-            work_dir = pjoin(work_root, granule['id'])
-            result.append(Package(level1, work_dir, granule['id'], pkgdir))
+            work_dir = pjoin(work_root, granule["id"])
+            result.append(Package(level1, work_dir, granule["id"], pkgdir))
 
         return result
 
@@ -284,7 +308,7 @@ class ARDP(luigi.WrapperTask):
     level1_list = luigi.Parameter()
     workdir = luigi.Parameter()
     pkgdir = luigi.Parameter()
-    acq_parser_hint = luigi.OptionalParameter(default='')
+    acq_parser_hint = luigi.OptionalParameter(default="")
 
     def requires(self):
         with open(self.level1_list) as src:
@@ -300,5 +324,5 @@ class ARDP(luigi.WrapperTask):
                 yield _package
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     luigi.run()
