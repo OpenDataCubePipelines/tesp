@@ -10,10 +10,10 @@ class ProductPackage:
     """
     Helper class for selecting which ard products to package
     """
-    _default_excludes = set((
-        ArdProducts.LAMBERTIAN.value.lower(),
-        ArdProducts.SBT.value.lower()
-    ))
+
+    _default_excludes = set(
+        (ArdProducts.LAMBERTIAN.value.lower(), ArdProducts.SBT.value.lower())
+    )
 
     _all_products = {e.value.lower() for e in ArdProducts}
 
