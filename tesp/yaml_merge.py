@@ -10,8 +10,7 @@ import uuid
 import copy
 import re
 import numpy as np
-from tesp.version import get_version as tesp_version
-from tesp.version import REPO_URL as tesp_repo_url
+from tesp.metadata import _get_tesp_metadata as tesp_version
 
 os.environ["CPL_ZIP_ENCODING"] = "UTF-8"
 
@@ -59,7 +58,8 @@ def merge_metadata(
     # TODO: resolve common software version for fmask and gqa
     software_versions = wagl_tags["software_versions"]
 
-    software_versions["tesp"] = {"repo_url": tesp_repo_url, "version": tesp_version()}
+    tesp_metadata = tesp_version()
+    software_versions["tesp"] = tesp_metadata["software_versions"]["tesp"]
 
     # for Landsat, from_dt and to_dt in ARD-METADATA is populated from max and min timedelta values
     if platform == "LANDSAT":
