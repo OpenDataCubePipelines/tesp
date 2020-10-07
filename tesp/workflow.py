@@ -100,7 +100,7 @@ class Mndwi(luigi.Task):
         out_fname = self.output()
 
         with self.output().temporary_path() as out_fname:
-            mndwi(self.input()["wagl"].path, self.granule, out_fname)
+            mndwi(self.input().path, self.granule, out_fname)
 
 
 class RunFmask(luigi.Task):
