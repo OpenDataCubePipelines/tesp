@@ -74,6 +74,14 @@ source {env}
 cat batch-{batchid}-datasets-to-index.txt | parallel -j 47 -m -n 20 --line-buffer datacube dataset add --no-verify-lineage
 """)
 
+ARCHIVING_TEMPLATE = ("""{pbs_resources}
+
+source {env}
+
+# archiving
+cat {archive_list} | parallel -j 47 -m -n 20 --line-buffer datacube dataset archive
+""")
+
 
 FMT1 = 'batchid-{batchid}'
 FMT2 = 'jobid-{jobid}'
@@ -82,6 +90,7 @@ FMT4 = 'jobid-{jobid}.bash'
 FMT5 = 'batch-{batchid}-summary.bash'
 FMT6 = 'batch-{batchid}-indexing.bash'
 FMT7 = 'scratch/{f_project}+gdata/{f_project}'
+FMT8 = 'archiving-{batchid}.bash'
 DAEMON_FMT = 'luigid --background --logdir {}'
 
 def _calc_nodes_req(granule_count, walltime, workers, hours_per_granule=1.5):
@@ -268,6 +277,37 @@ def _submit_index(indir, outdir, batch_id, pbs_resources, env, job_id, test):
     return job_id
 
 
+def _submit_archive(indir, outdir, archive_list, batch_id, pbs_resources, env, test):
+    """Submit a job that archives datasets given a file listing UUIDs."""
+    pbs = ARCHIVING_TEMPLATE.format(pbs_resources=pbs_resources, env=env,
+                                   indir=indir, outdir=outdir,
+                                   archive_list=archive_list)
+
+    out_fname = pjoin(indir, FMT8.format(batchid=batch_id))
+    with open(out_fname, 'w') as src:
+        src.write(pbs)
+
+    if test:
+        click.echo("Mocking... Submitting Archiving Job for batch: {} ...Mocking".format(batch_id))
+        return
+
+    os.chdir(dirname(out_fname))
+    click.echo("Submitting Archiving Job for batch: {}".format(batch_id))
+    try:
+        raw_output = subprocess.check_output(['qsub', out_fname])
+    except subprocess.CalledProcessError as exc:
+        logging.error('qsub failed with exit code %s', str(exc.returncode))
+        logging.error(exc.output)
+        raise
+
+    if hasattr(raw_output, 'decode'):
+        matches = re.match(r'^(?P<nci_job_id>\d+\.gadi-pbs)$', raw_output.decode('utf-8'))
+        if matches:
+            job_id = matches.groupdict()['nci_job_id']
+
+    return job_id
+
+
 @click.command()
 @click.option("--level1-list", type=click.Path(exists=True, readable=True),
               help="The input level1 scene list.")
@@ -295,15 +335,18 @@ def _submit_index(indir, outdir, batch_id, pbs_resources, env, job_id, test):
               help="Notification email address.")
 @click.option("--index-datacube-env", type=click.Path(exists=True, readable=True),
               help="Datacube specific environment script to source.")
+@click.option("--archive-list", type=click.Path(exists=True, readable=True),
+              help="UUID's of the scenes to archive.  This uses the environment specified in index-datacube-env.")
+
 @click.option("--test", default=False, is_flag=True,
               help=("Test job execution (Don't submit the job to the "
                     "PBS queue)."))
 # pylint: disable=too-many-arguments
 def main(level1_list, workdir, logdir, pkgdir, env, workers, nodes, memory,
-         jobfs, project, queue, walltime, email, index_datacube_env, test):
+         jobfs, project, queue, walltime, email, index_datacube_env, archive_list, test):
     """
     Equally partition a list of scenes across n nodes and submit
-    n jobs into the PBS queue.
+    n jobs into the PBS queue for ARD processing.
     """
     with open(level1_list, 'r') as src:
         scenes = src.readlines()
@@ -355,6 +398,19 @@ def main(level1_list, workdir, logdir, pkgdir, env, workers, nodes, memory,
         index_job_id = _submit_index(batch_logdir, batch_logdir, batchid,
                                      pbs_resources, index_datacube_env, job_id, test)
         nci_job_ids.append(index_job_id)
+
+    if archive_list:
+        if index_datacube_env:
+            pbs_resources = PBS_RESOURCES.format(project=project, queue='normal',
+                                                 walltime="00:30:00", memory=192,
+                                                 ncpus=48, jobfs=20,
+                                                 filesystem_projects=''.join(fsys_projects),
+                                                 email=('#PBS -M ' + email) if email else "")
+            archive_job_id = _submit_archive(batch_logdir, batch_logdir, archive_list, batchid,
+                                         pbs_resources, index_datacube_env, test)
+            nci_job_ids.append(archive_job_id)
+        else:
+            logging.error('Archive list given but --index-datacube-env not specified.')
 
     job_details = {
         'ardpbs_batch_id': batchid,
