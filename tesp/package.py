@@ -74,6 +74,7 @@ SUPPS = "SUPPLEMENTARY"
 
 GDAL_H5_FMT = 'HDF5:"{filename}":/{dataset_pathname}'
 
+
 def run_command(command, work_dir):
     """
     A simple utility to execute a subprocess command.
@@ -804,7 +805,9 @@ def package_non_standard(outdir, granule):
 
     outdir = Path(outdir)
     out_fname = Path(str(granule.wagl_hdf5).replace("wagl.h5", "yaml"))
-    out_fname_conv = Path(str(granule.wagl_hdf5).replace("wagl.h5", "converted.datasets.h5"))
+    out_fname_conv = Path(
+        str(granule.wagl_hdf5).replace("wagl.h5", "converted.datasets.h5")
+    )
 
     f = h5py.File(outdir.joinpath(out_fname_conv))
 
@@ -813,7 +816,7 @@ def package_non_standard(outdir, granule):
         da.add_source_dataset(level1, auto_inherit_properties=True, inherit_geometry=True)
         da.product_family = "ard"
         da.producer = "ga.gov.au"
-        da.properties['odc:file_format'] = "HDF5"
+        da.properties["odc:file_format"] = "HDF5"
 
         with h5py.File(granule.wagl_hdf5, "r") as fid:
             img_paths = [
@@ -825,9 +828,7 @@ def package_non_standard(outdir, granule):
             try:
                 wagl_path, *ancil_paths = [
                     pth
-                    for pth in (
-                        eodatasets3.wagl._find_h5_paths(granule_group, "SCALAR")
-                    )
+                    for pth in (eodatasets3.wagl._find_h5_paths(granule_group, "SCALAR"))
                     if "METADATA" in pth
                 ]
             except ValueError:
@@ -848,15 +849,18 @@ def package_non_standard(outdir, granule):
             eodatasets3.wagl._read_fmask_doc(da, granule.fmask_doc)
 
             with rasterio.open(granule.fmask_image) as ds:
-                fmask_layer = '/{}/OA_FMASK/oa_fmask'.format(granule.name)
-
-                fmask_ds = f.create_dataset(fmask_layer, data=ds.read(1), compression='lzf', shuffle=True)
-                fmask_ds.attrs['crs_wkt'] = ds.crs.wkt
-                fmask_ds.attrs['geotransform'] = ds.transform.to_gdal()
+                fmask_layer = "/{}/OA_FMASK/oa_fmask".format(granule.name)
+                fmask_ds = f.create_dataset(
+                    fmask_layer, data=ds.read(1), compression='lzf', shuffle=True
+                )
+                fmask_ds.attrs["crs_wkt"] = ds.crs.wkt
+                fmask_ds.attrs["geotransform"] = ds.transform.to_gdal()
 
                 geotransform = ds.transform.to_gdal()
 
-                fmask_ds.attrs['description'] = "Converted from ERDAS Imagine format to HDF5 to work with the limitations of varied formats within ODC"
+                fmask_ds.attrs[
+                    "description"
+                ] = "Converted from ERDAS Imagine format to HDF5 to work with the limitations of varied formats within ODC"
 
                 grid_spec = images.GridSpec(
                     shape=ds.shape,
@@ -864,11 +868,11 @@ def package_non_standard(outdir, granule):
                     crs=CRS.from_wkt(fmask_ds.attrs["crs_wkt"]),
                 )
 
-                measurement_name = 'oa_fmask'
+                measurement_name = "oa_fmask"
 
                 pathname = str(outdir.joinpath(out_fname_conv))
 
-                no_data =  fmask_ds.attrs.get("no_data_value")
+                no_data = fmask_ds.attrs.get("no_data_value")
                 if no_data is None:
                     no_data = float("nan")
 
@@ -877,7 +881,7 @@ def package_non_standard(outdir, granule):
                     grid_spec,
                     pathname,
                     fmask_ds[:],
-                    layer = '/{}'.format(fmask_layer),
+                    layer = "/{}".format(fmask_layer),
                     nodata=no_data,
                     expand_valid_data=False,
                 )
@@ -928,7 +932,13 @@ def package_non_standard(outdir, granule):
                 # if we are of type bool, we'll have to convert just for GDAL
                 if ds.dtype.name == "bool":
                     pathname = str(outdir.joinpath(out_fname_conv))
-                    out_ds = f.create_dataset(measurement_name, data=np.uint8(ds[:]), compression='lzf', shuffle=True, chunks=ds.chunks)
+                    out_ds = f.create_dataset(
+                        measurement_name, 
+                        data = np.uint8(ds[:]), 
+                        compression = "lzf", 
+                        shuffle = True, 
+                        chunks = ds.chunks
+                    )
 
                     for k, v in ds.attrs.items():
                         out_ds.attrs[k] = v
@@ -938,9 +948,9 @@ def package_non_standard(outdir, granule):
                         grid_spec,
                         pathname,
                         out_ds[:],
-                        layer = '/{}'.format(out_ds.name),
-                        nodata=no_data,
-                        expand_valid_data=include,
+                        layer = "/{}".format(out_ds.name),
+                        nodata = no_data,
+                        expand_valid_data = include,
                     )
                 else:
                     pathname = str(outdir.joinpath(granule.wagl_hdf5))
@@ -951,9 +961,9 @@ def package_non_standard(outdir, granule):
                         grid_spec,
                         pathname,
                         ds[:],
-                        layer = '/{}'.format(ds.name),
-                        nodata=no_data,
-                        expand_valid_data=include,
+                        layer = "/{}".format(ds.name),
+                        nodata = no_data,
+                        expand_valid_data = include,
                     )
 
         # the longest part here is generating the valid data bounds vector
