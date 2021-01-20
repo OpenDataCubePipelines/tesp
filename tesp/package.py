@@ -860,7 +860,8 @@ def package_non_standard(outdir, granule):
 
                 fmask_ds.attrs[
                     "description"
-                ] = "Converted from ERDAS Imagine format to HDF5 to work with the limitations of varied formats within ODC"
+                ] = "Converted from ERDAS Imagine format to HDF5 "
+                    "to work with the limitations of varied formats within ODC"
 
                 grid_spec = images.GridSpec(
                     shape=ds.shape,
@@ -881,11 +882,10 @@ def package_non_standard(outdir, granule):
                     grid_spec,
                     pathname,
                     fmask_ds[:],
-                    layer = "/{}".format(fmask_layer),
+                    layer="/{}".format(fmask_layer),
                     nodata=no_data,
                     expand_valid_data=False,
                 )
-
 
             for pathname in img_paths:
                 ds = fid[pathname]
@@ -934,10 +934,10 @@ def package_non_standard(outdir, granule):
                     pathname = str(outdir.joinpath(out_fname_conv))
                     out_ds = f.create_dataset(
                         measurement_name, 
-                        data = np.uint8(ds[:]), 
-                        compression = "lzf", 
-                        shuffle = True, 
-                        chunks = ds.chunks
+                        data=np.uint8(ds[:]), 
+                        compression="lzf", 
+                        shuffle=True, 
+                        chunks=ds.chunks
                     )
 
                     for k, v in ds.attrs.items():
@@ -948,9 +948,9 @@ def package_non_standard(outdir, granule):
                         grid_spec,
                         pathname,
                         out_ds[:],
-                        layer = "/{}".format(out_ds.name),
-                        nodata = no_data,
-                        expand_valid_data = include,
+                        layer="/{}".format(out_ds.name),
+                        nodata=no_data,
+                        expand_valid_data=include,
                     )
                 else:
                     pathname = str(outdir.joinpath(granule.wagl_hdf5))
@@ -961,12 +961,11 @@ def package_non_standard(outdir, granule):
                         grid_spec,
                         pathname,
                         ds[:],
-                        layer = "/{}".format(ds.name),
-                        nodata = no_data,
-                        expand_valid_data = include,
+                        layer="/{}".format(ds.name),
+                        nodata=no_data,
+                        expand_valid_data=include,
                     )
 
         # the longest part here is generating the valid data bounds vector
         # landsat 7 post SLC-OFF can take a really long time
         return da.done()
-
