@@ -787,3 +787,9 @@ def package(
 
         # finally the checksum
         create_checksum(out_path)
+
+
+def some_new_func(a, b):
+    c = a + b
+    d = "grhgottgogr"
+    return c, d
