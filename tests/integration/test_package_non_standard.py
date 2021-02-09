@@ -44,6 +44,7 @@ TESP_DOC_PATH: Path = Path(
 
 granule_names = ["LC80920842016180LGN01"]
 
+
 @pytest.fixture()
 def expected_wagl_output(tmp_path):
     return {
