@@ -15,7 +15,7 @@ import yaml
 import luigi
 from luigi.local_target import LocalFileSystem
 
-from eodatasets3.wagl import package, Granule
+from eodatasets3.wagl import Granule
 
 from wagl.acquisition import preliminary_acquisitions_data
 from wagl.singlefile_workflow import DataStandardisation
@@ -23,6 +23,7 @@ from wagl.logs import TASK_LOGGER, STATUS_LOGGER
 
 from tesp.constants import ProductPackage
 from tesp.metadata import _get_tesp_metadata
+from tesp.package import package, package_non_standard
 
 from eugl.fmask import fmask
 from eugl.gqa import GQATask
@@ -177,6 +178,7 @@ class Package(luigi.Task):
     cloud_buffer_distance = luigi.FloatParameter(default=150.0)
     cloud_shadow_buffer_distance = luigi.FloatParameter(default=300.0)
     parallax_test = luigi.BoolParameter()
+    standard_packaging = luigi.BoolParameter()
 
     def requires(self):
         # Ensure configuration values are valid
@@ -233,7 +235,10 @@ class Package(luigi.Task):
             tesp_doc_path=tesp_doc_fname,
         ):
 
-            ds_id, md_path = package(Path(self.pkgdir), eods_granule, self.products)
+            if self.standard_packaging is False:
+                ds_id, md_path = package_non_standard(Path(self.pkgdir), eods_granule)
+            else:
+                ds_id, md_path = package(Path(self.pkgdir), eods_granule, self.products)
 
             md[ds_id] = md_path
             STATUS_LOGGER.info(

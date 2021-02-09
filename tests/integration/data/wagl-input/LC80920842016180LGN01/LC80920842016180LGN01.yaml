@@ -1,0 +1,505 @@
+---
+# Dataset
+$schema: https://schemas.opendatacube.org/dataset
+id: f374121b-c17d-4e97-a8ea-3763886a2a08
+
+label: ga_ls8c_ard_3-1-0_092084_2016-06-28
+product:
+  name: ga_ls8c_ard_3
+  href: https://collections.dea.ga.gov.au/product/ga_ls8c_ard_3
+
+crs: epsg:32655
+geometry:
+  type: Polygon
+  coordinates: [[[593115.0, -3713085.0], [360585.0, -3713085.0], [360585.0, -3947415.0],
+      [593115.0, -3947415.0], [593115.0, -3713085.0]]]
+grids:
+  default:
+    shape: [79, 78]
+    transform: [2981.153846153846, 0.0, 360585.0, 0.0, -2966.2025316455697, -3713085.0,
+      0.0, 0.0, 1.0]
+  rg0:
+    shape: [157, 156]
+    transform: [1490.4807692307693, 0.0, 360592.5, 0.0, -1492.452229299363, -3713092.5,
+      0.0, 0.0, 1.0]
+  rg0_oa_dsm_smoothed:
+    shape: [167, 166]
+    transform: [1497.198795180723, 0.0, 352582.5, 0.0, -1499.0119760479042, -3705082.5,
+      0.0, 0.0, 1.0]
+  rg1_oa_dsm_smoothed:
+    shape: [84, 83]
+    transform: [2994.5783132530123, 0.0, 352575.0, 0.0, -2980.357142857143, -3705075.0,
+      0.0, 0.0, 1.0]
+
+properties:
+  datetime: 2016-06-28 00:02:28.624635Z
+  eo:cloud_cover: 63.069613577531236
+  eo:gsd: 30.0  # Ground sample distance (m)
+  eo:instrument: OLI_TIRS
+  eo:platform: landsat-8
+  eo:sun_azimuth: 33.65512534
+  eo:sun_elevation: 23.98836172
+  fmask:clear: 32.735343657403305
+  fmask:cloud: 63.069613577531236
+  fmask:cloud_shadow: 4.139470857647722
+  fmask:snow: 0.005053323801138007
+  fmask:water: 0.050518583616596675
+  gqa:abs_iterative_mean_x: 0.21
+  gqa:abs_iterative_mean_xy: 0.27
+  gqa:abs_iterative_mean_y: 0.18
+  gqa:abs_x: 0.3
+  gqa:abs_xy: 0.39
+  gqa:abs_y: 0.25
+  gqa:cep90: 0.46
+  gqa:iterative_mean_x: -0.17
+  gqa:iterative_mean_xy: 0.21
+  gqa:iterative_mean_y: 0.12
+  gqa:iterative_stddev_x: 0.19
+  gqa:iterative_stddev_xy: 0.25
+  gqa:iterative_stddev_y: 0.17
+  gqa:mean_x: -0.1
+  gqa:mean_xy: 0.14
+  gqa:mean_y: 0.1
+  gqa:stddev_x: 0.35
+  gqa:stddev_xy: 0.45
+  gqa:stddev_y: 0.29
+  landsat:collection_category: T1
+  landsat:collection_number: 1
+  landsat:landsat_product_id: LC08_L1TP_092084_20160628_20170323_01_T1
+  landsat:landsat_scene_id: LC80920842016180LGN01
+  landsat:wrs_path: 92
+  landsat:wrs_row: 84
+  odc:dataset_version: 3.1.0
+  odc:file_format: HDF5
+  odc:processing_datetime: 2019-07-11 23:29:29.021245Z
+  odc:producer: ga.gov.au
+  odc:product_family: ard
+  odc:region_code: '092084'
+
+measurements:
+  oa_fmask:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.converted.datasets.h5
+    layer: //LC80920842016180LGN01/OA_FMASK/oa_fmask
+  rg0_lambertian_panchromatic:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-0/STANDARDISED-PRODUCTS/REFLECTANCE/LAMBERTIAN/BAND-8
+    grid: rg0
+  rg0_nbar_panchromatic:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-0/STANDARDISED-PRODUCTS/REFLECTANCE/NBAR/BAND-8
+    grid: rg0
+  rg0_nbart_panchromatic:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-0/STANDARDISED-PRODUCTS/REFLECTANCE/NBART/BAND-8
+    grid: rg0
+  rg0_oa_a_panchromatic:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-0/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/A/BAND-8
+    grid: rg0
+  rg0_oa_aspect:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-0/SLOPE-ASPECT/ASPECT
+    grid: rg0
+  rg0_oa_azimuthal_exiting:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-0/EXITING-ANGLES/AZIMUTHAL-EXITING
+    grid: rg0
+  rg0_oa_azimuthal_incident:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-0/INCIDENT-ANGLES/AZIMUTHAL-INCIDENT
+    grid: rg0
+  rg0_oa_b_panchromatic:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-0/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/B/BAND-8
+    grid: rg0
+  rg0_oa_cast_shadow_satellite:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.converted.datasets.h5
+    layer: //rg0_oa_cast_shadow_satellite
+    grid: rg0
+  rg0_oa_cast_shadow_sun:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.converted.datasets.h5
+    layer: //rg0_oa_cast_shadow_sun
+    grid: rg0
+  rg0_oa_dif_panchromatic:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-0/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/DIF/BAND-8
+    grid: rg0
+  rg0_oa_dir_panchromatic:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-0/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/DIR/BAND-8
+    grid: rg0
+  rg0_oa_dsm_smoothed:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-0/ELEVATION/DSM-SMOOTHED
+    grid: rg0_oa_dsm_smoothed
+  rg0_oa_exiting:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-0/EXITING-ANGLES/EXITING-ANGLE
+    grid: rg0
+  rg0_oa_fs_panchromatic:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-0/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/FS/BAND-8
+    grid: rg0
+  rg0_oa_fv_panchromatic:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-0/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/FV/BAND-8
+    grid: rg0
+  rg0_oa_incident:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-0/INCIDENT-ANGLES/INCIDENT-ANGLE
+    grid: rg0
+  rg0_oa_latitude:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-0/LONGITUDE-LATITUDE/LATITUDE
+    grid: rg0
+  rg0_oa_longitude:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-0/LONGITUDE-LATITUDE/LONGITUDE
+    grid: rg0
+  rg0_oa_relative_azimuth:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-0/SATELLITE-SOLAR/RELATIVE-AZIMUTH
+    grid: rg0
+  rg0_oa_relative_slope:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-0/RELATIVE-SLOPE/RELATIVE-SLOPE
+    grid: rg0
+  rg0_oa_s_panchromatic:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-0/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/S/BAND-8
+    grid: rg0
+  rg0_oa_satellite_azimuth:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-0/SATELLITE-SOLAR/SATELLITE-AZIMUTH
+    grid: rg0
+  rg0_oa_satellite_view:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-0/SATELLITE-SOLAR/SATELLITE-VIEW
+    grid: rg0
+  rg0_oa_self_shadow:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.converted.datasets.h5
+    layer: //rg0_oa_self_shadow
+    grid: rg0
+  rg0_oa_slope:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-0/SLOPE-ASPECT/SLOPE
+    grid: rg0
+  rg0_oa_solar_azimuth:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-0/SATELLITE-SOLAR/SOLAR-AZIMUTH
+    grid: rg0
+  rg0_oa_solar_zenith:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-0/SATELLITE-SOLAR/SOLAR-ZENITH
+    grid: rg0
+  rg0_oa_terrain_shadow:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.converted.datasets.h5
+    layer: //rg0_oa_terrain_shadow
+    grid: rg0
+  rg0_oa_timedelta:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-0/SATELLITE-SOLAR/TIME-DELTA
+    grid: rg0
+  rg0_oa_ts_panchromatic:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-0/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/TS/BAND-8
+    grid: rg0
+  rg1_lambertian_blue:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/STANDARDISED-PRODUCTS/REFLECTANCE/LAMBERTIAN/BAND-2
+  rg1_lambertian_coastal_aerosol:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/STANDARDISED-PRODUCTS/REFLECTANCE/LAMBERTIAN/BAND-1
+  rg1_lambertian_green:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/STANDARDISED-PRODUCTS/REFLECTANCE/LAMBERTIAN/BAND-3
+  rg1_lambertian_nir:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/STANDARDISED-PRODUCTS/REFLECTANCE/LAMBERTIAN/BAND-5
+  rg1_lambertian_red:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/STANDARDISED-PRODUCTS/REFLECTANCE/LAMBERTIAN/BAND-4
+  rg1_lambertian_swir_1:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/STANDARDISED-PRODUCTS/REFLECTANCE/LAMBERTIAN/BAND-6
+  rg1_lambertian_swir_2:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/STANDARDISED-PRODUCTS/REFLECTANCE/LAMBERTIAN/BAND-7
+  rg1_nbar_blue:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/STANDARDISED-PRODUCTS/REFLECTANCE/NBAR/BAND-2
+  rg1_nbar_coastal_aerosol:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/STANDARDISED-PRODUCTS/REFLECTANCE/NBAR/BAND-1
+  rg1_nbar_green:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/STANDARDISED-PRODUCTS/REFLECTANCE/NBAR/BAND-3
+  rg1_nbar_nir:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/STANDARDISED-PRODUCTS/REFLECTANCE/NBAR/BAND-5
+  rg1_nbar_red:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/STANDARDISED-PRODUCTS/REFLECTANCE/NBAR/BAND-4
+  rg1_nbar_swir_1:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/STANDARDISED-PRODUCTS/REFLECTANCE/NBAR/BAND-6
+  rg1_nbar_swir_2:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/STANDARDISED-PRODUCTS/REFLECTANCE/NBAR/BAND-7
+  rg1_nbart_blue:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/STANDARDISED-PRODUCTS/REFLECTANCE/NBART/BAND-2
+  rg1_nbart_coastal_aerosol:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/STANDARDISED-PRODUCTS/REFLECTANCE/NBART/BAND-1
+  rg1_nbart_green:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/STANDARDISED-PRODUCTS/REFLECTANCE/NBART/BAND-3
+  rg1_nbart_nir:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/STANDARDISED-PRODUCTS/REFLECTANCE/NBART/BAND-5
+  rg1_nbart_red:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/STANDARDISED-PRODUCTS/REFLECTANCE/NBART/BAND-4
+  rg1_nbart_swir_1:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/STANDARDISED-PRODUCTS/REFLECTANCE/NBART/BAND-6
+  rg1_nbart_swir_2:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/STANDARDISED-PRODUCTS/REFLECTANCE/NBART/BAND-7
+  rg1_oa_a_blue:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/A/BAND-2
+  rg1_oa_a_coastal_aerosol:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/A/BAND-1
+  rg1_oa_a_green:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/A/BAND-3
+  rg1_oa_a_nir:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/A/BAND-5
+  rg1_oa_a_red:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/A/BAND-4
+  rg1_oa_a_swir_1:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/A/BAND-6
+  rg1_oa_a_swir_2:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/A/BAND-7
+  rg1_oa_aspect:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/SLOPE-ASPECT/ASPECT
+  rg1_oa_azimuthal_exiting:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/EXITING-ANGLES/AZIMUTHAL-EXITING
+  rg1_oa_azimuthal_incident:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INCIDENT-ANGLES/AZIMUTHAL-INCIDENT
+  rg1_oa_b_blue:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/B/BAND-2
+  rg1_oa_b_coastal_aerosol:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/B/BAND-1
+  rg1_oa_b_green:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/B/BAND-3
+  rg1_oa_b_nir:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/B/BAND-5
+  rg1_oa_b_red:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/B/BAND-4
+  rg1_oa_b_swir_1:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/B/BAND-6
+  rg1_oa_b_swir_2:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/B/BAND-7
+  rg1_oa_cast_shadow_satellite:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.converted.datasets.h5
+    layer: //rg1_oa_cast_shadow_satellite
+  rg1_oa_cast_shadow_sun:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.converted.datasets.h5
+    layer: //rg1_oa_cast_shadow_sun
+  rg1_oa_dif_blue:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/DIF/BAND-2
+  rg1_oa_dif_coastal_aerosol:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/DIF/BAND-1
+  rg1_oa_dif_green:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/DIF/BAND-3
+  rg1_oa_dif_nir:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/DIF/BAND-5
+  rg1_oa_dif_red:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/DIF/BAND-4
+  rg1_oa_dif_swir_1:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/DIF/BAND-6
+  rg1_oa_dif_swir_2:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/DIF/BAND-7
+  rg1_oa_dir_blue:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/DIR/BAND-2
+  rg1_oa_dir_coastal_aerosol:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/DIR/BAND-1
+  rg1_oa_dir_green:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/DIR/BAND-3
+  rg1_oa_dir_nir:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/DIR/BAND-5
+  rg1_oa_dir_red:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/DIR/BAND-4
+  rg1_oa_dir_swir_1:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/DIR/BAND-6
+  rg1_oa_dir_swir_2:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/DIR/BAND-7
+  rg1_oa_dsm_smoothed:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/ELEVATION/DSM-SMOOTHED
+    grid: rg1_oa_dsm_smoothed
+  rg1_oa_exiting:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/EXITING-ANGLES/EXITING-ANGLE
+  rg1_oa_fs_blue:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/FS/BAND-2
+  rg1_oa_fs_coastal_aerosol:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/FS/BAND-1
+  rg1_oa_fs_green:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/FS/BAND-3
+  rg1_oa_fs_nir:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/FS/BAND-5
+  rg1_oa_fs_red:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/FS/BAND-4
+  rg1_oa_fs_swir_1:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/FS/BAND-6
+  rg1_oa_fs_swir_2:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/FS/BAND-7
+  rg1_oa_fv_blue:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/FV/BAND-2
+  rg1_oa_fv_coastal_aerosol:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/FV/BAND-1
+  rg1_oa_fv_green:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/FV/BAND-3
+  rg1_oa_fv_nir:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/FV/BAND-5
+  rg1_oa_fv_red:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/FV/BAND-4
+  rg1_oa_fv_swir_1:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/FV/BAND-6
+  rg1_oa_fv_swir_2:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/FV/BAND-7
+  rg1_oa_incident:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INCIDENT-ANGLES/INCIDENT-ANGLE
+  rg1_oa_latitude:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/LONGITUDE-LATITUDE/LATITUDE
+  rg1_oa_longitude:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/LONGITUDE-LATITUDE/LONGITUDE
+  rg1_oa_relative_azimuth:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/SATELLITE-SOLAR/RELATIVE-AZIMUTH
+  rg1_oa_relative_slope:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/RELATIVE-SLOPE/RELATIVE-SLOPE
+  rg1_oa_s_blue:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/S/BAND-2
+  rg1_oa_s_coastal_aerosol:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/S/BAND-1
+  rg1_oa_s_green:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/S/BAND-3
+  rg1_oa_s_nir:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/S/BAND-5
+  rg1_oa_s_red:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/S/BAND-4
+  rg1_oa_s_swir_1:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/S/BAND-6
+  rg1_oa_s_swir_2:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/S/BAND-7
+  rg1_oa_satellite_azimuth:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/SATELLITE-SOLAR/SATELLITE-AZIMUTH
+  rg1_oa_satellite_view:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/SATELLITE-SOLAR/SATELLITE-VIEW
+  rg1_oa_self_shadow:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.converted.datasets.h5
+    layer: //rg1_oa_self_shadow
+  rg1_oa_slope:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/SLOPE-ASPECT/SLOPE
+  rg1_oa_solar_azimuth:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/SATELLITE-SOLAR/SOLAR-AZIMUTH
+  rg1_oa_solar_zenith:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/SATELLITE-SOLAR/SOLAR-ZENITH
+  rg1_oa_terrain_shadow:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.converted.datasets.h5
+    layer: //rg1_oa_terrain_shadow
+  rg1_oa_timedelta:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/SATELLITE-SOLAR/TIME-DELTA
+  rg1_oa_ts_blue:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/TS/BAND-2
+  rg1_oa_ts_coastal_aerosol:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/TS/BAND-1
+  rg1_oa_ts_green:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/TS/BAND-3
+  rg1_oa_ts_nir:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/TS/BAND-5
+  rg1_oa_ts_red:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/TS/BAND-4
+  rg1_oa_ts_swir_1:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/TS/BAND-6
+  rg1_oa_ts_swir_2:
+    path: /g/data/up71/projects/index-testing-wagl/repo/tesp/tests/integration/data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5
+    layer: //LC80920842016180LGN01/RES-GROUP-1/INTERPOLATED-ATMOSPHERIC-COEFFICIENTS/TS/BAND-7
+
+accessories: {}
+
+lineage:
+  level1:
+  - fb1c622e-90aa-50e8-9d5e-ad69db82d0f6
+...

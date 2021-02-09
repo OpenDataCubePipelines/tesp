@@ -21,6 +21,7 @@ import eodatasets3.wagl
 from eodatasets3.serialise import loads_yaml
 from boltons.iterutils import get_path
 import numpy as np
+import shutil
 
 import yaml
 from yaml.representer import Representer
@@ -803,13 +804,25 @@ def package_non_standard(outdir, granule):
     yaml creator for the ard pipeline.
     """
 
-    outdir = Path(outdir)
-    out_fname = Path(str(granule.wagl_hdf5).replace("wagl.h5", "yaml"))
-    out_fname_conv = Path(
-        str(granule.wagl_hdf5).replace("wagl.h5", "converted.datasets.h5")
-    )
+    def _make_copy(input_path, outdir):
+        our_input = outdir
+        if input_path.is_file():
+            shutil.copy(input_path, our_input)
+        else:
+            shutil.copytree(input_path, our_input)
+        return our_input
 
-    f = h5py.File(outdir.joinpath(out_fname_conv))
+    outdir = Path(outdir)
+    outdir = outdir / granule.name
+    # outdir.mkdir()
+    _make_copy(granule.wagl_hdf5.parent, outdir)
+    wagl_h5 = outdir / str(granule.name + ".wagl.h5")
+    out_fname = outdir / str(granule.name + ".yaml")
+    out_fname_conv = Path(str(wagl_h5).replace("wagl.h5", "converted.datasets.h5"))
+    out_img_fname = outdir.joinpath(out_fname_conv.name)
+    # out_img_fname.parent.mkdir(parents=True, exist_ok=True)
+    f = h5py.File(out_img_fname)
+    print(f"Writing to output {out_img_fname}")
 
     with DatasetAssembler(metadata_path=out_fname, naming_conventions="dea") as da:
         level1 = granule.source_level1_metadata
@@ -818,7 +831,7 @@ def package_non_standard(outdir, granule):
         da.producer = "ga.gov.au"
         da.properties["odc:file_format"] = "HDF5"
 
-        with h5py.File(granule.wagl_hdf5, "r") as fid:
+        with h5py.File(wagl_h5, "r") as fid:
             img_paths = [
                 ppjoin(fid.name, pth)
                 for pth in eodatasets3.wagl._find_h5_paths(fid, "IMAGE")
@@ -848,10 +861,13 @@ def package_non_standard(outdir, granule):
             eodatasets3.wagl._read_gqa_doc(da, granule.gqa_doc)
             eodatasets3.wagl._read_fmask_doc(da, granule.fmask_doc)
 
-            with rasterio.open(granule.fmask_image) as ds:
+            print(f"Reading: {granule.fmask_image}")
+            outdir_fmask = outdir / str(granule.name + ".fmask.img")
+            with rasterio.open(outdir_fmask) as ds:
                 fmask_layer = "/{}/OA_FMASK/oa_fmask".format(granule.name)
+                data = ds.read(1)
                 fmask_ds = f.create_dataset(
-                    fmask_layer, data=ds.read(1), compression='lzf', shuffle=True
+                    fmask_layer, data=data, compression="lzf", shuffle=True
                 )
                 fmask_ds.attrs["crs_wkt"] = ds.crs.wkt
                 fmask_ds.attrs["geotransform"] = ds.transform.to_gdal()
@@ -860,8 +876,7 @@ def package_non_standard(outdir, granule):
 
                 fmask_ds.attrs[
                     "description"
-                ] = "Converted from ERDAS Imagine format to HDF5 "
-                    "to work with the limitations of varied formats within ODC"
+                ] = "Converted from ERDAS Imagine format to HDF5 to work with the limitations of varied formats within ODC"  # noqa E501
 
                 grid_spec = images.GridSpec(
                     shape=ds.shape,
@@ -871,6 +886,7 @@ def package_non_standard(outdir, granule):
 
                 measurement_name = "oa_fmask"
 
+                print(f"pathname: {str(outdir.joinpath(out_fname_conv))}")
                 pathname = str(outdir.joinpath(out_fname_conv))
 
                 no_data = fmask_ds.attrs.get("no_data_value")
@@ -933,11 +949,11 @@ def package_non_standard(outdir, granule):
                 if ds.dtype.name == "bool":
                     pathname = str(outdir.joinpath(out_fname_conv))
                     out_ds = f.create_dataset(
-                        measurement_name, 
-                        data=np.uint8(ds[:]), 
-                        compression="lzf", 
-                        shuffle=True, 
-                        chunks=ds.chunks
+                        measurement_name,
+                        data=np.uint8(ds[:]),
+                        compression="lzf",
+                        shuffle=True,
+                        chunks=ds.chunks,
                     )
 
                     for k, v in ds.attrs.items():
@@ -953,7 +969,7 @@ def package_non_standard(outdir, granule):
                         expand_valid_data=include,
                     )
                 else:
-                    pathname = str(outdir.joinpath(granule.wagl_hdf5))
+                    pathname = str(outdir.joinpath(wagl_h5))
 
                     # work around as note_measurement doesn't allow us to specify the gridspec
                     da._measurements.record_image(
