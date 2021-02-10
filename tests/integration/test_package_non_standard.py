@@ -2,7 +2,7 @@ import pytest
 from pathlib import Path
 from eodatasets3.wagl import Granule
 from datetime import datetime, timezone
-from package import package_non_standard
+from tesp.package import package_non_standard
 import yaml
 
 h5py = pytest.importorskip(
