@@ -817,6 +817,8 @@ def package_non_standard(outdir, granule):
     boolean_h5 = Path(str(wagl_h5).replace("wagl.h5", "converted.datasets.h5"))
     fmask_img = outdir / str(granule.name + ".fmask.img")
 
+    f = h5py.File(boolean_h5)
+
     with DatasetAssembler(metadata_path=dataset_doc, naming_conventions="dea") as da:
         level1 = granule.source_level1_metadata
         da.add_source_dataset(level1, auto_inherit_properties=True, inherit_geometry=True)
