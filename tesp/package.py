@@ -804,27 +804,20 @@ def package_non_standard(outdir, granule):
     yaml creator for the ard pipeline.
     """
 
-    def _make_copy(input_path, outdir):
-        our_input = outdir
-        if input_path.is_file():
-            shutil.copy(input_path, our_input)
-        else:
-            shutil.copytree(input_path, our_input)
-        return our_input
+    outdir = Path(outdir) / granule.name
+    indir = granule.wagl_hdf5.parent
 
-    outdir = Path(outdir)
-    outdir = outdir / granule.name
-    # outdir.mkdir()
-    _make_copy(granule.wagl_hdf5.parent, outdir)
+    if indir.is_file():
+        shutil.copy(indir, outdir)
+    else:
+        shutil.copytree(indir, outdir)
+
     wagl_h5 = outdir / str(granule.name + ".wagl.h5")
-    out_fname = outdir / str(granule.name + ".yaml")
-    out_fname_conv = Path(str(wagl_h5).replace("wagl.h5", "converted.datasets.h5"))
-    out_img_fname = outdir.joinpath(out_fname_conv.name)
-    # out_img_fname.parent.mkdir(parents=True, exist_ok=True)
-    f = h5py.File(out_img_fname)
-    print(f"Writing to output {out_img_fname}")
+    dataset_doc = outdir / str(granule.name + ".yaml")
+    boolean_h5 = Path(str(wagl_h5).replace("wagl.h5", "converted.datasets.h5"))
+    fmask_img = outdir / str(granule.name + ".fmask.img")
 
-    with DatasetAssembler(metadata_path=out_fname, naming_conventions="dea") as da:
+    with DatasetAssembler(metadata_path=dataset_doc, naming_conventions="dea") as da:
         level1 = granule.source_level1_metadata
         da.add_source_dataset(level1, auto_inherit_properties=True, inherit_geometry=True)
         da.product_family = "ard"
@@ -834,14 +827,14 @@ def package_non_standard(outdir, granule):
         with h5py.File(wagl_h5, "r") as fid:
             img_paths = [
                 ppjoin(fid.name, pth)
-                for pth in eodatasets3.wagl._find_h5_paths(fid, "IMAGE")
+                for pth in find(fid, "IMAGE")
             ]
             granule_group = fid[granule.name]
 
             try:
                 wagl_path, *ancil_paths = [
                     pth
-                    for pth in (eodatasets3.wagl._find_h5_paths(granule_group, "SCALAR"))
+                    for pth in find(granule_group, "SCALAR")
                     if "METADATA" in pth
                 ]
             except ValueError:
@@ -861,9 +854,7 @@ def package_non_standard(outdir, granule):
             eodatasets3.wagl._read_gqa_doc(da, granule.gqa_doc)
             eodatasets3.wagl._read_fmask_doc(da, granule.fmask_doc)
 
-            print(f"Reading: {granule.fmask_image}")
-            outdir_fmask = outdir / str(granule.name + ".fmask.img")
-            with rasterio.open(outdir_fmask) as ds:
+            with rasterio.open(fmask_img) as ds:
                 fmask_layer = "/{}/OA_FMASK/oa_fmask".format(granule.name)
                 data = ds.read(1)
                 fmask_ds = f.create_dataset(
@@ -872,22 +863,19 @@ def package_non_standard(outdir, granule):
                 fmask_ds.attrs["crs_wkt"] = ds.crs.wkt
                 fmask_ds.attrs["geotransform"] = ds.transform.to_gdal()
 
-                geotransform = ds.transform.to_gdal()
-
                 fmask_ds.attrs[
                     "description"
                 ] = "Converted from ERDAS Imagine format to HDF5 to work with the limitations of varied formats within ODC"  # noqa E501
 
                 grid_spec = images.GridSpec(
                     shape=ds.shape,
-                    transform=Affine.from_gdal(*geotransform),
+                    transform=ds.transform,
                     crs=CRS.from_wkt(fmask_ds.attrs["crs_wkt"]),
                 )
 
                 measurement_name = "oa_fmask"
 
-                print(f"pathname: {str(outdir.joinpath(out_fname_conv))}")
-                pathname = str(outdir.joinpath(out_fname_conv))
+                pathname = str(outdir.joinpath(boolean_h5))
 
                 no_data = fmask_ds.attrs.get("no_data_value")
                 if no_data is None:
@@ -947,7 +935,7 @@ def package_non_standard(outdir, granule):
 
                 # if we are of type bool, we'll have to convert just for GDAL
                 if ds.dtype.name == "bool":
-                    pathname = str(outdir.joinpath(out_fname_conv))
+                    pathname = str(outdir.joinpath(boolean_h5))
                     out_ds = f.create_dataset(
                         measurement_name,
                         data=np.uint8(ds[:]),
