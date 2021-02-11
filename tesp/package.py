@@ -827,17 +827,12 @@ def package_non_standard(outdir, granule):
         da.properties["odc:file_format"] = "HDF5"
 
         with h5py.File(wagl_h5, "r") as fid:
-            img_paths = [
-                ppjoin(fid.name, pth)
-                for pth in find(fid, "IMAGE")
-            ]
+            img_paths = [ppjoin(fid.name, pth) for pth in find(fid, "IMAGE")]
             granule_group = fid[granule.name]
 
             try:
                 wagl_path, *ancil_paths = [
-                    pth
-                    for pth in find(granule_group, "SCALAR")
-                    if "METADATA" in pth
+                    pth for pth in find(granule_group, "SCALAR") if "METADATA" in pth
                 ]
             except ValueError:
                 raise ValueError("No nbar metadata found in granule")
