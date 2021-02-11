@@ -13,34 +13,40 @@ h5py = pytest.importorskip(
 
 # This test dataset comes from running 'tests/integration/h5downsample.py' on
 # a real wagl output.
-WAGL_INPUT_PATH: Path = Path(
-    __file__
-).parent / "data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5"
+WAGL_INPUT_PATH: Path = (
+    Path(__file__).parent
+    / "data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.wagl.h5"
+)
 
 # The matching Level1 metadata (produced by landsat_l1_prepare.py)
-L1_METADATA_PATH: Path = Path(
-    __file__
-).parent / "data/wagl-input/LC08_L1TP_092084_20160628_20170323_01_T1.yaml"
+L1_METADATA_PATH: Path = (
+    Path(__file__).parent
+    / "data/wagl-input/LC08_L1TP_092084_20160628_20170323_01_T1.yaml"
+)
 
 # The fmask image
-FMASK_IMAGE_PATH: Path = Path(
-    __file__
-).parent / "data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.fmask.img"
+FMASK_IMAGE_PATH: Path = (
+    Path(__file__).parent
+    / "data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.fmask.img"
+)
 
 # The fmask document path
-FMASK_DOC_PATH: Path = Path(
-    __file__
-).parent / "data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.fmask.yaml"
+FMASK_DOC_PATH: Path = (
+    Path(__file__).parent
+    / "data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.fmask.yaml"
+)
 
 # The gqa document path
-GQA_DOC_PATH: Path = Path(
-    __file__
-).parent / "data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.gqa.yaml"
+GQA_DOC_PATH: Path = (
+    Path(__file__).parent
+    / "data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.gqa.yaml"
+)
 
 # tesp document path
-TESP_DOC_PATH: Path = Path(
-    __file__
-).parent / "data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.tesp.yaml"
+TESP_DOC_PATH: Path = (
+    Path(__file__).parent
+    / "data/wagl-input/LC80920842016180LGN01/LC80920842016180LGN01.tesp.yaml"
+)
 
 granule_names = ["LC80920842016180LGN01"]
 
