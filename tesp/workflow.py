@@ -178,7 +178,7 @@ class Package(luigi.Task):
     cloud_buffer_distance = luigi.FloatParameter(default=150.0)
     cloud_shadow_buffer_distance = luigi.FloatParameter(default=300.0)
     parallax_test = luigi.BoolParameter()
-    standard_packaging = luigi.BoolParameter()
+    non_standard_packaging = luigi.BoolParameter()
 
     def requires(self):
         # Ensure configuration values are valid
@@ -235,7 +235,7 @@ class Package(luigi.Task):
             tesp_doc_path=tesp_doc_fname,
         ):
 
-            if self.standard_packaging is False:
+            if self.non_standard_packaging:
                 ds_id, md_path = package_non_standard(Path(self.pkgdir), eods_granule)
             else:
                 ds_id, md_path = package(Path(self.pkgdir), eods_granule, self.products)
