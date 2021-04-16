@@ -15,7 +15,7 @@ import yaml
 import luigi
 from luigi.local_target import LocalFileSystem
 
-from eodatasets3.wagl import Granule
+from eodatasets3.wagl import package, Granule
 
 from wagl.acquisition import preliminary_acquisitions_data
 from wagl.singlefile_workflow import DataStandardisation
@@ -23,7 +23,7 @@ from wagl.logs import TASK_LOGGER, STATUS_LOGGER
 
 from tesp.constants import ProductPackage
 from tesp.metadata import _get_tesp_metadata
-from tesp.package import package, package_non_standard
+from tesp.package import package_non_standard
 
 from eugl.fmask import fmask
 from eugl.gqa import GQATask
