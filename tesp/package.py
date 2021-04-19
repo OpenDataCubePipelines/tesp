@@ -83,7 +83,7 @@ def package_non_standard(outdir, granule):
                 org_collection_number = 3
             else:
                 org_collection_number = utils.get_collection_number(
-                    da.producer, da.properties["landsat:collection_number"]
+                    platform, da.producer, da.properties["landsat:collection_number"]
                 )
 
             da.dataset_version = f"{org_collection_number}.1.0"
