@@ -79,7 +79,7 @@ def package_non_standard(outdir, granule):
             da.processed = get_path(wagl_doc, ("system_information", "time_processed"))
 
             platform = da.properties["eo:platform"]
-            if platform == 'sentinel-2a' or platform == 'sentinel-2b':
+            if platform == "sentinel-2a" or platform == "sentinel-2b":
                 org_collection_number = 3
             else:
                 org_collection_number = utils.get_collection_number(
