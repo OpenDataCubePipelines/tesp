@@ -25,7 +25,7 @@ setup(
         "shapely",
         "structlog",
         "checksumdir",
-        "eodatasets",
+        "eodatasets>=0.19.2",
         "eugl",
         "wagl",
         "importlib-metadata;python_version<'3.8'",
