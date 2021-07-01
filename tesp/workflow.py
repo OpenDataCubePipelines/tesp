@@ -198,7 +198,7 @@ class Package(luigi.Task):
         }
 
         if not skip_gqa:
-            tasks["gqa"] = QATask(
+            tasks["gqa"] = GQATask(
                 level1=self.level1,
                 acq_parser_hint=self.acq_parser_hint,
                 granule=self.granule,
