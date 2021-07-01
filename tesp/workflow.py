@@ -194,7 +194,12 @@ class Package(luigi.Task):
                 self.cloud_shadow_buffer_distance,
                 self.parallax_test,
             ),
-            "gqa": GQATask(self.level1, self.acq_parser_hint, self.granule, self.workdir),
+            "gqa": GQATask(
+                level1=self.level1,
+                acq_parser_hint=self.acq_parser_hint,
+                granule=self.granule,
+                workdir=self.workdir,
+            ),
         }
 
         # Need to improve pluggability across tesp/eugl/wagl
