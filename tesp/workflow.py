@@ -179,6 +179,7 @@ class Package(luigi.Task):
     cloud_shadow_buffer_distance = luigi.FloatParameter(default=300.0)
     parallax_test = luigi.BoolParameter()
     non_standard_packaging = luigi.BoolParameter()
+    skip_gqa = luigi.BoolParameter(default=False)
 
     def requires(self):
         # Ensure configuration values are valid
@@ -194,13 +195,15 @@ class Package(luigi.Task):
                 self.cloud_shadow_buffer_distance,
                 self.parallax_test,
             ),
-            "gqa": GQATask(
+        }
+
+        if not skip_gqa:
+            tasks["gqa"] = QATask(
                 level1=self.level1,
                 acq_parser_hint=self.acq_parser_hint,
                 granule=self.granule,
                 workdir=self.workdir,
-            ),
-        }
+            )
 
         # Need to improve pluggability across tesp/eugl/wagl
         # and adopt patterns that facilitate reuse
@@ -224,7 +227,7 @@ class Package(luigi.Task):
         wagl_fname = Path(self.input()["wagl"].path)
         fmask_img_fname = Path(self.input()["fmask"]["image"].path)
         fmask_doc_fname = Path(self.input()["fmask"]["metadata"].path)
-        gqa_doc_fname = Path(self.input()["gqa"].path)
+        gqa_doc_fname = Path(self.input()["gqa"].path) if "gqa" in self.input() else None
 
         tesp_doc_fname = Path(self.workdir) / "{}.tesp.yaml".format(self.granule)
         with tesp_doc_fname.open("w") as src:
