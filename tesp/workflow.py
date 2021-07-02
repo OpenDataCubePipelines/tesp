@@ -103,6 +103,7 @@ class RunFmask(luigi.Task):
             self.level1,
             self.workdir,
             self.granule,
+            acq_parser_hint=self.acq_parser_hint,
             **self.upstream_settings,  # pylint: disable=not-a-mapping
         )
 
@@ -187,7 +188,12 @@ class Package(luigi.Task):
         # self._validate_cfg()
 
         tasks = {
-            "wagl": DataStandardisation(self.level1, self.workdir, self.granule),
+            "wagl": DataStandardisation(
+                self.level1,
+                self.workdir,
+                self.granule,
+                acq_parser_hint=self.acq_parser_hint,
+            ),
             "fmask": RunFmask(
                 self.level1,
                 self.granule,
@@ -195,6 +201,7 @@ class Package(luigi.Task):
                 self.cloud_buffer_distance,
                 self.cloud_shadow_buffer_distance,
                 self.parallax_test,
+                acq_parser_hint=self.acq_parser_hint,
             ),
             "gqa": GQATask(
                 level1=self.level1,
@@ -276,7 +283,15 @@ def list_packages(workdir, acq_parser_hint, pkgdir):
         result = []
         for granule in preliminary_acquisitions_data(level1, acq_parser_hint):
             work_dir = pjoin(work_root, granule["id"])
-            result.append(Package(level1, work_dir, granule["id"], pkgdir))
+            result.append(
+                Package(
+                    level1,
+                    work_dir,
+                    granule["id"],
+                    pkgdir,
+                    acq_parser_hint=acq_parser_hint,
+                )
+            )
 
         return result
 
