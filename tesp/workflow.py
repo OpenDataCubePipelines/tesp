@@ -182,6 +182,7 @@ class Package(luigi.Task):
     cloud_shadow_buffer_distance = luigi.FloatParameter(default=300.0)
     parallax_test = luigi.BoolParameter()
     non_standard_packaging = luigi.BoolParameter()
+    product_maturity = luigi.OptionalParameter(default="stable")
 
     def requires(self):
         # Ensure configuration values are valid
@@ -252,7 +253,12 @@ class Package(luigi.Task):
             if self.non_standard_packaging:
                 ds_id, md_path = package_non_standard(Path(self.pkgdir), eods_granule)
             else:
-                ds_id, md_path = package(Path(self.pkgdir), eods_granule, self.products)
+                ds_id, md_path = package(
+                    Path(self.pkgdir),
+                    eods_granule,
+                    product_maturity=self.product_maturity,
+                    included_products=self.products,
+                )
 
             md[ds_id] = md_path
             STATUS_LOGGER.info(
