@@ -34,7 +34,7 @@ source {env}
 
 {daemon}
 
-luigi --module tesp.workflow ARDP --level1-list {scene_list} --workdir {outdir} --pkgdir {pkgdir} --workers {workers} --parallel-scheduling
+luigi --module tesp.workflow ARDP --level1-list {scene_list} --workdir {outdir} --pkgdir {pkgdir} --yamls-dir="{yamls_dir}" --workers {workers} --parallel-scheduling
 """)
 
 SUMMARY_TEMPLATE = ("""{pbs_resources}
@@ -153,7 +153,7 @@ def _filesystem_projects(level1_list: list,
 
 
 # pylint: disable=too-many-arguments
-def _submit_multiple(scattered, env, batch_logdir, batch_outdir, pkgdir,
+def _submit_multiple(scattered, env, batch_logdir, batch_outdir, pkgdir, yamls_dir,
                      workers, pbs_resources, test):
     """Submit multiple PBS formatted jobs."""
 
@@ -179,7 +179,7 @@ def _submit_multiple(scattered, env, batch_logdir, batch_outdir, pkgdir,
         pbs = NODE_TEMPLATE.format(pbs_resources=pbs_resources, env=env,
                                    daemon=DAEMON_FMT.format(jobdir),
                                    scene_list=out_fname, outdir=job_outdir,
-                                   pkgdir=pkgdir, workers=workers)
+                                   pkgdir=pkgdir, yamls_dir=yamls_dir, workers=workers)
 
         # write pbs script
         out_fname = pjoin(jobdir, FMT4.format(jobid=jobid))
@@ -317,6 +317,8 @@ def _submit_archive(indir, outdir, archive_list, batch_id, pbs_resources, env, t
               help="The base logging and scripts output directory.")
 @click.option("--pkgdir", type=click.Path(file_okay=False, writable=True),
               help="The base output packaged directory.")
+@click.option("--yamls-dir", type=click.Path(file_okay=False), default="",
+              help="The base directory for level-1 dataset documents.")
 @click.option("--env", type=click.Path(exists=True, readable=True),
               help="Environment script to source.")
 @click.option("--workers", type=click.IntRange(1, 48), default=30,
@@ -342,7 +344,7 @@ def _submit_archive(indir, outdir, archive_list, batch_id, pbs_resources, env, t
               help=("Test job execution (Don't submit the job to the "
                     "PBS queue)."))
 # pylint: disable=too-many-arguments
-def main(level1_list, workdir, logdir, pkgdir, env, workers, nodes, memory,
+def main(level1_list, workdir, logdir, pkgdir, yamls_dir, env, workers, nodes, memory,
          jobfs, project, queue, walltime, email, index_datacube_env, archive_list, test):
     """
     Equally partition a list of scenes across n nodes and submit
@@ -376,7 +378,7 @@ def main(level1_list, workdir, logdir, pkgdir, env, workers, nodes, memory,
 
     click.echo("Executing Batch: {}".format(batchid))
     nci_job_ids = _submit_multiple(scattered, env, batch_logdir, batch_outdir,
-                                   pkgdir, workers, pbs_resources, test)
+                                   pkgdir, yamls_dir, workers, pbs_resources, test)
 
     # job resources for batch summary
     pbs_resources = PBS_RESOURCES.format(project=project, queue='express',
