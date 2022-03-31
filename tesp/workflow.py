@@ -236,7 +236,9 @@ class Package(luigi.Task):
 
             level1_stem = Path(self.level1).stem
             parent_dir = Path(self.level1).parent.name
-            return Path(self.yamls_dir) / parent_dir / (level1_stem + ".odc-metadata.yaml")
+            return (
+                Path(self.yamls_dir) / parent_dir / (level1_stem + ".odc-metadata.yaml")
+            )
 
         # TODO; the package_file func can accept additional fnames for yamls etc
         wagl_fname = Path(self.input()["wagl"].path)
@@ -320,7 +322,6 @@ def list_packages(workdir, acq_parser_hint, pkgdir, yamls_dir):
                     )
                 )
 
-
         return result
 
     return worker
@@ -343,7 +344,9 @@ class ARDP(luigi.WrapperTask):
         with open(self.level1_list) as src:
             level1_list = [level1.strip() for level1 in src.readlines()]
 
-        worker = list_packages(self.workdir, self.acq_parser_hint, self.pkgdir, self.yamls_dir)
+        worker = list_packages(
+            self.workdir, self.acq_parser_hint, self.pkgdir, self.yamls_dir
+        )
 
         executor = ThreadPoolExecutor()
         futures = [executor.submit(worker, level1) for level1 in level1_list]
