@@ -85,6 +85,7 @@ class RunS2Cloudless(luigi.Task):
     """
     Execute the s2cloudless algorithm for a given granule.
     """
+
     level1 = luigi.Parameter()
     granule = luigi.Parameter()
     workdir = luigi.Parameter()
@@ -94,9 +95,15 @@ class RunS2Cloudless(luigi.Task):
     dilation_size = luigi.OptionalParameter(default=s2cl.DILATION_SIZE)
 
     def output(self):
-        prob_out_fname = pjoin(self.workdir, "{}.prob.s2cloudless.tif".format(self.granule))
-        mask_out_fname = pjoin(self.workdir, "{}.mask.s2cloudless.tif".format(self.granule))
-        metadata_out_fname = pjoin(self.workdir, "{}.s2cloudless.yaml".format(self.granule))
+        prob_out_fname = pjoin(
+            self.workdir, "{}.prob.s2cloudless.tif".format(self.granule)
+        )
+        mask_out_fname = pjoin(
+            self.workdir, "{}.mask.s2cloudless.tif".format(self.granule)
+        )
+        metadata_out_fname = pjoin(
+            self.workdir, "{}.s2cloudless.yaml".format(self.granule)
+        )
 
         out_fnames = {
             "cloud_prob": luigi.LocalTarget(prob_out_fname),
@@ -129,6 +136,7 @@ class S2Cloudless(luigi.Task):
     """
     Execute the Fmask algorithm for a given granule.
     """
+
     level1 = luigi.Parameter()
     workdir = luigi.Parameter()
     acq_parser_hint = luigi.OptionalParameter(default="")
