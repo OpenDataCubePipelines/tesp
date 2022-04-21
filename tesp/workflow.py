@@ -17,7 +17,7 @@ from luigi.local_target import LocalFileSystem
 
 from eodatasets3.wagl import package, Granule
 
-from wagl.acquisition import preliminary_acquisitions_data
+from wagl.acquisition import acquisitions, preliminary_acquisitions_data
 from wagl.singlefile_workflow import DataStandardisation
 from wagl.logs import TASK_LOGGER, STATUS_LOGGER
 
@@ -30,7 +30,7 @@ from eugl import s2cl
 from eugl.gqa import GQATask
 
 
-QA_PRODUCTS = ["gqa", "fmask"]
+QA_PRODUCTS = ["gqa", "fmask", "s2cloudless"]
 
 
 @luigi.Task.event_handler(luigi.Event.FAILURE)
@@ -94,7 +94,15 @@ class RunS2Cloudless(luigi.Task):
     average_over = luigi.IntParameter(default=s2cl.AVERAGE_OVER)
     dilation_size = luigi.IntParameter(default=s2cl.DILATION_SIZE)
 
+    def platform_id(self):
+        container = acquisitions(self.level1, acq_parser_hint=acq_parser_hint)
+        sample_acq = container.get_all_acquisitions()[0]
+        return sample_acq.platform_id
+
     def output(self):
+        if not self.platform_id().startswith("SENTINEL"):
+            return None
+
         prob_out_fname = pjoin(
             self.workdir, "{}.prob.s2cloudless.tif".format(self.granule)
         )
@@ -114,6 +122,9 @@ class RunS2Cloudless(luigi.Task):
         return out_fnames
 
     def run(self):
+        if not self.platform_id().startswith("SENTINEL"):
+            return
+
         out_fnames = self.output()
         with out_fnames["cloud_prob"].temporary_path() as prob_out_fname:
             with out_fnames["cloud_mask"].temporary_path() as mask_out_fname:
@@ -244,9 +255,17 @@ class Package(luigi.Task):
     acq_parser_hint = luigi.OptionalParameter(default="")
     products = luigi.ListParameter(default=ProductPackage.default())
     qa_products = luigi.ListParameter(default=QA_PRODUCTS)
+
+    # fmask settings
     cloud_buffer_distance = luigi.FloatParameter(default=150.0)
     cloud_shadow_buffer_distance = luigi.FloatParameter(default=300.0)
     parallax_test = luigi.BoolParameter()
+
+    # s2cloudless settings
+    threshold = luigi.FloatParameter(default=s2cl.THRESHOLD)
+    average_over = luigi.IntParameter(default=s2cl.AVERAGE_OVER)
+    dilation_size = luigi.IntParameter(default=s2cl.DILATION_SIZE)
+
     non_standard_packaging = luigi.BoolParameter()
     product_maturity = luigi.OptionalParameter(default="stable")
 
@@ -269,6 +288,15 @@ class Package(luigi.Task):
                 self.cloud_shadow_buffer_distance,
                 self.parallax_test,
                 acq_parser_hint=self.acq_parser_hint,
+            ),
+            "s2cloudless": RunS2Cloudless(
+                self.level1,
+                self.granule,
+                self.workdir,
+                acq_parser_hint=self.acq_parser_hint,
+                threshold=self.threshold,
+                average_over=self.average_over,
+                dilation_size=self.dilation_size,
             ),
             "gqa": GQATask(
                 level1=self.level1,
@@ -311,6 +339,15 @@ class Package(luigi.Task):
         fmask_img_fname = Path(self.input()["fmask"]["image"].path)
         fmask_doc_fname = Path(self.input()["fmask"]["metadata"].path)
         gqa_doc_fname = Path(self.input()["gqa"].path)
+
+        if self.input()["s2cloudless"] is not None:
+            s2cloudless_prob_fname = Path(self.input()["s2cloudless"]["cloud_prob"].path)
+            s2cloudless_mask_fname = Path(self.input()["s2cloudless"]["cloud_mask"].path)
+            s2cloudless_metadata_fname = Path(self.input()["s2cloudless"]["metadata"].path)
+        else:
+            s2cloudless_prob_fname = None
+            s2cloudless_mask_fname = None
+            s2cloudless_metadata_fname = None
 
         tesp_doc_fname = Path(self.workdir) / "{}.tesp.yaml".format(self.granule)
         with tesp_doc_fname.open("w") as src:
