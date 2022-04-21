@@ -140,9 +140,9 @@ class S2Cloudless(luigi.Task):
     level1 = luigi.Parameter()
     workdir = luigi.Parameter()
     acq_parser_hint = luigi.OptionalParameter(default="")
-    threshold = luigi.OptionalParameter(default=s2cl.THRESHOLD)
-    average_over = luigi.OptionalParameter(default=s2cl.AVERAGE_OVER)
-    dilation_size = luigi.OptionalParameter(default=s2cl.DILATION_SIZE)
+    threshold = luigi.FloatParameter(default=s2cl.THRESHOLD)
+    average_over = luigi.IntParameter(default=s2cl.AVERAGE_OVER)
+    dilation_size = luigi.IntParameter(default=s2cl.DILATION_SIZE)
 
     def requires(self):
         # issues task per granule
