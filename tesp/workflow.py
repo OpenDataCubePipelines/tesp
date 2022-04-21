@@ -190,7 +190,7 @@ class RunFmask(luigi.Task):
             with out_fnames["metadata"].temporary_path() as out_fname2:
                 fmask(
                     self.level1,
-                    self.granule,
+                    self.granule["id"],
                     out_fname1,
                     out_fname2,
                     self.workdir,
