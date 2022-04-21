@@ -95,7 +95,7 @@ class RunS2Cloudless(luigi.Task):
     dilation_size = luigi.IntParameter(default=s2cl.DILATION_SIZE)
 
     def platform_id(self):
-        container = acquisitions(self.level1, acq_parser_hint=acq_parser_hint)
+        container = acquisitions(self.level1, acq_parser_hint=self.acq_parser_hint)
         sample_acq = container.get_all_acquisitions()[0]
         return sample_acq.platform_id
 
