@@ -99,6 +99,12 @@ class RunS2Cloudless(luigi.Task):
         sample_acq = container.get_all_acquisitions()[0]
         return sample_acq.platform_id
 
+    def complete(self):
+        if not self.platform_id().startswith("SENTINEL"):
+            return True
+
+        return super().complete()
+
     def output(self):
         if not self.platform_id().startswith("SENTINEL"):
             return None
