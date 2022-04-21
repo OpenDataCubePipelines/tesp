@@ -149,7 +149,7 @@ class S2Cloudless(luigi.Task):
         for granule in preliminary_acquisitions_data(self.level1, self.acq_parser_hint):
             yield RunS2Cloudless(
                 self.level1,
-                granule,
+                granule["id"],
                 self.workdir,
                 acq_parser_hint=self.acq_parser_hint,
                 threshold=self.threshold,
@@ -190,7 +190,7 @@ class RunFmask(luigi.Task):
             with out_fnames["metadata"].temporary_path() as out_fname2:
                 fmask(
                     self.level1,
-                    self.granule["id"],
+                    self.granule,
                     out_fname1,
                     out_fname2,
                     self.workdir,
