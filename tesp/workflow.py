@@ -366,7 +366,7 @@ class Package(luigi.Task):
             fmask_image_path=fmask_img_fname,
             fmask_doc_path=fmask_doc_fname,
             s2cloudless_prob_path=s2cloudless_prob_fname,
-            s2cloudless_mask_path=s2cloudless_prob_fname,
+            s2cloudless_mask_path=s2cloudless_mask_fname,
             s2cloudless_doc_path=s2cloudless_metadata_fname,
             gqa_doc_path=gqa_doc_fname,
             tesp_doc_path=tesp_doc_fname,
