@@ -23,7 +23,7 @@ from wagl.logs import TASK_LOGGER, STATUS_LOGGER
 
 from tesp.constants import ProductPackage
 from tesp.metadata import _get_tesp_metadata
-from tesp.package import package_non_standard
+from tesp.package import package_non_standard, write_stac_metadata
 
 from eugl.fmask import fmask
 from eugl import s2cl
@@ -275,6 +275,10 @@ class Package(luigi.Task):
     non_standard_packaging = luigi.BoolParameter()
     product_maturity = luigi.OptionalParameter(default="stable")
 
+    # STAC
+    stac_base_url = luigi.OptionalParameter(default="https://stac-url/")
+    explorer_base_url = luigi.OptionalParameter(default="https://explorer_base_url/")
+
     def requires(self):
         # Ensure configuration values are valid
         # self._validate_cfg()
@@ -382,6 +386,13 @@ class Package(luigi.Task):
                     product_maturity=self.product_maturity,
                     included_products=self.products,
                 )
+
+                if self.stac_base_url != "" and self.explorer_base_url != "":
+                    write_stac_metadata(
+                        md_path,
+                        self.stac_base_url,
+                        self.explorer_base_url
+                    )
 
             md[ds_id] = md_path
             STATUS_LOGGER.info(
