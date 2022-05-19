@@ -353,7 +353,9 @@ class Package(luigi.Task):
         if self.input()["s2cloudless"] is not None:
             s2cloudless_prob_fname = Path(self.input()["s2cloudless"]["cloud_prob"].path)
             s2cloudless_mask_fname = Path(self.input()["s2cloudless"]["cloud_mask"].path)
-            s2cloudless_metadata_fname = Path(self.input()["s2cloudless"]["metadata"].path)
+            s2cloudless_metadata_fname = Path(
+                self.input()["s2cloudless"]["metadata"].path
+            )
         else:
             s2cloudless_prob_fname = None
             s2cloudless_mask_fname = None
