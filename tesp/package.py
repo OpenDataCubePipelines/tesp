@@ -3,6 +3,7 @@
 
 from posixpath import join as ppjoin
 from pathlib import Path
+import json
 import numpy
 import h5py
 import rasterio
@@ -10,10 +11,12 @@ from rasterio.crs import CRS
 from affine import Affine
 from eodatasets3 import DatasetAssembler, images, utils
 import eodatasets3.wagl
-from eodatasets3.serialise import loads_yaml
+from eodatasets3.serialise import loads_yaml, from_path
+from eodatasets3.scripts.tostac import dc_to_stac, json_fallback
 from boltons.iterutils import get_path
 import shutil
 import numpy as np
+from datacube.utils import jsonify_document
 
 import yaml
 from yaml.representer import Representer
@@ -211,3 +214,27 @@ def package_non_standard(outdir, granule):
         # the longest part here is generating the valid data bounds vector
         # landsat 7 post SLC-OFF can take a really long time
         return da.done()
+
+
+def write_stac_metadata(input_metadata, pkgdir, stac_base_url, explorer_base_url):
+    dataset = from_path(input_metadata)
+    name = input_metadata.stem.replace(".odc-metadata", "")
+    output_path = input_metadata.with_name(f"{name}.stac-item.json")
+
+    assert str(input_metadata).startswith(pkgdir), f"was expecting {input_metadata} to start with {pkgdir}"
+    stac_url = stac_base_url.rstrip('/') + '/' + str(input_metadata)[len(pkgdir):].lstrip('/')
+
+    # Create STAC dict
+    item_doc = dc_to_stac(
+        dataset,
+        input_metadata,
+        output_path,
+        stac_url,
+        explorer_base_url,
+        do_validate=False,
+    )
+
+    with output_path.open("w") as f:
+        json.dump(jsonify_document(item_doc), f, indent=4, default=json_fallback)
+
+    return output_path
