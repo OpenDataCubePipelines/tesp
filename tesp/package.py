@@ -221,8 +221,12 @@ def write_stac_metadata(input_metadata, pkgdir, stac_base_url, explorer_base_url
     name = input_metadata.stem.replace(".odc-metadata", "")
     output_path = input_metadata.with_name(f"{name}.stac-item.json")
 
-    assert str(input_metadata).startswith(pkgdir), f"was expecting {input_metadata} to start with {pkgdir}"
-    stac_url = stac_base_url.rstrip('/') + '/' + str(input_metadata)[len(pkgdir):].lstrip('/')
+    assert str(input_metadata).startswith(
+        pkgdir
+    ), f"was expecting {input_metadata} to start with {pkgdir}"
+    stac_url = (
+        stac_base_url.rstrip("/") + "/" + str(input_metadata)[len(pkgdir) :].lstrip("/")
+    )
 
     # Create STAC dict
     item_doc = dc_to_stac(

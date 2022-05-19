@@ -391,10 +391,7 @@ class Package(luigi.Task):
 
                 if self.stac_base_url != "" and self.explorer_base_url != "":
                     write_stac_metadata(
-                        md_path,
-                        self.pkgdir,
-                        self.stac_base_url,
-                        self.explorer_base_url
+                        md_path, self.pkgdir, self.stac_base_url, self.explorer_base_url
                     )
 
             md[ds_id] = md_path
