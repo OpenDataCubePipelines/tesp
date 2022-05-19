@@ -276,8 +276,8 @@ class Package(luigi.Task):
     product_maturity = luigi.OptionalParameter(default="stable")
 
     # STAC
-    stac_base_url = luigi.OptionalParameter(default="https://stac-url/")
-    explorer_base_url = luigi.OptionalParameter(default="https://explorer_base_url/")
+    stac_base_url = luigi.OptionalParameter(default="")
+    explorer_base_url = luigi.OptionalParameter(default="")
 
     def requires(self):
         # Ensure configuration values are valid

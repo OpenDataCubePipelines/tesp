@@ -11,7 +11,7 @@ from rasterio.crs import CRS
 from affine import Affine
 from eodatasets3 import DatasetAssembler, images, utils
 import eodatasets3.wagl
-from eodatasets3.serialise import loads_yaml, load_yaml
+from eodatasets3.serialise import loads_yaml, from_path
 from eodatasets3.scripts.tostac import dc_to_stac, json_fallback
 from boltons.iterutils import get_path
 import shutil
@@ -217,11 +217,9 @@ def package_non_standard(outdir, granule):
 
 
 def write_stac_metadata(input_metadata, stac_base_url, explorer_base_url):
-    dataset = load_yaml(input_metadata)
+    dataset = from_path(input_metadata)
     name = input_metadata.stem.replace(".odc-metadata", "")
     output_path = input_metadata.with_name(f"{name}.stac-item.json")
-
-    raise ValueError(type(dataset))
 
     # Create STAC dict
     item_doc = dc_to_stac(
