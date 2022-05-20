@@ -338,11 +338,15 @@ class Package(luigi.Task):
             if self.yamls_dir is None or self.yamls_dir == "":
                 return None
 
-            level1_stem = Path(self.level1).stem
-            parent_dir = Path(self.level1).parent.name
-            return (
-                Path(self.yamls_dir) / parent_dir / (level1_stem + ".odc-metadata.yaml")
+            level1 = Path(self.level1)
+            result = (
+                Path(self.yamls_dir)
+                / level1.parent.parent.parent.name
+                / level1.parent.parent.name
+                / level1.parent.name
+                / (level1.stem + ".odc-metadata.yaml")
             )
+            return result
 
         # TODO; the package_file func can accept additional fnames for yamls etc
         wagl_fname = Path(self.input()["wagl"].path)
