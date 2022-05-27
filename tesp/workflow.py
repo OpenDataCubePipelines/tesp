@@ -346,6 +346,16 @@ class Package(luigi.Task):
                 / level1.parent.name
                 / (level1.stem + ".odc-metadata.yaml")
             )
+
+            if not result.is_file():
+                result = (
+                    Path(self.yamls_dir)
+                    / level1.parent.parent.parent.name
+                    / level1.parent.parent.name
+                    / level1.parent.name
+                    / (level1.stem + "." + self.granule + ".odc-metadata.yaml")
+                )
+
             return result
 
         # TODO; the package_file func can accept additional fnames for yamls etc
