@@ -10,6 +10,8 @@ from pathlib import Path
 import shutil
 import traceback
 import json
+from typing import Optional
+
 import yaml
 
 import luigi
@@ -334,11 +336,15 @@ class Package(luigi.Task):
         return luigi.LocalTarget(str(out_fname))
 
     def run(self):
-        def search_for_external_level1_metadata():
+        def search_for_external_level1_metadata() -> Optional[Path]:
             if self.yamls_dir is None or self.yamls_dir == "":
                 return None
 
             level1 = Path(self.level1)
+
+            # Level1 is in a three-level directory structure, and we mirror it in the yaml_dir
+            # like this:
+            #     '{yaml_dir}/2021/2021-02/25S150E-30S155E/{yaml}'
             result = (
                 Path(self.yamls_dir)
                 / level1.parent.parent.parent.name
@@ -347,13 +353,16 @@ class Package(luigi.Task):
                 / (level1.stem + ".odc-metadata.yaml")
             )
 
-            if not result.is_file():
-                result = (
-                    Path(self.yamls_dir)
-                    / level1.parent.parent.parent.name
-                    / level1.parent.parent.name
-                    / level1.parent.name
-                    / (level1.stem + "." + self.granule + ".odc-metadata.yaml")
+            # If a singular yaml doesn't exist, there could be separate granule yamls
+            if not result.exists():
+                result = result.with_name(f"{level1.stem}.{self.granule}.odc-metadata.yaml")
+
+            if not result.exists():
+                raise ValueError(
+                    "Could not find matching metadata for L1 in the given yaml directory."
+                    f"Tried with and without granule in path: {result.as_posix()!r} "
+                    f"for dataset {self.level1!r}. "
+                    f"(if you intended to use a sibling yaml file, don't specify a yaml directory)"
                 )
 
             return result
