@@ -12,6 +12,8 @@ from os.path import join as pjoin, dirname, exists
 from pathlib import Path
 import subprocess
 import uuid
+from typing import Set, Optional
+
 import click
 import math
 
@@ -106,47 +108,70 @@ def _calc_nodes_req(granule_count, walltime, workers, hours_per_granule=1.5):
     return int(math.ceil(float(hours_per_granule * granule_count) / (hours * workers)))
 
 
-def _get_project_for_path(path: Path):
+def _get_projects_for_path(path: Path) -> Set[str]:
     """
     Get the NCI project used to store the given path, if any.
-    >>> _get_project_for_path(Path('/g/data/v10/some/data/path.txt'))
-    'v10'
-    >>> _get_project_for_path(Path('/g/data4/fk4/some/data/path.txt'))
-    'fk4'
-    >>> _get_project_for_path(Path('/scratch/da82/path.txt'))
-    'da82'
-    >>> _get_project_for_path(Path('/tmp/other/data'))
+    >>> _get_projects_for_path(Path('/g/data/v10/some/data/path.txt'))
+    {'v10'}
+    >>> _get_projects_for_path(Path('/g/data4/fk4/some/data/path.txt'))
+    {'fk4'}
+    >>> _get_projects_for_path(Path('/scratch/da82/path.txt'))
+    {'da82'}
+    >>> _get_projects_for_path(Path('/tmp/other/data'))
+    {None}
+
+    Not an automatable test, but worked locally on laptop:
+
+    # mkdir -p /g/data/v10/some_test /g/data/rs0/other_test
+    # ln -s /g/data/v10/some_test /g/data/rs0/link_to_other_test
+    # >>> _get_projects_for_path(Path('/g/data/rs0/link_to_other_test'))
+    # {'v10', 'rs0'}
+
     """
-    posix_path = path.as_posix()
-    if posix_path.startswith('/g/data'):
-        return posix_path.split('/')[3]
-    if posix_path.startswith('/scratch/'):
-        return posix_path.split('/')[2]
-    return None
+
+    def _immediate_project(p: Path) -> Optional[str]:
+        posix_path = p.as_posix()
+        if posix_path.startswith("/g/data"):
+            return posix_path.split("/")[3]
+        if posix_path.startswith("/scratch/"):
+            return posix_path.split("/")[2]
+
+        return None
+
+    projects = {_immediate_project(path)}
+
+    # If it's a symlink, there may be another project that needs to be accessible.
+    physical_path = path.resolve()
+    if physical_path != path:
+        projects.add(_immediate_project(physical_path))
+
+    return projects
 
 
-def _filesystem_projects(level1_list: list,
-                         env: str,
-                         logdir: str,
-                         workdir: str,
-                         pkgdir: str):
+def _filesystem_projects(
+    input_paths_file: str, env: str, logdir: str, workdir: str, pkgdir: str
+) -> Set[str]:
     """
-    Collect all the filesystem projects into a set.
+    Collect the set of projects needed by the job.
+
+    (ie. all projects that will be touched on the filesystem, suitable
+    for the `storage=` param on PBS jobs)
+
     """
     fs_projects = {None}
 
-    fs_projects.add(_get_project_for_path(Path(workdir)))
-    fs_projects.add(_get_project_for_path(Path(logdir)))
-    fs_projects.add(_get_project_for_path(Path(pkgdir)))
-    fs_projects.add(_get_project_for_path(Path(env)))
-    fs_projects.add(_get_project_for_path(Path(click.__file__)))
+    fs_projects.update(_get_projects_for_path(Path(workdir)))
+    fs_projects.update(_get_projects_for_path(Path(logdir)))
+    fs_projects.update(_get_projects_for_path(Path(pkgdir)))
+    fs_projects.update(_get_projects_for_path(Path(env)))
+    fs_projects.update(_get_projects_for_path(Path(click.__file__)))
 
-    with open(level1_list, 'r') as src:
+    with open(input_paths_file, 'r') as src:
         paths = [p.strip() for p in src.readlines()]
 
-    for pathname in paths:
-        fs_projects.add(_get_project_for_path(Path(pathname)))
-    
+    for input_path in paths:
+        fs_projects.update(_get_projects_for_path(Path(input_path)))
+
     fs_projects.remove(None)
 
     return fs_projects
