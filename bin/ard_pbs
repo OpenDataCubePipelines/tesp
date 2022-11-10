@@ -12,7 +12,7 @@ from os.path import join as pjoin, dirname, exists
 from pathlib import Path
 import subprocess
 import uuid
-from typing import Set, Optional
+from typing import Set, Optional, Union
 
 import click
 import math
@@ -149,7 +149,7 @@ def _get_projects_for_path(path: Path) -> Set[str]:
 
 
 def _filesystem_projects(
-    input_paths_file: str, env: str, logdir: str, workdir: str, pkgdir: str
+    input_paths_file: str, *other_paths: Union[str, Path]
 ) -> Set[str]:
     """
     Collect the set of projects needed by the job.
@@ -160,12 +160,14 @@ def _filesystem_projects(
     """
     fs_projects = {None}
 
-    fs_projects.update(_get_projects_for_path(Path(workdir)))
-    fs_projects.update(_get_projects_for_path(Path(logdir)))
-    fs_projects.update(_get_projects_for_path(Path(pkgdir)))
-    fs_projects.update(_get_projects_for_path(Path(env)))
+    # The current code needs to be accessible.
     fs_projects.update(_get_projects_for_path(Path(click.__file__)))
 
+    for path in other_paths:
+        if path is not None:
+            fs_projects.update(_get_projects_for_path(Path(path)))
+
+    # All input paths
     with open(input_paths_file, 'r') as src:
         paths = [p.strip() for p in src.readlines()]
 
@@ -385,8 +387,16 @@ def main(level1_list, workdir, logdir, pkgdir, yamls_dir, env, workers, nodes, m
     batch_logdir = pjoin(logdir, FMT1.format(batchid=batchid))
     batch_outdir = pjoin(workdir, FMT1.format(batchid=batchid))
 
-    fs_projects = _filesystem_projects(level1_list, env, logdir, workdir,
-                                       pkgdir)
+    # Get a list of needed NCI projects, so that we can request access to their storage.
+    fs_projects = _filesystem_projects(
+        level1_list,
+        # All other paths we expect the job to touch.
+        env,
+        logdir,
+        workdir,
+        pkgdir,
+        yamls_dir
+    )
     fsys_projects = '+'.join([FMT7.format(f_project=f) for f in fs_projects])
 
     # optionally set pbs email string
