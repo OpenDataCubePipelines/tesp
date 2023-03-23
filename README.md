@@ -34,4 +34,4 @@ invoke it manually by running `pre-commit run`
 
 Module creation
 ----------------
-The tesp code is part of the ard-pipeline module. Instructions and code to build this module are stored in the [dea-wagl-docker](https://bitbucket.org/geoscienceaustralia/dea-wagl-docker/src/master/ard-pipeline/) repository.
+The tesp code is built in to the ard-pipeline module.  This module is used to generate ARD on NCI. Instructions and code to build this module are stored in the [dea-wagl-docker](https://bitbucket.org/geoscienceaustralia/dea-wagl-docker/src/master/ard-pipeline/) repository.
