@@ -4,6 +4,7 @@ OpenDataCubePipeline is the code for the DEA's Optical ARD processing of the fol
  * Landsat 5
  * Landsat 7
  * Landsat 8
+ * Landsat 9
  * Sentinel 2A
  * Sentinel 2B
 
@@ -30,3 +31,7 @@ Now install the pre-commit hook to the current repository:
 
 Your code will now be formatted and validated before each commit. You can also
 invoke it manually by running `pre-commit run`
+
+Module creation
+----------------
+The tesp code is built into the ard-pipeline module.  This module is used to generate ARD on NCI. Instructions and code to build this module are stored in the [dea-wagl-docker](https://bitbucket.org/geoscienceaustralia/dea-wagl-docker/src/master/ard-pipeline/) repository.
