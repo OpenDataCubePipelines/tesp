@@ -39,6 +39,11 @@ source {env}
 luigi --module tesp.workflow ARDP --level1-list {scene_list} --workdir {outdir} --pkgdir {pkgdir} --yamls-dir="{yamls_dir}" --workers {workers} --parallel-scheduling
 """)
 
+CLEAN_UP_TEMPLATE = ("""
+# clean up workdir since we don't need it afterwards, even if the processing has failed
+rm -rf {outdir}
+""")
+
 SUMMARY_TEMPLATE = ("""{pbs_resources}
 #PBS -W depend=afterany:{jobids}
 
@@ -181,7 +186,7 @@ def _filesystem_projects(
 
 # pylint: disable=too-many-arguments
 def _submit_multiple(scattered, env, batch_logdir, batch_outdir, pkgdir, yamls_dir,
-                     workers, pbs_resources, test):
+                     workers, pbs_resources, cleanup, test):
     """Submit multiple PBS formatted jobs."""
 
     nci_job_ids = []
@@ -207,6 +212,9 @@ def _submit_multiple(scattered, env, batch_logdir, batch_outdir, pkgdir, yamls_d
                                    daemon=DAEMON_FMT.format(jobdir),
                                    scene_list=out_fname, outdir=job_outdir,
                                    pkgdir=pkgdir, yamls_dir=yamls_dir, workers=workers)
+
+        if cleanup:
+            pbs += CLEAN_UP_TEMPLATE.format(outdir=job_outdir)
 
         # write pbs script
         out_fname = pjoin(jobdir, FMT4.format(jobid=jobid))
@@ -366,13 +374,15 @@ def _submit_archive(indir, outdir, archive_list, batch_id, pbs_resources, env, t
               help="Datacube specific environment script to source.")
 @click.option("--archive-list", type=click.Path(exists=True, readable=True),
               help="UUID's of the scenes to archive.  This uses the environment specified in index-datacube-env.")
+@click.option("--cleanup", default=False, is_flag=True,
+              help=("Clean-up work directory afterwards."))
 
 @click.option("--test", default=False, is_flag=True,
               help=("Test job execution (Don't submit the job to the "
                     "PBS queue)."))
 # pylint: disable=too-many-arguments
 def main(level1_list, workdir, logdir, pkgdir, yamls_dir, env, workers, nodes, memory,
-         jobfs, project, queue, walltime, email, index_datacube_env, archive_list, test):
+         jobfs, project, queue, walltime, email, index_datacube_env, archive_list, cleanup, test):
     """
     Equally partition a list of scenes across n nodes and submit
     n jobs into the PBS queue for ARD processing.
@@ -413,7 +423,7 @@ def main(level1_list, workdir, logdir, pkgdir, yamls_dir, env, workers, nodes, m
 
     click.echo("Executing Batch: {}".format(batchid))
     nci_job_ids = _submit_multiple(scattered, env, batch_logdir, batch_outdir,
-                                   pkgdir, yamls_dir, workers, pbs_resources, test)
+                                   pkgdir, yamls_dir, workers, pbs_resources, cleanup, test)
 
     # job resources for batch summary
     pbs_resources = PBS_RESOURCES.format(project=project, queue='express',
