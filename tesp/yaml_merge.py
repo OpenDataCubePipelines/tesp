@@ -63,7 +63,6 @@ def merge_metadata(
 
     # for Landsat, from_dt and to_dt in ARD-METADATA is populated from max and min timedelta values
     if platform == "LANDSAT":
-
         # pylint: disable=too-many-function-args
         def interpret_landsat_temporal_extent():
             """

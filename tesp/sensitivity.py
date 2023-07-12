@@ -611,7 +611,6 @@ def merge_images(left, right, target):
     with h5py.File(target) as target_fid, h5py.File(
         left_filename, "r"
     ) as left_fid, h5py.File(right_filename, "r") as right_fid:
-
         if len(left_fid) != 1 or len(right_fid) != 1:
             raise ValueError("multiple granules not supported")
 
@@ -644,7 +643,6 @@ def merge_images(left, right, target):
 
 
 def experiment_summary(l2_path, fmask_path, granule, tag, settings):
-
     with rasterio.open(fmask_path) as mask_file:
         fmask = mask_file.read(1)
 
@@ -665,7 +663,6 @@ def experiment_summary(l2_path, fmask_path, granule, tag, settings):
     ]
 
     with h5py.File(l2_path) as h5:
-
         dataset = h5[granule]
         date = dataset[GroupName.ATMOSPHERIC_INPUTS_GRP.value].attrs[
             "acquisition-datetime"

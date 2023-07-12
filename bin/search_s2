@@ -5,7 +5,7 @@
 Query available S2 L1C data for an area of interest of target input zip archives
 
 example usage:
-   
+
     python search_s2.py --bounds 111 156 -45 -8 --date_start 01/11/2015 --date_stop 01/12/2015
     --product s2a_level1c_granule --config ~/.aws_datacube.conf --output /g/data/v10/tmp/output.txt
 """
@@ -39,7 +39,7 @@ def main(output, bounds, date_start, date_stop, config, product):
 
     filename = product+'_'+str(bounds[0])+'_'+str(bounds[1])+'_'+str(bounds[2])+'_'+str(bounds[3])+'_'+str(date_start).replace(' ', '')+'_'+str(date_stop).replace(' ', '')+'.txt'
     outfile = os.path.join(output, filename)
-    
+
     query = datacube.api.query.Query(product=product, time=Range(date_start, date_stop), longitude=(bounds[0], bounds[1]), latitude=(bounds[2], bounds[3]))
     logging.info("Search results output to %s", outfile)
     data = dc.index.datasets.search_eager(**query.search_terms)

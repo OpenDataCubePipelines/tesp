@@ -403,7 +403,6 @@ class Package(luigi.Task):
             tesp_doc_path=tesp_doc_fname,
             level1_metadata_path=search_for_external_level1_metadata(),
         ):
-
             if self.non_standard_packaging:
                 ds_id, md_path = package_non_standard(Path(self.pkgdir), eods_granule)
             else:
