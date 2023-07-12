@@ -48,11 +48,11 @@ def retrieve_status(fname, task_name):
         how="left",
         left_on="id",
         right_on="task_id",
-        suffixes=["_{}".format(task_name), "_events"],
+        suffixes=[f"_{task_name}", "_events"],
     )
 
     # final status for each DataStandardisation Task
-    final_status = status.drop_duplicates("id_{}".format(task_name), keep="last")
+    final_status = status.drop_duplicates(f"id_{task_name}", keep="last")
 
     # get the DONE, FAILED & PENDING Tasks
     # (if the task status is PENDING:
@@ -65,16 +65,16 @@ def retrieve_status(fname, task_name):
     running = final_status[final_status.event_name == "RUNNING"]
 
     l1_done = done.merge(
-        l1_granules, how="left", right_on="task_id", left_on="id_{}".format(task_name)
+        l1_granules, how="left", right_on="task_id", left_on=f"id_{task_name}"
     )
     l1_fail = fail.merge(
-        l1_granules, how="left", right_on="task_id", left_on="id_{}".format(task_name)
+        l1_granules, how="left", right_on="task_id", left_on=f"id_{task_name}"
     )
     l1_pending = pending.merge(
-        l1_granules, how="left", right_on="task_id", left_on="id_{}".format(task_name)
+        l1_granules, how="left", right_on="task_id", left_on=f"id_{task_name}"
     )
     l1_running = running.merge(
-        l1_granules, how="left", right_on="task_id", left_on="id_{}".format(task_name)
+        l1_granules, how="left", right_on="task_id", left_on=f"id_{task_name}"
     )
 
     return l1_done, l1_fail, l1_pending, l1_running

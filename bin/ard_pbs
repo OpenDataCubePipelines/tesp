@@ -110,7 +110,7 @@ def _calc_nodes_req(granule_count, walltime, workers, hours_per_granule=1.5):
     3
     """
 
-    hours, _, _ = [int(x) for x in walltime.split(":")]
+    hours, _, _ = (int(x) for x in walltime.split(":"))
     return int(math.ceil(float(hours_per_granule * granule_count) / (hours * workers)))
 
 
@@ -174,7 +174,7 @@ def _filesystem_projects(
             fs_projects.update(_get_projects_for_path(Path(path)))
 
     # All input paths
-    with open(input_paths_file, "r") as src:
+    with open(input_paths_file) as src:
         paths = [p.strip() for p in src.readlines()]
 
     for input_path in paths:
@@ -239,12 +239,12 @@ def _submit_multiple(
             src.write(pbs)
 
         if test:
-            click.echo("Mocking... Submitting Job: {} ...Mocking".format(jobid))
-            click.echo("qsub {}".format(out_fname))
+            click.echo(f"Mocking... Submitting Job: {jobid} ...Mocking")
+            click.echo(f"qsub {out_fname}")
             continue
 
         os.chdir(dirname(out_fname))
-        click.echo("Submitting Job: {}".format(jobid))
+        click.echo(f"Submitting Job: {jobid}")
         try:
             raw_output = subprocess.check_output(["qsub", out_fname])
         except subprocess.CalledProcessError as exc:
@@ -280,14 +280,12 @@ def _submit_summary(indir, outdir, batch_id, pbs_resources, env, job_ids, test):
         src.write(pbs)
 
     if test:
-        click.echo(
-            "Mocking... Submitting Summary Job for batch: {} ...Mocking".format(batch_id)
-        )
-        click.echo("qsub {}".format(out_fname))
+        click.echo(f"Mocking... Submitting Summary Job for batch: {batch_id} ...Mocking")
+        click.echo(f"qsub {out_fname}")
         return
 
     os.chdir(dirname(out_fname))
-    click.echo("Submitting Summary Job for batch: {}".format(batch_id))
+    click.echo(f"Submitting Summary Job for batch: {batch_id}")
     try:
         raw_output = subprocess.check_output(["qsub", out_fname])
     except subprocess.CalledProcessError as exc:
@@ -323,13 +321,11 @@ def _submit_index(indir, outdir, batch_id, pbs_resources, env, job_id, test):
         src.write(pbs)
 
     if test:
-        click.echo(
-            "Mocking... Submitting Indexing Job for batch: {} ...Mocking".format(batch_id)
-        )
+        click.echo(f"Mocking... Submitting Indexing Job for batch: {batch_id} ...Mocking")
         return
 
     os.chdir(dirname(out_fname))
-    click.echo("Submitting Indexing Job for batch: {}".format(batch_id))
+    click.echo(f"Submitting Indexing Job for batch: {batch_id}")
     try:
         raw_output = subprocess.check_output(["qsub", out_fname])
     except subprocess.CalledProcessError as exc:
@@ -368,7 +364,7 @@ def _submit_archive(indir, outdir, archive_list, batch_id, pbs_resources, env, t
         return
 
     os.chdir(dirname(out_fname))
-    click.echo("Submitting Archiving Job for batch: {}".format(batch_id))
+    click.echo(f"Submitting Archiving Job for batch: {batch_id}")
     try:
         raw_output = subprocess.check_output(["qsub", out_fname])
     except subprocess.CalledProcessError as exc:
@@ -475,7 +471,7 @@ def main(
     Equally partition a list of scenes across n nodes and submit
     n jobs into the PBS queue for ARD processing.
     """
-    with open(level1_list, "r") as src:
+    with open(level1_list) as src:
         scenes = src.readlines()
     if nodes == 0:
         nodes = _calc_nodes_req(len(scenes), walltime, workers)
@@ -510,11 +506,11 @@ def main(
     )
 
     if test:
-        click.echo("Mocking... Submitting Batch: {} ...Mocking".format(batchid))
+        click.echo(f"Mocking... Submitting Batch: {batchid} ...Mocking")
     else:
-        click.echo("Submitting Batch: {}".format(batchid))
+        click.echo(f"Submitting Batch: {batchid}")
 
-    click.echo("Executing Batch: {}".format(batchid))
+    click.echo(f"Executing Batch: {batchid}")
     nci_job_ids = _submit_multiple(
         scattered,
         env,

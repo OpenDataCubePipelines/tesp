@@ -316,10 +316,8 @@ def unpack(input_target, outdir):
         # human readable band name
         band_name = dataset.attrs["alias"]
 
-        out_file = pjoin(outdir, "{}_{}.tif".format(product_name, band_name))
-        count_file = pjoin(
-            outdir, "{}_{}_valid_pixel_count.tif".format(product_name, band_name)
-        )
+        out_file = pjoin(outdir, f"{product_name}_{band_name}.tif")
+        count_file = pjoin(outdir, f"{product_name}_{band_name}_valid_pixel_count.tif")
         nodata = dataset.attrs.get("no_data_value")
         geobox = GriddedGeoBox.from_dataset(dataset)
 

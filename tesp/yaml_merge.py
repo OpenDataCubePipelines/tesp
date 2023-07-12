@@ -1,9 +1,7 @@
-# coding=utf-8
 """
 Preparation code supporting merge of target Analysis Ready Data yaml metadata document
 and the source Level 1 yaml
 """  # nopep8
-from __future__ import absolute_import
 
 import os
 import uuid
@@ -79,10 +77,10 @@ def merge_metadata(
             )
 
             level2_extent = {
-                "center_dt": "{}Z".format(center_dt),
+                "center_dt": f"{center_dt}Z",
                 "coord": level1_tags["extent"]["coord"],
-                "from_dt": "{}Z".format(from_dt),
-                "to_dt": "{}Z".format(to_dt),
+                "from_dt": f"{from_dt}Z",
+                "to_dt": f"{to_dt}Z",
             }
 
             return level2_extent
