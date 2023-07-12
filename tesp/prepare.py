@@ -1,18 +1,18 @@
+import tempfile
 from pathlib import Path
+from typing import Dict
 
-from eodatasets.prepare.ls_usgs_l1_prepare import prepare_dataset as landsat_prepare
-from eodatasets.prepare.s2_prepare_cophub_zip import (
-    prepare_dataset as sentinel_2_zip_prepare,
-)
-from eodatasets.prepare.s2_l1c_aws_pds_prepare import (
-    prepare_dataset as sentinel_2_aws_pds_prepare,
-)
+from eodatasets3 import serialise
+from eodatasets3.prepare.landsat_l1_prepare import prepare_and_write as ls_prepare
+from eodatasets3.prepare.sentinel_l1_prepare import prepare_and_write as s2_prepare
+from wagl.acquisition import Acquisition
 
 
-def extract_level1_metadata(acq):
+def extract_level1_metadata(acq: Acquisition) -> Dict:
     """
     Factory method for selecting a level1 metadata script
 
+    Returns the serialisable yaml document(s). Dict, or list of dicts.
     """
     # Optional (not installed yet on Travis)
     # pytest: disable=import-error
@@ -22,14 +22,26 @@ def extract_level1_metadata(acq):
     )
     from wagl.acquisition.landsat import LandsatAcquisition
 
-    if isinstance(acq, _Sentinel2SinergiseAcquisition):
-        return sentinel_2_aws_pds_prepare(Path(acq.pathname))
-    elif isinstance(acq, Sentinel2Acquisition):
-        return sentinel_2_zip_prepare(Path(acq.pathname))
-    elif isinstance(acq, LandsatAcquisition):
-        return landsat_prepare(Path(acq.pathname))
+    with tempfile.TemporaryDirectory() as tmpdir:
+        yaml_path = Path(tmpdir) / "level1.yaml"
 
-    raise NotImplementedError(
-        "No level-1 YAML generation defined for target acquisition "
-        "and no yaml_dir defined for level-1 metadata"
-    )
+        if isinstance(acq, _Sentinel2SinergiseAcquisition):
+            dataset_doc, path = s2_prepare(
+                acq.pathname, yaml_path, producer="sinergise.com", embed_location=True
+            )
+        elif isinstance(acq, Sentinel2Acquisition):
+            dataset_doc, path = s2_prepare(
+                acq.pathname, yaml_path, producer="esa.int", embed_location=True
+            )
+        elif isinstance(acq, LandsatAcquisition):
+            uuid, path = ls_prepare(
+                acq.pathname, yaml_path, producer="usgs.gov", embed_location=True
+            )
+            dataset_doc = serialise.from_path(path, skip_validation=True)
+        else:
+            raise NotImplementedError(
+                "No level-1 YAML generation defined for target acquisition "
+                "and no yaml_dir defined for level-1 metadata"
+            )
+
+        return serialise.to_doc(dataset_doc)
