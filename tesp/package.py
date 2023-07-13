@@ -71,9 +71,9 @@ def package_non_standard(outdir, granule):
             granule_group = fid[granule.name]
 
             try:
-                wagl_path, *ancil_paths = [
+                wagl_path, *ancil_paths = (
                     pth for pth in find(granule_group, "SCALAR") if "METADATA" in pth
-                ]
+                )
             except ValueError:
                 raise ValueError("No nbar metadata found in granule")
 
@@ -96,7 +96,7 @@ def package_non_standard(outdir, granule):
             eodatasets3.wagl._read_fmask_doc(da, granule.fmask_doc)
 
             with rasterio.open(fmask_img) as ds:
-                fmask_layer = "/{}/OA_FMASK/oa_fmask".format(granule.name)
+                fmask_layer = f"/{granule.name}/OA_FMASK/oa_fmask"
                 data = ds.read(1)
                 fmask_ds = f.create_dataset(
                     fmask_layer, data=data, compression="lzf", shuffle=True
@@ -127,7 +127,7 @@ def package_non_standard(outdir, granule):
                     grid_spec,
                     pathname,
                     fmask_ds[:],
-                    layer="/{}".format(fmask_layer),
+                    layer=f"/{fmask_layer}",
                     nodata=no_data,
                     expand_valid_data=False,
                 )
@@ -147,7 +147,7 @@ def package_non_standard(outdir, granule):
                 if "STANDARDISED-PRODUCTS" in str(ds_path):
                     product_group = ds_path.parent.name
                 elif "INTERPOLATED-ATMOSPHERIC-COEFFICIENTS" in str(ds_path):
-                    product_group = "oa_{}".format(ds_path.parent.name)
+                    product_group = f"oa_{ds_path.parent.name}"
                 else:
                     product_group = "oa"
 
@@ -193,7 +193,7 @@ def package_non_standard(outdir, granule):
                         grid_spec,
                         pathname,
                         out_ds[:],
-                        layer="/{}".format(out_ds.name),
+                        layer=f"/{out_ds.name}",
                         nodata=no_data,
                         expand_valid_data=include,
                     )
@@ -206,7 +206,7 @@ def package_non_standard(outdir, granule):
                         grid_spec,
                         pathname,
                         ds[:],
-                        layer="/{}".format(ds.name),
+                        layer=f"/{ds.name}",
                         nodata=no_data,
                         expand_valid_data=include,
                     )

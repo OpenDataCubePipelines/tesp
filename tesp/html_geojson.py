@@ -1,9 +1,7 @@
-# coding=utf-8
 """
 Execution method for creation of map.html and bounding geojson:
     python html_geojson.py ALLBANDS_20m.contiguity.img
 """
-from __future__ import absolute_import
 import os
 import logging
 import json
@@ -118,7 +116,7 @@ def html_map(contiguity_fname, html_out_fname, json_out_fname):
     def style_function(*args):
         return {"fillColor": None, "color": "#0000ff"}
 
-    with open(json_out_fname, "r") as src:
+    with open(json_out_fname) as src:
         # Manual handling of json load for multi-version support of folium
         _geojson = json.load(src)
         GeoJson(_geojson, name="bounds.geojson", style_function=style_function).add_to(m)

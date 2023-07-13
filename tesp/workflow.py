@@ -111,15 +111,9 @@ class RunS2Cloudless(luigi.Task):
         if not self.platform_id().startswith("SENTINEL"):
             return None
 
-        prob_out_fname = pjoin(
-            self.workdir, "{}.prob.s2cloudless.tif".format(self.granule)
-        )
-        mask_out_fname = pjoin(
-            self.workdir, "{}.mask.s2cloudless.tif".format(self.granule)
-        )
-        metadata_out_fname = pjoin(
-            self.workdir, "{}.s2cloudless.yaml".format(self.granule)
-        )
+        prob_out_fname = pjoin(self.workdir, f"{self.granule}.prob.s2cloudless.tif")
+        mask_out_fname = pjoin(self.workdir, f"{self.granule}.mask.s2cloudless.tif")
+        metadata_out_fname = pjoin(self.workdir, f"{self.granule}.s2cloudless.yaml")
 
         out_fnames = {
             "cloud_prob": luigi.LocalTarget(prob_out_fname),
@@ -193,8 +187,8 @@ class RunFmask(luigi.Task):
     acq_parser_hint = luigi.OptionalParameter(default="")
 
     def output(self):
-        out_fname1 = pjoin(self.workdir, "{}.fmask.img".format(self.granule))
-        out_fname2 = pjoin(self.workdir, "{}.fmask.yaml".format(self.granule))
+        out_fname1 = pjoin(self.workdir, f"{self.granule}.fmask.img")
+        out_fname2 = pjoin(self.workdir, f"{self.granule}.fmask.yaml")
 
         out_fnames = {
             "image": luigi.LocalTarget(out_fname1),
@@ -331,7 +325,7 @@ class Package(luigi.Task):
         # create a text file to act as a completion target
         # this could be changed to be a database record
         parent_dir = Path(self.workdir).parent
-        out_fname = parent_dir.joinpath("{}.completed".format(self.granule))
+        out_fname = parent_dir.joinpath(f"{self.granule}.completed")
 
         return luigi.LocalTarget(str(out_fname))
 
@@ -386,7 +380,7 @@ class Package(luigi.Task):
             s2cloudless_mask_fname = None
             s2cloudless_metadata_fname = None
 
-        tesp_doc_fname = Path(self.workdir) / "{}.tesp.yaml".format(self.granule)
+        tesp_doc_fname = Path(self.workdir) / f"{self.granule}.tesp.yaml"
         with tesp_doc_fname.open("w") as src:
             yaml.safe_dump(_get_tesp_metadata(), src)
 
@@ -403,7 +397,6 @@ class Package(luigi.Task):
             tesp_doc_path=tesp_doc_fname,
             level1_metadata_path=search_for_external_level1_metadata(),
         ):
-
             if self.non_standard_packaging:
                 ds_id, md_path = package_non_standard(Path(self.pkgdir), eods_granule)
             else:
@@ -443,7 +436,7 @@ class Package(luigi.Task):
 
 def list_packages(workdir, acq_parser_hint, pkgdir, yamls_dir):
     def worker(level1):
-        work_root = pjoin(workdir, "{}.ARD".format(basename(level1)))
+        work_root = pjoin(workdir, f"{basename(level1)}.ARD")
 
         result = []
         for granule in preliminary_acquisitions_data(level1, acq_parser_hint):
