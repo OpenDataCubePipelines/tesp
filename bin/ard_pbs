@@ -357,9 +357,7 @@ def _submit_archive(indir, outdir, archive_list, batch_id, pbs_resources, env, t
 
     if test:
         click.echo(
-            "Mocking... Submitting Archiving Job for batch: {} ...Mocking".format(
-                batch_id
-            )
+            f"Mocking... Submitting Archiving Job for batch: {batch_id} ...Mocking"
         )
         return
 
