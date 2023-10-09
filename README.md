@@ -1,3 +1,6 @@
+
+*Note*: This repository has been archived and now exists within [ard-pipeline](https://github.com/OpenDataCubePipelines/ard-pipeline).
+
 # tesp [![Build Status](https://travis-ci.org/OpenDataCubePipelines/tesp.svg?branch=master)](https://travis-ci.org/OpenDataCubePipelines/tesp)
 
 OpenDataCubePipeline is the code for the DEA's Optical ARD processing of the following satellites:
